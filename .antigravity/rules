@@ -1,0 +1,65 @@
+# Reglas del Proyecto ERP RR
+# Estas reglas aplican a TODOS los chats que trabajen en este proyecto.
+
+## PROTOCOLO OBLIGATORIO — Leer antes de cualquier acción
+
+### Paso 1: Orientación (al iniciar un chat nuevo)
+- Leer `docs/ARCHITECTURE.md` para entender el stack, la estructura y las convenciones
+- Leer `docs/SYSTEM_STATE.md` para saber qué está hecho y qué no
+- NO empezar a codificar sin haber leído ambos archivos
+
+### Paso 2: Plan antes de codificar
+- SIEMPRE presentar al usuario un plan de lo que se va a hacer antes de escribir código
+- El plan debe incluir: qué archivos se crean/modifican y por qué
+- ESPERAR la aprobación explícita del usuario antes de proceder
+
+### Paso 3: Durante el desarrollo
+- Cada módulo SOLO modifica archivos dentro de `src/modules/<nombre>/` y `src/app/(dashboard)/<nombre>/`
+- Para crear un componente reutilizable global → va en `src/components/shared/`
+- ANTES de crear cualquier componente, función o servicio → revisar `src/components/shared/` para ver si ya existe
+- NUNCA instalar dependencias nuevas sin verificar que no haya alternativa ya instalada
+- SIEMPRE tipar con TypeScript y validar con Zod
+- SIEMPRE usar Prisma para acceso a BD (no SQL directo ni Supabase client para CRUD)
+
+### Paso 4: Al finalizar
+- Actualizar `docs/SYSTEM_STATE.md` marcando lo que se completó
+- Si se creó algún componente shared nuevo, agregarlo a la tabla de componentes en SYSTEM_STATE.md
+
+## Reglas técnicas
+
+### Estructura de Server Actions
+```typescript
+// Siempre retornar este formato:
+return { success: true, data: resultado }
+return { success: false, error: "Mensaje de error legible" }
+```
+
+### Manejo de errores
+- NUNCA exponer errores de Prisma/Supabase crudos al frontend
+- SIEMPRE envolver llamadas a BD en try/catch
+- Loggear errores en servidor, mostrar mensaje amigable al usuario
+
+### Convenciones de nomenclatura
+- Archivos: kebab-case → `cliente-form.tsx`
+- Componentes: PascalCase → `ClienteForm`
+- Variables/funciones: camelCase → `obtenerClientes`
+- Server Actions: verbos en español → `crearCliente`, `actualizarPresupuesto`
+
+### Rutas de la app
+- Todas las páginas del ERP viven dentro del grupo `(dashboard)`
+- Las páginas de auth viven dentro del grupo `(auth)`
+- No crear rutas fuera de estos grupos
+
+## Módulos y sus responsabilidades
+
+| Chat | Carpeta módulo | Carpeta app |
+|---|---|---|
+| Chat 0 | `src/components/shared/` | `src/app/(dashboard)/layout.tsx` |
+| Chat 1 | `src/modules/clientes/` | `src/app/(dashboard)/clientes/` |
+| Chat 2 | `src/modules/mediciones/` | `src/app/(dashboard)/mediciones/` |
+| Chat 3 | `src/modules/presupuestos/` | `src/app/(dashboard)/presupuestos/` |
+| Chat 4 | `src/modules/comandas/` | `src/app/(dashboard)/comandas/` + `produccion/` |
+| Chat 5 | `src/modules/stock/` | `src/app/(dashboard)/stock/` |
+| Chat 6 | `src/modules/proveedores/` | `src/app/(dashboard)/proveedores/` |
+| Chat 7 | `src/modules/instalaciones/` | `src/app/(dashboard)/instalaciones/` |
+| Chat 8 | `src/modules/metricas/` | `src/app/(dashboard)/metricas/` |

@@ -1,0 +1,24 @@
+{
+  "name": "ERP RR — App Medición",
+  "short_name": "Mediciones RR",
+  "description": "Aplicación de toma de medidas y relevamiento en obra para toldos y cortinas",
+  "start_url": "/mediciones",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/globe.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/globe.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

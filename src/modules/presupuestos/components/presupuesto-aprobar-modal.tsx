@@ -1,0 +1,344 @@
+"use client"
+
+import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
+import {
+  X,
+  CheckCircle2,
+  CheckCheck,
+  Send,
+  XCircle,
+  FileEdit,
+  Loader2,
+  Check,
+  AlertCircle,
+} from "lucide-react"
+import type { EstadoPresupuesto } from "@/types"
+import type { IPresupuestoDetalle } from "../types"
+import { cambiarEstadoPresupuesto } from "../actions"
+import { formatearPrecio } from "@/lib/utils"
+
+interface PresupuestoAprobarModalProps {
+  abierto: boolean
+  onCerrar: () => void
+  presupuesto: IPresupuestoDetalle
+}
+
+export function PresupuestoAprobarModal({
+  abierto,
+  onCerrar,
+  presupuesto,
+}: PresupuestoAprobarModalProps) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+
+  const [estadoSeleccionado, setEstadoSeleccionado] = useState<EstadoPresupuesto>(
+    presupuesto.estado === "BORRADOR" ? "ENVIADO" : "ACEPTADO_TOTAL"
+  )
+
+  // Para aceptación parcial: array de IDs de ítems tildados
+  const [itemsAceptados, setItemsAceptados] = useState<string[]>(() => {
+    // Si ya tiene ítems aceptados previamente, conservarlos; si no, todos tildados por defecto
+    const previamentAceptados = presupuesto.items
+      .filter((it) => it.aceptado)
+      .map((it) => it.id)
+    return previamentAceptados.length > 0
+      ? previamentAceptados
+      : presupuesto.items.map((it) => it.id)
+  })
+
+  function toggleItem(id: string) {
+    setItemsAceptados((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    )
+  }
+
+  function seleccionarTodos() {
+    setItemsAceptados(presupuesto.items.map((it) => it.id))
+  }
+
+  function deseleccionarTodos() {
+    setItemsAceptados([])
+  }
+
+  // Cálculo en vivo de total parcial
+  const itemsAceptadosDetalle = presupuesto.items.filter((it) =>
+    itemsAceptados.includes(it.id)
+  )
+  const subtotalParcial = itemsAceptadosDetalle.reduce(
+    (acc, it) => acc + it.subtotal,
+    0
+  )
+  const totalParcial = Math.round(
+    subtotalParcial * (1 - presupuesto.descuento / 100)
+  )
+
+  async function handleConfirmar() {
+    setError(null)
+
+    if (estadoSeleccionado === "ACEPTADO_PARCIAL" && itemsAceptados.length === 0) {
+      setError("Debés tildar al menos una cortina para la aceptación parcial.")
+      return
+    }
+
+    startTransition(async () => {
+      const res = await cambiarEstadoPresupuesto({
+        id: presupuesto.id,
+        estado: estadoSeleccionado,
+        itemsAceptadosIds:
+          estadoSeleccionado === "ACEPTADO_PARCIAL" ? itemsAceptados : undefined,
+      })
+
+      if (!res.success) {
+        setError(res.error || "Ocurrió un error al actualizar el estado.")
+        return
+      }
+
+      router.refresh()
+      onCerrar()
+    })
+  }
+
+  if (!abierto) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
+      <div className="relative w-full max-w-xl rounded-2xl bg-white shadow-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+        {/* Encabezado */}
+        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-6 py-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900">
+                Gestionar Ciclo y Aprobación
+              </h3>
+              <p className="text-xs text-slate-500">
+                Actualizá el estado comercial del presupuesto #PRE-
+                {String(presupuesto.numero).padStart(4, "0")}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onCerrar}
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Contenido */}
+        <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+          {error && (
+            <div className="flex items-center gap-2 rounded-xl bg-rose-50 p-3 text-xs font-semibold text-rose-700 border border-rose-200">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Opciones de Estado */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Seleccionar Nuevo Estado
+            </label>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {/* ENVIADO */}
+              <button
+                type="button"
+                onClick={() => setEstadoSeleccionado("ENVIADO")}
+                className={`flex items-start gap-3 rounded-xl border p-3 text-left transition ${
+                  estadoSeleccionado === "ENVIADO"
+                    ? "border-blue-500 bg-blue-50/60 ring-2 ring-blue-500/20"
+                    : "border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                <Send className="h-4 w-4 text-blue-600 mt-0.5" />
+                <div>
+                  <span className="text-xs font-bold text-slate-900 block">
+                    Presupuesto Enviado
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    En negociación. Actualiza el cliente a PRESUPUESTO_ENVIADO.
+                  </span>
+                </div>
+              </button>
+
+              {/* ACEPTADO TOTAL */}
+              <button
+                type="button"
+                onClick={() => setEstadoSeleccionado("ACEPTADO_TOTAL")}
+                className={`flex items-start gap-3 rounded-xl border p-3 text-left transition ${
+                  estadoSeleccionado === "ACEPTADO_TOTAL"
+                    ? "border-emerald-500 bg-emerald-50/60 ring-2 ring-emerald-500/20"
+                    : "border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                <CheckCheck className="h-4 w-4 text-emerald-600 mt-0.5" />
+                <div>
+                  <span className="text-xs font-bold text-slate-900 block">
+                    Aceptado Total
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    Cliente aprueba el 100% de las cortinas presupuestadas.
+                  </span>
+                </div>
+              </button>
+
+              {/* ACEPTADO PARCIAL */}
+              <button
+                type="button"
+                onClick={() => setEstadoSeleccionado("ACEPTADO_PARCIAL")}
+                className={`flex items-start gap-3 rounded-xl border p-3 text-left transition ${
+                  estadoSeleccionado === "ACEPTADO_PARCIAL"
+                    ? "border-indigo-500 bg-indigo-50/60 ring-2 ring-indigo-500/20"
+                    : "border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                <CheckCircle2 className="h-4 w-4 text-indigo-600 mt-0.5" />
+                <div>
+                  <span className="text-xs font-bold text-slate-900 block">
+                    Aceptado Parcial
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    El cliente aprueba sólo algunas cortinas del presupuesto.
+                  </span>
+                </div>
+              </button>
+
+              {/* RECHAZADO */}
+              <button
+                type="button"
+                onClick={() => setEstadoSeleccionado("RECHAZADO")}
+                className={`flex items-start gap-3 rounded-xl border p-3 text-left transition ${
+                  estadoSeleccionado === "RECHAZADO"
+                    ? "border-rose-500 bg-rose-50/60 ring-2 ring-rose-500/20"
+                    : "border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                <XCircle className="h-4 w-4 text-rose-600 mt-0.5" />
+                <div>
+                  <span className="text-xs font-bold text-slate-900 block">
+                    Rechazado
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    El cliente no aprobó la cotización.
+                  </span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Selector de Cortinas en ACEPTACIÓN PARCIAL */}
+          {estadoSeleccionado === "ACEPTADO_PARCIAL" && (
+            <div className="space-y-3 rounded-xl border border-indigo-200 bg-indigo-50/30 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-indigo-950 block">
+                    Cortinas Aprobadas por el Cliente
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    Marcá qué ítems se fabricarán para la futura comanda
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={seleccionarTodos}
+                    className="font-bold text-indigo-600 hover:underline"
+                  >
+                    Todas
+                  </button>
+                  <span>•</span>
+                  <button
+                    type="button"
+                    onClick={deseleccionarTodos}
+                    className="font-bold text-slate-500 hover:underline"
+                  >
+                    Ninguna
+                  </button>
+                </div>
+              </div>
+
+              <div className="divide-y divide-indigo-100/80 rounded-xl border border-indigo-100 bg-white overflow-hidden max-h-56 overflow-y-auto">
+                {presupuesto.items.map((it) => {
+                  const check = itemsAceptados.includes(it.id)
+                  return (
+                    <label
+                      key={it.id}
+                      className={`flex items-center justify-between p-3 cursor-pointer text-xs transition ${
+                        check ? "bg-indigo-50/40" : "hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={check}
+                          onChange={() => toggleItem(it.id)}
+                          className="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <div>
+                          <span className="font-bold text-slate-900 block">
+                            {it.ambiente ? `[${it.ambiente}] ` : ""}
+                            {it.descripcion}
+                          </span>
+                          <span className="text-[11px] text-slate-500 font-mono">
+                            {it.ancho}m × {it.alto}m • Cant: {it.cantidad}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="font-bold font-mono text-slate-800">
+                        {formatearPrecio(it.subtotal)}
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+
+              {/* Total Parcial Calculado */}
+              <div className="flex items-center justify-between pt-1 text-xs">
+                <span className="text-slate-600 font-medium">
+                  {itemsAceptados.length} de {presupuesto.items.length} cortinas aprobadas:
+                </span>
+                <div className="text-right">
+                  <span className="text-sm font-black text-indigo-900 font-mono">
+                    {formatearPrecio(totalParcial)}
+                  </span>
+                  {presupuesto.descuento > 0 && (
+                    <span className="text-[10px] text-slate-400 block">
+                      (Con {presupuesto.descuento}% desc.)
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Pie con Botones */}
+        <div className="flex items-center justify-end gap-2.5 border-t border-slate-100 bg-slate-50 px-6 py-4">
+          <button
+            type="button"
+            onClick={onCerrar}
+            disabled={isPending}
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmar}
+            disabled={isPending}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition disabled:opacity-50"
+          >
+            {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            Confirmar Cambio de Estado
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
