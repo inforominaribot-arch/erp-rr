@@ -16,6 +16,7 @@
 | Agenda & Instalación | Chat 7 | ✅ Completo | 2026-09-29 |
 | Dashboard & Métricas | Chat 8 | ✅ Completo | 2026-09-29 |
 | Adaptación Mobile & Responsive | Chat 9 | ✅ Completo | 2026-09-30 |
+| App Móvil Nativa Android (APK) | Chat 10 | 🟡 Planificado | 2026-09-30 |
 
 ## Leyenda
 - ✅ Completo
@@ -407,6 +408,31 @@ _(Completar cuando se ejecute `prisma migrate`)_
     - `remito-ingreso-modal.tsx`
 - [x] **Compilación y Build Next.js:**
   - `npx next build` verificado exitosamente sin errores de TypeScript ni Turbopack (código de salida 0).
+
+---
+
+## Chat 10 — App Móvil Nativa Android (APK) & Modo Obra Offline con Capacitor
+
+### 🎯 Objetivo
+Construir una aplicación móvil nativa instalable (`.apk`) para tablets Android que funcione de manera **100% autónoma y offline en obra** (sin depender de internet, señal móvil ni caché del navegador), con sincronización hacia el ERP RR cuando haya conexión.
+
+### 📋 Plan de Implementación
+1. **Endpoint de Sincronización en ERP:**
+   - Crear ruta API `POST /api/mediciones/sync` para recibir mediciones tomadas en obra y persistirlas en PostgreSQL (Supabase) con validación Zod y transacciones Prisma.
+   - Ruta API `GET /api/mediciones/clientes-sync` para descargar clientes precargados a la tablet.
+2. **Capa Móvil Offline con Capacitor:**
+   - Configuración de Capacitor en el entorno Android.
+   - Base de datos local SQLite / almacenamiento persistente nativo en el dispositivo.
+   - Reutilización directa del componente `CortinaDibujoDidactico` (cotas milimétricas, tipos de cortinas, sistemas, telas).
+3. **Flujo de Usuario en Obra:**
+   - Apertura instantánea sin internet (`0.2s`).
+   - Selección o creación de clientes en obra.
+   - Carga de ambientes y cortinas con dibujo dinámico en tiempo real.
+   - Guardado local garantizado (inmune a apagados o cierres de memoria).
+   - Indicador de estado: `🟡 Pendiente de sincronizar` / `🟢 Sincronizado`.
+   - Botón de sincronización manual y automática al detectar WiFi o datos móviles.
+4. **Compilación del Instalador:**
+   - Generación de `mediciones-rr.apk` para instalación directa (sideloading) en la tablet con costo $0.
 
 ---
 

@@ -4,13 +4,13 @@
 
 | Capa | Tecnología |
 |---|---|
-| Frontend | Next.js 14 (App Router) + React + Tailwind CSS |
+| Frontend Web | Next.js 14/16 (App Router) + React 19 + Tailwind CSS |
 | Componentes UI | shadcn/ui + TanStack Table |
 | Validación | TypeScript + Zod (End-to-End) |
 | Backend | Next.js Server Actions & Route Handlers |
 | ORM | Prisma ORM |
 | Base de datos | Supabase (PostgreSQL) |
-| Offline / PWA | next-pwa (Service Worker) + IndexedDB |
+| App Móvil Nativa | Capacitor (Android) + SQLite / Almacenamiento Local Offline |
 | PDF | @react-pdf/renderer |
 | Calendario | FullCalendar (React) |
 | Gráficos | Recharts |
@@ -145,3 +145,17 @@ Los permisos específicos por módulo se definen en cada chat de módulo.
 3. **SIEMPRE** validar datos de entrada con Zod
 4. **Los módulos** solo modifican sus propias carpetas
 5. **Los componentes shared** son responsabilidad de todos — si modificás uno, avisá en SYSTEM_STATE.md
+
+---
+
+## App Móvil Nativa de Mediciones (Android APK / Offline en Obra)
+
+### Arquitectura de la Solución
+Para garantizar funcionamiento ininterrumpido en obras sin señal (0% internet):
+- **Motor Nativo:** Capacitor para Android, empaquetando todo el bundle HTML/CSS/JS localmente dentro de la aplicación (`.apk`).
+- **Independencia del Servidor:** La app no realiza solicitudes de navegación a Vercel para abrirse; el runtime se ejecuta 100% en la tablet.
+- **Base de Datos Local:** SQLite / Almacenamiento local persistente en el dispositivo para clientes, ambientes y medidas tomadas en obra.
+- **Componentes Compartidos:** Reutilización de `CortinaDibujoDidactico` (cotas dinámicas, marcos SVG, fórmulas técnicas de corte y telas).
+- **Sincronización:** Endpoint seguro en el ERP (`POST /api/mediciones/sync`) que recibe las mediciones encoladas cuando la tablet recupera conectividad e inserta en Supabase vía Prisma.
+- **Distribución:** Compilación directa a archivo instalador `mediciones-rr.apk` para instalación local en tablets Android sin costos de Google Play Store ($0).
+
