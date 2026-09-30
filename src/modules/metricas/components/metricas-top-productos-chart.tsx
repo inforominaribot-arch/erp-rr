@@ -46,7 +46,7 @@ export function MetricasTopProductosChart({
   datos,
 }: MetricasTopProductosChartProps) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
@@ -63,7 +63,7 @@ export function MetricasTopProductosChart({
         </div>
       </div>
 
-      <div className="mt-6 h-[280px] w-full">
+      <div className="mt-6 h-[260px] sm:h-[300px] md:h-[340px] w-full min-w-0 overflow-hidden">
         {datos.length === 0 ? (
           <div className="flex h-full items-center justify-center text-xs text-slate-400">
             No hay registros de consumo en este período
@@ -73,22 +73,22 @@ export function MetricasTopProductosChart({
             <BarChart
               data={datos}
               layout="vertical"
-              margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+              margin={{ top: 5, right: 15, left: 0, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
               <XAxis
                 type="number"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 11, fill: "#94a3b8" }}
+                tick={{ fontSize: 10, fill: "#94a3b8" }}
               />
               <YAxis
                 type="category"
                 dataKey="nombre"
                 axisLine={false}
                 tickLine={false}
-                width={120}
-                tick={{ fontSize: 11, fill: "#475569" }}
+                width={100}
+                tick={{ fontSize: 10, fill: "#475569" }}
               />
               <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="cantidad" radius={[0, 4, 4, 0]}>

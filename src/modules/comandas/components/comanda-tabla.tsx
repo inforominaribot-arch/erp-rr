@@ -82,13 +82,13 @@ export function ComandaTabla({
         </div>
 
         {/* Filtro por Estado */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <Filter className="h-4 w-4 text-slate-400 shrink-0 hidden sm:block" />
           <select
             value={estadoFiltro}
             onChange={(e) => setEstadoFiltro(e.target.value)}
             aria-label="Filtrar por estado de comanda"
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-100 shadow-2xs transition"
+            className="w-full sm:w-auto rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 focus:border-indigo-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-100 shadow-2xs transition"
           >
             <option value="TODOS">Todos los estados</option>
             <option value="PENDIENTE">Pendientes</option>
@@ -124,8 +124,8 @@ export function ComandaTabla({
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto touch-scroll">
+            <table className="w-full text-left border-collapse min-w-[760px]">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   <th className="py-3.5 pl-6 pr-3">Comanda #</th>

@@ -110,12 +110,12 @@ export function PresupuestoTabla({
         </div>
 
         {/* Filtro por Estado */}
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-slate-400 hidden sm:inline" />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Filter className="h-4 w-4 text-slate-400 shrink-0 hidden sm:inline" />
           <select
             value={filtroEstado}
             onChange={(e) => setFiltroEstado(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs focus:border-indigo-500 focus:outline-hidden"
+            className="w-full sm:w-auto rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs focus:border-indigo-500 focus:outline-hidden"
           >
             {OPCIONES_ESTADO.map((opt) => (
               <option key={opt.valor} value={opt.valor}>
@@ -128,8 +128,8 @@ export function PresupuestoTabla({
 
       {/* ── TABLA DE PRESUPUESTOS ── */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+        <div className="overflow-x-auto touch-scroll">
+          <table className="w-full text-left text-xs border-collapse min-w-[720px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-500 uppercase tracking-wider text-[11px]">
                 <th className="py-3 px-4 font-bold">Presupuesto</th>

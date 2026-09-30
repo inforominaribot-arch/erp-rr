@@ -74,8 +74,8 @@ export function StockTabla({
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs text-slate-600">
+      <div className="overflow-x-auto touch-scroll">
+        <table className="w-full text-left text-xs text-slate-600 min-w-[700px]">
           <thead className="border-b border-slate-200 bg-slate-50/80 font-semibold text-slate-700">
             <tr>
               <th className="px-4 py-3">Código</th>
@@ -219,7 +219,7 @@ export function StockTabla({
 
       {/* Paginación */}
       {totalPaginas > 1 && (
-        <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-xs text-slate-500">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 text-xs text-slate-500">
           <span>
             Mostrando {inicio + 1} a{" "}
             {Math.min(inicio + itemsPorPagina, productos.length)} de{" "}

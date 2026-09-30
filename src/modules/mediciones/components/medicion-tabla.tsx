@@ -101,12 +101,12 @@ export function MedicionTabla({
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-slate-400" />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Filter className="h-4 w-4 text-slate-400 shrink-0" />
           <select
             value={filtroSync}
             onChange={(e) => setFiltroSync(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-slate-50 py-2 pl-3 pr-8 text-xs font-bold text-slate-700 focus:bg-white focus:border-indigo-500 focus:outline-none"
+            className="w-full sm:w-auto rounded-xl border border-slate-200 bg-slate-50 py-2 pl-3 pr-8 text-xs font-bold text-slate-700 focus:bg-white focus:border-indigo-500 focus:outline-none"
           >
             <option value="TODOS">Todos los estados</option>
             <option value="SINCRONIZADO">Sincronizadas</option>
@@ -117,8 +117,8 @@ export function MedicionTabla({
 
       {/* ── Tabla de Mediciones ── */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600">
+        <div className="overflow-x-auto touch-scroll">
+          <table className="w-full text-left text-xs text-slate-600 min-w-[760px]">
             <thead className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
               <tr>
                 <th scope="col" className="px-6 py-3.5">

@@ -94,43 +94,51 @@ export function InstaladorItinerarioCard({ instalacion }: Props) {
 
       {/* Datos de contacto y ubicación rápida con botones táctiles */}
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {/* Dirección y Google Maps */}
-        <div className="flex items-start gap-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+        {/* Dirección */}
+        <div className="flex items-start gap-2 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200">
           <MapPin className="h-4 w-4 shrink-0 text-indigo-600 mt-0.5" />
-          <div className="flex-1 truncate">
+          <div className="flex-1 min-w-0">
             <p className="font-semibold text-slate-800">Dirección</p>
-            <p className="truncate">{direccionCompleta || "Sin dirección cargada"}</p>
-            {mapsUrl && (
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-1 inline-flex items-center gap-1 font-semibold text-indigo-600 hover:text-indigo-800"
-              >
-                Abrir en Google Maps <ExternalLink className="h-3 w-3" />
-              </a>
-            )}
+            <p className="text-slate-600 break-words">{direccionCompleta || "Sin dirección cargada"}</p>
           </div>
         </div>
 
-        {/* Teléfono y WhatsApp */}
-        <div className="flex items-start gap-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+        {/* Teléfono y Contacto */}
+        <div className="flex items-start gap-2 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200">
           <Phone className="h-4 w-4 shrink-0 text-emerald-600 mt-0.5" />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="font-semibold text-slate-800">Contacto</p>
-            <p className="font-mono">{cliente?.telefono || "Sin teléfono"}</p>
-            {waUrl && (
-              <a
-                href={waUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-1 inline-flex items-center gap-1 font-semibold text-emerald-600 hover:text-emerald-800"
-              >
-                <MessageCircle className="h-3 w-3" /> Enviar aviso por WhatsApp
-              </a>
-            )}
+            <p className="font-mono text-slate-700 font-semibold">{cliente?.telefono || "Sin teléfono"}</p>
           </div>
         </div>
+      </div>
+
+      {/* Botones táctiles directos para la camioneta: Google Maps y WhatsApp */}
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        {mapsUrl && (
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="min-h-[46px] flex items-center justify-center gap-2 rounded-xl bg-indigo-50 border border-indigo-200 px-4 py-2.5 text-xs sm:text-sm font-bold text-indigo-700 hover:bg-indigo-100 transition shadow-2xs active:scale-95"
+          >
+            <MapPin className="h-4 w-4 text-indigo-600 shrink-0" />
+            <span>Abrir en Google Maps</span>
+            <ExternalLink className="h-3.5 w-3.5 opacity-60 ml-auto sm:ml-0" />
+          </a>
+        )}
+
+        {waUrl && (
+          <a
+            href={waUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="min-h-[46px] flex items-center justify-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-2.5 text-xs sm:text-sm font-bold text-emerald-800 hover:bg-emerald-100 transition shadow-2xs active:scale-95"
+          >
+            <MessageCircle className="h-4 w-4 text-emerald-600 shrink-0" />
+            <span>Enviar aviso por WhatsApp</span>
+          </a>
+        )}
       </div>
 
       {/* Instaladores asignados */}
@@ -179,10 +187,10 @@ export function InstaladorItinerarioCard({ instalacion }: Props) {
       </div>
 
       {/* Acciones principales de la tarjeta */}
-      <div className="mt-5 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+      <div className="mt-5 pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <Link
           href={`/instalaciones/${instalacion.id}`}
-          className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+          className="min-h-[40px] flex items-center justify-center sm:justify-start gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800"
         >
           <FileText className="h-4 w-4" />
           Ver Ficha Técnica / Hoja A4
@@ -191,9 +199,9 @@ export function InstaladorItinerarioCard({ instalacion }: Props) {
         {instalacion.estado === "PROGRAMADA" && (
           <button
             onClick={() => setModalCompletarAbierto(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-xs"
+            className="min-h-[48px] flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-xs sm:text-sm font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm active:scale-95 w-full sm:w-auto"
           >
-            <CheckCircle2 className="h-4 w-4" />
+            <CheckCircle2 className="h-5 w-5" />
             Marcar Instalación Completada
           </button>
         )}

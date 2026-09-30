@@ -142,7 +142,7 @@ export function AmbienteManager({
           </div>
 
           {/* Input para agregar ambiente personalizado */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <input
               type="text"
               value={nuevoNombreAmbiente}
@@ -154,13 +154,13 @@ export function AmbienteManager({
                 }
               }}
               placeholder="Otro ambiente..."
-              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 min-h-[40px]"
             />
             <button
               type="button"
               onClick={() => agregarAmbiente(nuevoNombreAmbiente)}
               disabled={!nuevoNombreAmbiente.trim()}
-              className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-40"
+              className="inline-flex items-center justify-center gap-1 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-40 min-h-[40px]"
             >
               <Plus className="h-3.5 w-3.5" />
               Agregar
@@ -178,7 +178,7 @@ export function AmbienteManager({
               key={nom}
               type="button"
               onClick={() => agregarAmbiente(nom)}
-              className="rounded-md border border-slate-200 bg-slate-50/60 px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-700 transition"
+              className="min-h-[36px] flex items-center rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-700 transition active:scale-95"
             >
               + {nom}
             </button>

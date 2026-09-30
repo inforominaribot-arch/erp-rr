@@ -157,18 +157,18 @@ export function ProductoModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs animate-in fade-in">
-      <div className="relative flex max-h-[90vh] w-full max-w-xl flex-col rounded-2xl bg-white shadow-2xl">
+      <div className="relative flex max-h-[92vh] w-full max-w-xl flex-col rounded-2xl bg-white shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 sm:px-6 py-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 shrink-0">
               <Package className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900">
+              <h2 className="text-base font-bold text-slate-900 leading-tight">
                 {esEdicion ? "Editar Insumo o Pieza" : "Nuevo Insumo de Taller"}
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 line-clamp-1">
                 {esEdicion
                   ? "Modificá la ficha técnica, fotos o parámetros de stock"
                   : "Registrá una tela, riel, caño, motor o accesorio"}
@@ -178,14 +178,14 @@ export function ProductoModal({
           <button
             type="button"
             onClick={onCerrar}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition shrink-0 min-h-[40px] min-w-[40px] flex items-center justify-center"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Formulario */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto touch-scroll px-4 sm:px-6 py-4 space-y-4 min-h-0">
           {error && (
             <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
@@ -379,13 +379,13 @@ export function ProductoModal({
           </div>
 
           {/* Footer de Acciones */}
-          <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-slate-100 pt-4 pb-1 shrink-0">
             {esEdicion ? (
               <button
                 type="button"
                 onClick={handleEliminar}
                 disabled={eliminando || cargando}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-200 px-3.5 py-2.5 min-h-[44px] text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition"
               >
                 {eliminando ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -403,17 +403,17 @@ export function ProductoModal({
                 type="button"
                 onClick={onCerrar}
                 disabled={cargando}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                className="flex-1 sm:flex-none rounded-xl border border-slate-200 px-4 py-2.5 min-h-[44px] text-xs font-medium text-slate-700 hover:bg-slate-50 transition text-center"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={cargando}
-                className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 min-h-[44px] text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 transition disabled:opacity-50"
               >
-                {cargando && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                {esEdicion ? "Guardar Cambios" : "Crear Insumo"}
+                {cargando && <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />}
+                <span>{esEdicion ? "Guardar Cambios" : "Crear Insumo"}</span>
               </button>
             </div>
           </div>

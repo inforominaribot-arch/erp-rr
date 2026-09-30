@@ -15,6 +15,7 @@
 | Proveedores & Compras | Chat 6 | ✅ Completo | 2026-09-29 |
 | Agenda & Instalación | Chat 7 | ✅ Completo | 2026-09-29 |
 | Dashboard & Métricas | Chat 8 | ✅ Completo | 2026-09-29 |
+| Adaptación Mobile & Responsive | Chat 9 | ✅ Completo | 2026-09-30 |
 
 ## Leyenda
 - ✅ Completo
@@ -357,6 +358,55 @@ _(Completar cuando se ejecute `prisma migrate`)_
   - `/` (`src/app/(dashboard)/page.tsx`): Reemplazo total de placeholders por el dashboard operativo en vivo.
   - `/metricas` (`src/app/(dashboard)/metricas/page.tsx`): Tablero analítico completo.
   - `/metricas/reporte` (`src/app/(dashboard)/metricas/reporte/page.tsx`): Vista directa de la Ficha Ejecutiva A4.
+
+---
+
+## Chat 9 — Adaptación Mobile-First & Responsive (Celulares y Tablets)
+
+### ✅ Completado
+- [x] **Layout Global Adaptativo:**
+  - `DashboardShell` (`src/components/shared/layout/DashboardShell.tsx`): Componente de estado de cliente que administra la apertura del menú lateral en móviles, tecla ESC, backdrop desenfocado y cierre al cambiar de ruta.
+  - `Sidebar` (`src/components/shared/layout/Sidebar.tsx`): Drawer deslizable lateral para pantallas `< 1024px` con botón de cierre táctil, backdrop con `z-50`, transiciones suaves de entrada/salida y targets táctiles `>= 44px`. Mantiene su versión fija `w-64` en escritorio (`lg:flex`).
+  - `Header` (`src/components/shared/layout/Header.tsx`): Botón de menú hamburguesa visible solo en móviles y tablets (`lg:hidden`), buscador compacto responsive y avatar/acciones optimizadas.
+  - `PageHeader` (`src/components/shared/layout/PageHeader.tsx`): Contenedor flexible `flex-col sm:flex-row` con acciones alineadas al ancho completo en móviles.
+- [x] **Experiencia Táctil & Prevención de Auto-Zoom (iOS/Android):**
+  - `globals.css`: Regla obligatoria `@media (max-width: 639px) { input, select, textarea { font-size: 16px !important; } }` para evitar que Safari y Chrome en iOS/Android hagan zoom automático al enfocar inputs.
+  - Utilidad `.touch-scroll` con `-webkit-overflow-scrolling: touch` para desplazamiento inercial nativo en dispositivos móviles.
+  - Botones principales y acciones con altura mínima táctil `>= 44px`.
+- [x] **Tablas y Grillas con Scroll Inercial Seguro:**
+  - Todas las tablas del sistema envueltas en contenedores `overflow-x-auto touch-scroll` con anchos mínimos definidos (`min-w-[700px..760px]`) para evitar el aplastamiento de columnas:
+    - Clientes: `src/modules/clientes/components/cliente-tabla.tsx`
+    - Presupuestos: `src/modules/presupuestos/components/presupuesto-tabla.tsx`
+    - Comandas: `src/modules/comandas/components/comanda-tabla.tsx`
+    - Stock & Historial: `src/modules/stock/components/stock-tabla.tsx` y `movimientos-historial-tabla.tsx`
+    - Órdenes de Compra: `src/modules/proveedores/components/ordenes-compra-tabla.tsx`
+    - Mediciones: `src/modules/mediciones/components/medicion-tabla.tsx`
+    - Calendario de Instalaciones: `src/modules/instalaciones/components/calendario-agenda-view.tsx` (grillas de 7 columnas para Mes y Semana con scroll horizontal y selector de vista táctil).
+- [x] **Módulos Críticos Adaptados:**
+  - **App Mediciones:**
+    - `cortina-dibujo-didactico.tsx`: Contenedor responsive con cálculo de proporciones dinámico para pantallas pequeñas, sin cortes horizontales en cotas superiores y marcos.
+    - `cortina-item-form.tsx`: Botones de selección de tipo de cortina y sistema con `min-h-[48px]`, acciones inferiores apiladas verticalmente en móvil con `min-h-[44px]`.
+    - `ambiente-manager.tsx`: Input de ambientes y etiquetas táctiles de rápido acceso (`min-h-[36px]`).
+  - **Stock & Catálogo:**
+    - `stock-catalogo-grid.tsx`: Grilla adaptativa `grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`.
+    - `remito-ingreso-modal.tsx`: Botones grandes táctiles (`min-h-[44px]`) para escaneo de cámara y OCR, modal `max-h-[92vh] flex flex-col`.
+  - **Taller de Confección & Producción:**
+    - `produccion-tablero.tsx`: Grilla de KPIs en 2 columnas en celular (`grid-cols-2 sm:grid-cols-4`), selector de tabs horizontal scrolleable con `touch-scroll`, buscador fluido y botón de un solo toque "Marcar Listo" con `min-h-[44px]`.
+  - **Instaladores en Obra:**
+    - `instalador-itinerario-card.tsx`: Botones prioritarios para Google Maps (`min-h-[46px]`), WhatsApp directo (`min-h-[46px]`) y "Marcar Instalación Completada" a ancho completo (`min-h-[48px]`).
+  - **Gráficos Recharts & Analítica:**
+    - Todos los gráficos de `metricas-ventas-chart.tsx`, `metricas-distribucion-confeccion-chart.tsx`, `metricas-top-productos-chart.tsx`, `metricas-clientes-chart.tsx` y `metricas-instalaciones-chart.tsx` actualizados con contenedores `h-[260px] sm:h-[300px] md:h-[340px] w-full min-w-0 overflow-hidden` para evitar expansiones horizontales infinitas del flexbox de Recharts.
+    - `metricas-periodo-selector.tsx`: Scroll horizontal fluido táctil sin quiebre de líneas antiestético.
+- [x] **Auditoría de Ventanas Modales:**
+  - Todos los modales del sistema estructurados con `max-h-[92vh] flex flex-col`, cabecera y pie con `shrink-0`, cuerpo interno scrolleable `overflow-y-auto touch-scroll flex-1 min-h-0` y botones apilados en móvil (`flex-col-reverse sm:flex-row`) con `min-h-[44px]`:
+    - `presupuesto-calculadora-modal.tsx`
+    - `presupuesto-aprobar-modal.tsx`
+    - `comanda-generar-modal.tsx`
+    - `producto-modal.tsx`
+    - `movimiento-manual-modal.tsx`
+    - `remito-ingreso-modal.tsx`
+- [x] **Compilación y Build Next.js:**
+  - `npx next build` verificado exitosamente sin errores de TypeScript ni Turbopack (código de salida 0).
 
 ---
 

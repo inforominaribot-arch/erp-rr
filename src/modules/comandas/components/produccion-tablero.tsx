@@ -246,35 +246,35 @@ export function ProduccionTablero({
       {/* ── BARRA DE TABS, BUSCADOR Y TOGGLE DE PENDIENTES ── */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         {/* Tabs de Tipo de Tarea */}
-        <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1 shrink-0">
+        <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1 shrink-0 overflow-x-auto touch-scroll max-w-full">
           <button
             type="button"
             onClick={() => setTabTipo("FABRICAR")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-bold whitespace-nowrap transition min-h-[38px] ${
               tabTipo === "FABRICAR"
                 ? "bg-white text-indigo-700 shadow-2xs"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <Scissors className="h-3.5 w-3.5" />
+            <Scissors className="h-3.5 w-3.5 shrink-0" />
             Confeccionar en Taller ({metricasIniciales.itemsFabricarPendientes})
           </button>
           <button
             type="button"
             onClick={() => setTabTipo("PEDIR_PROVEEDOR")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-bold whitespace-nowrap transition min-h-[38px] ${
               tabTipo === "PEDIR_PROVEEDOR"
                 ? "bg-white text-amber-800 shadow-2xs"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <Truck className="h-3.5 w-3.5" />
+            <Truck className="h-3.5 w-3.5 shrink-0" />
             Pedidos a Proveedor ({metricasIniciales.itemsProveedorPendientes})
           </button>
           <button
             type="button"
             onClick={() => setTabTipo("TODOS")}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold whitespace-nowrap transition min-h-[38px] ${
               tabTipo === "TODOS"
                 ? "bg-white text-slate-900 shadow-2xs"
                 : "text-slate-600 hover:text-slate-900"
@@ -285,15 +285,15 @@ export function ProduccionTablero({
         </div>
 
         {/* Buscador reactivo y Filtro completados */}
-        <div className="flex flex-wrap items-center gap-2 flex-1 max-w-lg">
-          <div className="relative flex-1 min-w-[200px]">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 w-full lg:max-w-lg">
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             <input
               type="text"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               placeholder="Buscar por cliente, ambiente, tela, comanda #..."
-              className="w-full rounded-xl border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs transition"
+              className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-8 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 shadow-2xs transition"
             />
           </div>
 
@@ -304,7 +304,7 @@ export function ProduccionTablero({
                 filtroEstado === "PENDIENTES" ? "TODOS" : "PENDIENTES"
               )
             }
-            className={`rounded-xl border px-3 py-1.5 text-xs font-bold transition shadow-2xs ${
+            className={`rounded-xl border px-3 py-2 text-xs font-bold transition shadow-2xs shrink-0 text-center min-h-[38px] ${
               filtroEstado === "PENDIENTES"
                 ? "border-indigo-200 bg-indigo-50 text-indigo-700"
                 : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
@@ -468,16 +468,16 @@ export function ProduccionTablero({
                 </div>
 
                 {/* ── BOTÓN TÁCTIL GRANDE DE UN TOQUE ── */}
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
                   {/* Selector rápido FABRICAR vs PROVEEDOR */}
-                  <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+                  <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => handleCambiarTipo(it.id, "FABRICAR")}
-                      className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                      className={`rounded px-2.5 py-1.5 min-h-[36px] text-xs font-bold transition ${
                         it.tipo === "FABRICAR"
-                          ? "bg-indigo-600 text-white"
-                          : "text-slate-500"
+                          ? "bg-indigo-600 text-white shadow-2xs"
+                          : "text-slate-600 hover:text-slate-900"
                       }`}
                     >
                       Taller
@@ -487,10 +487,10 @@ export function ProduccionTablero({
                       onClick={() =>
                         handleCambiarTipo(it.id, "PEDIR_PROVEEDOR")
                       }
-                      className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                      className={`rounded px-2.5 py-1.5 min-h-[36px] text-xs font-bold transition ${
                         it.tipo === "PEDIR_PROVEEDOR"
-                          ? "bg-amber-600 text-white"
-                          : "text-slate-500"
+                          ? "bg-amber-600 text-white shadow-2xs"
+                          : "text-slate-600 hover:text-slate-900"
                       }`}
                     >
                       Proveedor
@@ -502,14 +502,14 @@ export function ProduccionTablero({
                     type="button"
                     onClick={() => handleToggle(it.id)}
                     disabled={isPending}
-                    className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold shadow-xs transition active:scale-95 ${
+                    className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 min-h-[44px] text-xs font-bold shadow-xs transition active:scale-95 flex-1 sm:flex-none ${
                       it.completado
                         ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
                         : "bg-emerald-600 text-white hover:bg-emerald-700"
                     }`}
                   >
-                    <Check className="h-4 w-4" />
-                    {it.completado ? "Terminado ✓" : "Marcar Listo"}
+                    <Check className="h-4 w-4 shrink-0" />
+                    <span>{it.completado ? "Terminado ✓" : "Marcar Listo"}</span>
                   </button>
                 </div>
               </div>

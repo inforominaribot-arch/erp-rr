@@ -107,7 +107,7 @@ export function StockCatalogoGrid({
   return (
     <>
       {/* Grilla visual idéntica al manual técnico de repuestos */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {productos.map((prod) => {
           const esCritico = prod.estadoStock === "CRITICO" || prod.estadoStock === "AGOTADO"
           const sufijo = formatearUnidad(prod.unidadMedida)
@@ -239,12 +239,12 @@ export function StockCatalogoGrid({
                   </div>
 
                   {/* Botones de acción rápida en la tarjeta */}
-                  <div className="mt-2.5 flex items-center gap-1 border-t border-slate-100 pt-2">
+                  <div className="mt-2.5 flex items-center gap-1.5 border-t border-slate-100 pt-2">
                     {onAjustarStock && (
                       <button
                         type="button"
                         onClick={() => onAjustarStock(prod)}
-                        className="flex-1 rounded-md border border-slate-200 bg-slate-50 py-1 text-center text-[11px] font-semibold text-slate-700 transition hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200"
+                        className="flex-1 min-h-[38px] flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 py-1.5 px-3 text-center text-xs font-semibold text-slate-700 transition hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 active:scale-95"
                         title="Ajustar o mover stock"
                       >
                         Ajustar
@@ -255,10 +255,10 @@ export function StockCatalogoGrid({
                       <button
                         type="button"
                         onClick={() => onEditarProducto(prod)}
-                        className="rounded-md border border-slate-200 bg-slate-50 p-1 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                        className="min-h-[38px] w-9 flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 active:scale-95"
                         title="Editar ficha"
                       >
-                        <Edit2 className="h-3.5 w-3.5" />
+                        <Edit2 className="h-4 w-4" />
                       </button>
                     )}
                   </div>

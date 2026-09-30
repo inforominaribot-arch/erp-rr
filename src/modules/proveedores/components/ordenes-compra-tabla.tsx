@@ -90,7 +90,7 @@ export function OrdenesCompraTabla({
         </div>
 
         {/* Filtros por estado */}
-        <div className="flex flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs">
+        <div className="flex flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs overflow-x-auto touch-scroll">
           <button
             type="button"
             onClick={() => setFiltroEstado("TODAS")}
@@ -154,8 +154,8 @@ export function OrdenesCompraTabla({
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto touch-scroll">
+            <table className="w-full text-left border-collapse min-w-[760px]">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   <th className="px-4 py-3">Orden</th>

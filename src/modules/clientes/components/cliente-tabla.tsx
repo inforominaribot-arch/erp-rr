@@ -120,12 +120,12 @@ export function ClienteTabla({ clientesIniciales }: ClienteTablaProps) {
         </div>
 
         {/* Filtro por estado */}
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-slate-400" />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Filter className="h-4 w-4 text-slate-400 shrink-0" />
           <select
             value={filtroEstado}
             onChange={(e) => setFiltroEstado(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-slate-50 py-2 pl-3 pr-8 text-sm font-medium text-slate-700 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            className="w-full sm:w-auto rounded-lg border border-slate-200 bg-slate-50 py-2 pl-3 pr-8 text-sm font-medium text-slate-700 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100"
           >
             {OPCIONES_FILTRO_ESTADO.map((opcion) => (
               <option key={opcion.valor} value={opcion.valor}>
@@ -138,8 +138,8 @@ export function ClienteTabla({ clientesIniciales }: ClienteTablaProps) {
 
       {/* Contenedor de la Tabla */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600">
+        <div className="overflow-x-auto touch-scroll">
+          <table className="w-full text-left text-sm text-slate-600 min-w-[760px]">
             <thead className="border-b border-slate-200 bg-slate-50/80 text-xs font-semibold uppercase tracking-wider text-slate-500">
               <tr>
                 <th scope="col" className="px-6 py-3.5">

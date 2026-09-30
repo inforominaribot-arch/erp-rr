@@ -187,18 +187,18 @@ export function PresupuestoCalculadoraModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-      <div className="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] flex flex-col">
         {/* Cabecera */}
-        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-4 sm:px-6 py-4 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs shrink-0">
               <Calculator className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">
+              <h3 className="text-base font-bold text-slate-900 leading-tight">
                 Calculadora de Cotización (Fórmulas Excel)
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 line-clamp-1">
                 Calculá el precio unitario con la fórmula exacta de tu fábrica
               </p>
             </div>
@@ -206,14 +206,14 @@ export function PresupuestoCalculadoraModal({
           <button
             type="button"
             onClick={onCerrar}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition"
+            className="rounded-lg p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition shrink-0 min-h-[40px] min-w-[40px] flex items-center justify-center"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Pestañas de Fórmulas */}
-        <div className="flex border-b border-slate-200 bg-slate-100/60 p-1.5 overflow-x-auto text-xs font-semibold">
+        <div className="flex border-b border-slate-200 bg-slate-100/60 p-1.5 overflow-x-auto touch-scroll text-xs font-semibold shrink-0">
           <button
             type="button"
             onClick={() => setTipo("TRADICIONAL_ESTANDAR")}
@@ -272,7 +272,7 @@ export function PresupuestoCalculadoraModal({
         </div>
 
         {/* Cuerpo del formulario según pestaña */}
-        <div className="max-h-[60vh] overflow-y-auto p-6 space-y-5">
+        <div className="overflow-y-auto touch-scroll p-4 sm:p-6 space-y-5 flex-1 min-h-0">
           {/* Medidas de la abertura */}
           <div className="grid grid-cols-2 gap-4 rounded-xl bg-slate-50 p-3.5 border border-slate-200">
             <div>
@@ -708,21 +708,21 @@ export function PresupuestoCalculadoraModal({
         </div>
 
         {/* Pie con resultado y botón aplicar */}
-        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
-          <div>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-4 sm:px-6 py-3.5 shrink-0">
+          <div className="flex items-center justify-between sm:block">
             <span className="text-xs text-slate-500 font-semibold block">
-              Precio Unitario Sugerido
+              Precio Sugerido
             </span>
-            <span className="text-2xl font-black text-indigo-700">
+            <span className="text-xl sm:text-2xl font-black text-indigo-700">
               {formatearPrecio(precioCalculadoUnitario)}
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={onCerrar}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition"
+              className="flex-1 sm:flex-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 min-h-[44px] text-xs font-bold text-slate-700 hover:bg-slate-100 transition text-center"
             >
               Cancelar
             </button>
@@ -732,10 +732,10 @@ export function PresupuestoCalculadoraModal({
                 onAplicarPrecio(precioCalculadoUnitario)
                 onCerrar()
               }}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition"
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-2.5 min-h-[44px] text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition"
             >
-              <Check className="h-4 w-4" />
-              Aplicar Precio al Ítem
+              <Check className="h-4 w-4 shrink-0" />
+              <span>Aplicar al Ítem</span>
             </button>
           </div>
         </div>

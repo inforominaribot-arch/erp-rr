@@ -73,13 +73,13 @@ export function MovimientosHistorialTabla({
           />
         </div>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto">
+        <div className="flex items-center gap-1.5 overflow-x-auto touch-scroll pb-1">
           {(["TODOS", "INGRESO", "EGRESO", "AJUSTE"] as const).map((tipo) => (
             <button
               key={tipo}
               type="button"
               onClick={() => setFiltroTipo(tipo)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition ${
                 filtroTipo === tipo
                   ? "bg-slate-900 text-white shadow-2xs"
                   : "bg-slate-50 text-slate-600 hover:bg-slate-100"
@@ -99,8 +99,8 @@ export function MovimientosHistorialTabla({
 
       {/* Tabla de Movimientos */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600">
+        <div className="overflow-x-auto touch-scroll">
+          <table className="w-full text-left text-xs text-slate-600 min-w-[700px]">
             <thead className="border-b border-slate-200 bg-slate-50 font-semibold text-slate-700">
               <tr>
                 <th className="px-4 py-3">Fecha y Hora</th>

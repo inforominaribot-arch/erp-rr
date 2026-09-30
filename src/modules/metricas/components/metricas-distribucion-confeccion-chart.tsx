@@ -47,7 +47,7 @@ export function MetricasDistribucionConfeccionChart({
   datos,
 }: MetricasDistribucionConfeccionChartProps) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
@@ -65,7 +65,7 @@ export function MetricasDistribucionConfeccionChart({
       </div>
 
       <div className="mt-6 flex flex-col md:flex-row items-center gap-4">
-        <div className="h-[260px] w-full md:w-3/5">
+        <div className="h-[240px] sm:h-[260px] w-full md:w-3/5 min-w-0 overflow-hidden">
           {datos.length === 0 ? (
             <div className="flex h-full items-center justify-center text-xs text-slate-400">
               No hay datos disponibles en el período

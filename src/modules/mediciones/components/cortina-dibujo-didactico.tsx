@@ -176,8 +176,8 @@ export function CortinaDibujoDidactico({
 
     if (clampedRatio < 0.92) {
       // Más larga / alta que ancha (Vertical / Portrait)
-      const h = 300
-      const w = Math.max(130, Math.min(270, Math.round(h * clampedRatio)))
+      const h = 270
+      const w = Math.max(120, Math.min(250, Math.round(h * clampedRatio)))
       return {
         boxWidth: w,
         boxHeight: h,
@@ -185,8 +185,8 @@ export function CortinaDibujoDidactico({
       }
     } else if (clampedRatio > 1.08) {
       // Más ancha que larga (Horizontal / Landscape)
-      const w = Math.min(450, Math.max(260, Math.round(210 * clampedRatio)))
-      const h = Math.max(140, Math.min(270, Math.round(w / clampedRatio)))
+      const w = Math.min(350, Math.max(220, Math.round(180 * clampedRatio)))
+      const h = Math.max(130, Math.min(250, Math.round(w / clampedRatio)))
       return {
         boxWidth: w,
         boxHeight: h,
@@ -195,8 +195,8 @@ export function CortinaDibujoDidactico({
     } else {
       // Formato Cuadrado (Ancho ≈ Alto)
       return {
-        boxWidth: 240,
-        boxHeight: 240,
+        boxWidth: 220,
+        boxHeight: 220,
         formatoTexto: "Cuadrado (Ancho ≈ Alto)",
       }
     }
@@ -493,7 +493,7 @@ export function CortinaDibujoDidactico({
       </div>
 
       {/* ── Área de Dibujo Proporcional e Interactivo ── */}
-      <div className="relative mt-4 flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-radial from-slate-50 to-slate-100/70 p-6 min-h-[300px] overflow-hidden">
+      <div className="relative mt-4 flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-radial from-slate-50 to-slate-100/70 p-2 sm:p-6 min-h-[280px] overflow-x-auto touch-scroll w-full">
         {/* Caso 1: ALUMINIO (Persiana Veneciana) */}
         {tipo === "Aluminio" ? (
           <div className="flex flex-col items-center">

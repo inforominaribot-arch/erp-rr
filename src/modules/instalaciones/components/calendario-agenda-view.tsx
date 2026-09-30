@@ -373,88 +373,92 @@ export function CalendarioAgendaView({
       {/* VISTA 1: CALENDARIO MENSUAL */}
       {vista === "mes" && (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
-          {/* Cabecera de días de la semana */}
-          <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-xs font-bold text-slate-600">
-            {DIAS_SEMANA.map((d) => (
-              <div key={d} className="py-2.5">
-                {d}
+          <div className="overflow-x-auto touch-scroll">
+            <div className="min-w-[680px]">
+              {/* Cabecera de días de la semana */}
+              <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-xs font-bold text-slate-600">
+                {DIAS_SEMANA.map((d) => (
+                  <div key={d} className="py-2.5">
+                    {d}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* Grilla de celdas del mes */}
-          <div className="grid grid-cols-7 divide-x divide-y divide-slate-100">
-            {diasDelMes.map(({ fecha, esMesActual }, idx) => {
-              const { insts, blqs } = getEventosPorFecha(fecha)
-              const fechaKey = fecha.toISOString().split("T")[0]
-              const esHoy = fechaKey === hoyStr
+              {/* Grilla de celdas del mes */}
+              <div className="grid grid-cols-7 divide-x divide-y divide-slate-100">
+                {diasDelMes.map(({ fecha, esMesActual }, idx) => {
+                  const { insts, blqs } = getEventosPorFecha(fecha)
+                  const fechaKey = fecha.toISOString().split("T")[0]
+                  const esHoy = fechaKey === hoyStr
 
-              return (
-                <div
-                  key={idx}
-                  className={`min-h-[110px] p-1.5 transition-colors ${
-                    !esMesActual ? "bg-slate-50/50 text-slate-300" : "bg-white text-slate-700"
-                  } ${esHoy ? "bg-indigo-50/30 ring-1 ring-inset ring-indigo-400" : ""}`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span
-                      className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-                        esHoy
-                          ? "bg-indigo-600 text-white"
-                          : esMesActual
-                          ? "text-slate-700"
-                          : "text-slate-400"
-                      }`}
+                  return (
+                    <div
+                      key={idx}
+                      className={`min-h-[110px] p-1.5 transition-colors ${
+                        !esMesActual ? "bg-slate-50/50 text-slate-300" : "bg-white text-slate-700"
+                      } ${esHoy ? "bg-indigo-50/30 ring-1 ring-inset ring-indigo-400" : ""}`}
                     >
-                      {fecha.getDate()}
-                    </span>
-                    {(insts.length > 0 || blqs.length > 0) && (
-                      <span className="text-[10px] text-slate-400 font-semibold">
-                        {insts.length + blqs.length} ev.
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Lista de eventos del día */}
-                  <div className="space-y-1">
-                    {/* Bloqueos de agenda (Indisponibilidad) */}
-                    {blqs.map((b) => (
-                      <div
-                        key={b.id}
-                        title={`Bloqueo: ${b.usuario?.nombre || "Taller"} - ${b.motivo} (${b.horaInicio} a ${b.horaFin} hs)`}
-                        className="truncate rounded-md bg-amber-100/80 px-1.5 py-0.5 text-[10px] font-medium text-amber-900 border border-amber-300 flex items-center gap-1"
-                      >
-                        <Lock className="h-2.5 w-2.5 text-amber-700 shrink-0" />
-                        <span className="truncate font-semibold">{b.horaInicio} {b.motivo}</span>
-                      </div>
-                    ))}
-
-                    {/* Instalaciones */}
-                    {insts.map((inst) => {
-                      const colorBg =
-                        inst.estado === "COMPLETADA"
-                          ? "bg-emerald-50 text-emerald-800 border-emerald-300"
-                          : inst.estado === "CANCELADA"
-                          ? "bg-red-50 text-red-700 border-red-200 line-through opacity-60"
-                          : inst.materialesListos
-                          ? "bg-teal-50 text-teal-800 border-teal-300"
-                          : "bg-indigo-50 text-indigo-800 border-indigo-200"
-
-                      return (
-                        <button
-                          key={inst.id}
-                          onClick={() => setInstalacionSeleccionada(inst)}
-                          className={`w-full text-left truncate rounded-md px-1.5 py-0.5 text-[10px] font-bold border transition-transform hover:scale-[1.02] shadow-2xs ${colorBg}`}
+                      <div className="flex items-center justify-between mb-1">
+                        <span
+                          className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                            esHoy
+                              ? "bg-indigo-600 text-white"
+                              : esMesActual
+                              ? "text-slate-700"
+                              : "text-slate-400"
+                          }`}
                         >
-                          <span className="font-mono">{inst.horaInicio || "S/H"}</span>{" "}
-                          <span>{inst.comanda.cliente.nombre}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
+                          {fecha.getDate()}
+                        </span>
+                        {(insts.length > 0 || blqs.length > 0) && (
+                          <span className="text-[10px] text-slate-400 font-semibold">
+                            {insts.length + blqs.length} ev.
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Lista de eventos del día */}
+                      <div className="space-y-1">
+                        {/* Bloqueos de agenda (Indisponibilidad) */}
+                        {blqs.map((b) => (
+                          <div
+                            key={b.id}
+                            title={`Bloqueo: ${b.usuario?.nombre || "Taller"} - ${b.motivo} (${b.horaInicio} a ${b.horaFin} hs)`}
+                            className="truncate rounded-md bg-amber-100/80 px-1.5 py-0.5 text-[10px] font-medium text-amber-900 border border-amber-300 flex items-center gap-1"
+                          >
+                            <Lock className="h-2.5 w-2.5 text-amber-700 shrink-0" />
+                            <span className="truncate font-semibold">{b.horaInicio} {b.motivo}</span>
+                          </div>
+                        ))}
+
+                        {/* Instalaciones */}
+                        {insts.map((inst) => {
+                          const colorBg =
+                            inst.estado === "COMPLETADA"
+                              ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                              : inst.estado === "CANCELADA"
+                              ? "bg-red-50 text-red-700 border-red-200 line-through opacity-60"
+                              : inst.materialesListos
+                              ? "bg-teal-50 text-teal-800 border-teal-300"
+                              : "bg-indigo-50 text-indigo-800 border-indigo-200"
+
+                          return (
+                            <button
+                              key={inst.id}
+                              onClick={() => setInstalacionSeleccionada(inst)}
+                              className={`w-full text-left truncate rounded-md px-1.5 py-0.5 text-[10px] font-bold border transition-transform hover:scale-[1.02] shadow-2xs ${colorBg}`}
+                            >
+                              <span className="font-mono">{inst.horaInicio || "S/H"}</span>{" "}
+                              <span>{inst.comanda.cliente.nombre}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -462,80 +466,84 @@ export function CalendarioAgendaView({
       {/* VISTA 2: CALENDARIO SEMANAL */}
       {vista === "semana" && (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
-          <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-xs font-bold text-slate-600 divide-x divide-slate-200">
-            {diasDeLaSemana.map((dia, idx) => {
-              const diaKey = dia.toISOString().split("T")[0]
-              const esHoy = diaKey === hoyStr
-              return (
-                <div
-                  key={idx}
-                  className={`py-3 ${esHoy ? "bg-indigo-50 text-indigo-700" : ""}`}
-                >
-                  <p className="text-[11px] uppercase tracking-wider text-slate-400">
-                    {DIAS_SEMANA[dia.getDay()]}
-                  </p>
-                  <p className="text-base font-black mt-0.5">{dia.getDate()}</p>
-                </div>
-              )
-            })}
-          </div>
-
-          <div className="grid grid-cols-7 divide-x divide-slate-100 min-h-[400px]">
-            {diasDeLaSemana.map((dia, idx) => {
-              const { insts, blqs } = getEventosPorFecha(dia)
-              const diaKey = dia.toISOString().split("T")[0]
-              const esHoy = diaKey === hoyStr
-
-              return (
-                <div
-                  key={idx}
-                  className={`p-2 space-y-2 ${esHoy ? "bg-indigo-50/20" : "bg-white"}`}
-                >
-                  {/* Bloqueos */}
-                  {blqs.map((b) => (
+          <div className="overflow-x-auto touch-scroll">
+            <div className="min-w-[680px]">
+              <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-xs font-bold text-slate-600 divide-x divide-slate-200">
+                {diasDeLaSemana.map((dia, idx) => {
+                  const diaKey = dia.toISOString().split("T")[0]
+                  const esHoy = diaKey === hoyStr
+                  return (
                     <div
-                      key={b.id}
-                      className="rounded-xl border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 shadow-2xs"
+                      key={idx}
+                      className={`py-3 ${esHoy ? "bg-indigo-50 text-indigo-700" : ""}`}
                     >
-                      <div className="flex items-center gap-1 font-bold text-amber-800">
-                        <Lock className="h-3 w-3 shrink-0" />
-                        <span>{b.horaInicio} - {b.horaFin} hs</span>
-                      </div>
-                      <p className="text-[11px] font-semibold mt-0.5">
-                        {b.usuario?.nombre || "Taller general"}
+                      <p className="text-[11px] uppercase tracking-wider text-slate-400">
+                        {DIAS_SEMANA[dia.getDay()]}
                       </p>
-                      <p className="text-[10px] text-slate-500">{b.motivo}</p>
+                      <p className="text-base font-black mt-0.5">{dia.getDate()}</p>
                     </div>
-                  ))}
+                  )
+                })}
+              </div>
 
-                  {/* Instalaciones */}
-                  {insts.map((inst) => (
+              <div className="grid grid-cols-7 divide-x divide-slate-100 min-h-[400px]">
+                {diasDeLaSemana.map((dia, idx) => {
+                  const { insts, blqs } = getEventosPorFecha(dia)
+                  const diaKey = dia.toISOString().split("T")[0]
+                  const esHoy = diaKey === hoyStr
+
+                  return (
                     <div
-                      key={inst.id}
-                      onClick={() => setInstalacionSeleccionada(inst)}
-                      className="cursor-pointer rounded-xl border border-slate-200 bg-white p-2.5 hover:border-indigo-400 hover:shadow-xs transition-all space-y-1"
+                      key={idx}
+                      className={`p-2 space-y-2 ${esHoy ? "bg-indigo-50/20" : "bg-white"}`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-[11px] font-bold text-indigo-600">
-                          {inst.horaInicio || "S/H"}
-                        </span>
-                        <InstalacionEstadoBadge
-                          estado={inst.estado}
-                          materialesListos={inst.materialesListos}
-                          tamano="sm"
-                        />
-                      </div>
-                      <h4 className="text-xs font-bold text-slate-900 line-clamp-1">
-                        {inst.comanda.cliente.nombre}
-                      </h4>
-                      <p className="text-[11px] text-slate-500 line-clamp-1">
-                        {inst.comanda.cliente.localidad || "Sin localidad"}
-                      </p>
+                      {/* Bloqueos */}
+                      {blqs.map((b) => (
+                        <div
+                          key={b.id}
+                          className="rounded-xl border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 shadow-2xs"
+                        >
+                          <div className="flex items-center gap-1 font-bold text-amber-800">
+                            <Lock className="h-3 w-3 shrink-0" />
+                            <span>{b.horaInicio} - {b.horaFin} hs</span>
+                          </div>
+                          <p className="text-[11px] font-semibold mt-0.5">
+                            {b.usuario?.nombre || "Taller general"}
+                          </p>
+                          <p className="text-[10px] text-slate-500">{b.motivo}</p>
+                        </div>
+                      ))}
+
+                      {/* Instalaciones */}
+                      {insts.map((inst) => (
+                        <div
+                          key={inst.id}
+                          onClick={() => setInstalacionSeleccionada(inst)}
+                          className="cursor-pointer rounded-xl border border-slate-200 bg-white p-2.5 hover:border-indigo-400 hover:shadow-xs transition-all space-y-1"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono text-[11px] font-bold text-indigo-600">
+                              {inst.horaInicio || "S/H"}
+                            </span>
+                            <InstalacionEstadoBadge
+                              estado={inst.estado}
+                              materialesListos={inst.materialesListos}
+                              tamano="sm"
+                            />
+                          </div>
+                          <h4 className="text-xs font-bold text-slate-900 line-clamp-1">
+                            {inst.comanda.cliente.nombre}
+                          </h4>
+                          <p className="text-[11px] text-slate-500 line-clamp-1">
+                            {inst.comanda.cliente.localidad || "Sin localidad"}
+                          </p>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )
-            })}
+                  )
+                })}
+              </div>
+            </div>
           </div>
         </div>
       )}
