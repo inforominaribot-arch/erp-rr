@@ -1,0 +1,55 @@
+name: Compilar APK Android (RR Mediciones)
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    name: Compilar mediciones-rr.apk
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - name: Clonar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Configurar Java 17 (JDK)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Generar cliente Prisma
+        run: npx prisma generate
+
+      - name: Compilar bundle web y sincronizar Capacitor
+        run: npm run build:mobile
+
+      - name: Permisos de ejecución para Gradle
+        run: chmod +x android/gradlew
+
+      - name: Compilar APK con Gradle
+        run: cd android && ./gradlew assembleDebug --no-daemon
+
+      - name: Publicar instalador mediciones-rr.apk
+        uses: actions/upload-artifact@v4
+        with:
+          name: mediciones-rr.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
