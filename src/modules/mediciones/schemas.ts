@@ -215,3 +215,57 @@ export const filtrosMedicionSchema = z.object({
 })
 
 export type FiltrosMedicionInput = z.infer<typeof filtrosMedicionSchema>
+
+// ─── Sincronización Offline (Capacitor / Android / PWA) ───────────────────────
+
+export const itemMedicionOfflineSyncSchema = z.object({
+  idLocal: z.string().optional(),
+  descripcion: z
+    .string()
+    .min(1, "La descripción / identificación de la abertura es obligatoria")
+    .max(150),
+  ancho: z.number().positive("El ancho debe ser mayor a 0"),
+  alto: z.number().positive("El alto debe ser mayor a 0"),
+  cantidad: z.number().int().min(1, "La cantidad mínima es 1").default(1),
+  caracteristicas: z.any().optional(),
+  observaciones: z.string().max(1000).optional().nullable(),
+})
+
+export const ambienteOfflineSyncSchema = z.object({
+  idLocal: z.string().optional(),
+  nombre: z
+    .string()
+    .min(1, "El nombre del ambiente es obligatorio")
+    .max(100),
+  orden: z.number().int().default(0),
+  items: z
+    .array(itemMedicionOfflineSyncSchema)
+    .min(1, "Cada ambiente debe tener al menos una cortina relevada"),
+})
+
+export const medicionOfflineSyncSchema = z.object({
+  idLocal: z.string().min(1, "idLocal es obligatorio"),
+  idServidor: z.string().optional().nullable(),
+  clienteId: z.string().min(1, "Debe especificar el id del cliente"),
+  clienteNombre: z.string().default("Cliente Relevamiento"),
+  clienteTelefono: z.string().optional().nullable(),
+  clienteDireccion: z.string().optional().nullable(),
+  clienteLocalidad: z.string().optional().nullable(),
+  observaciones: z.string().max(2000).optional().nullable(),
+  sincronizado: z.boolean().default(false),
+  guardadoEn: z.string().optional(),
+  ambientes: z
+    .array(ambienteOfflineSyncSchema)
+    .min(1, "Debe relevar al menos un ambiente en la medición"),
+})
+
+export const syncMedicionesBatchSchema = z.union([
+  z.array(medicionOfflineSyncSchema),
+  z.object({
+    mediciones: z.array(medicionOfflineSyncSchema),
+  }),
+])
+
+export type MedicionOfflineSyncInput = z.infer<typeof medicionOfflineSyncSchema>
+export type SyncMedicionesBatchInput = z.infer<typeof syncMedicionesBatchSchema>
+

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">RR Mediciones</string>
+    <string name="title_activity_main">RR Mediciones</string>
+    <string name="package_name">com.rominaribot.mediciones</string>
+    <string name="custom_url_scheme">com.rominaribot.mediciones</string>
+</resources>

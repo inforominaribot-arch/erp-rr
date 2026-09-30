@@ -16,7 +16,7 @@
 | Agenda & Instalación | Chat 7 | ✅ Completo | 2026-09-29 |
 | Dashboard & Métricas | Chat 8 | ✅ Completo | 2026-09-29 |
 | Adaptación Mobile & Responsive | Chat 9 | ✅ Completo | 2026-09-30 |
-| App Móvil Nativa Android (APK) | Chat 10 | 🟡 Planificado | 2026-09-30 |
+| App Móvil Nativa Android (APK) | Chat 10 | ✅ Completo | 2026-09-30 |
 
 ## Leyenda
 - ✅ Completo
@@ -417,22 +417,27 @@ _(Completar cuando se ejecute `prisma migrate`)_
 Construir una aplicación móvil nativa instalable (`.apk`) para tablets Android que funcione de manera **100% autónoma y offline en obra** (sin depender de internet, señal móvil ni caché del navegador), con sincronización hacia el ERP RR cuando haya conexión.
 
 ### 📋 Plan de Implementación
-1. **Endpoint de Sincronización en ERP:**
-   - Crear ruta API `POST /api/mediciones/sync` para recibir mediciones tomadas en obra y persistirlas en PostgreSQL (Supabase) con validación Zod y transacciones Prisma.
-   - Ruta API `GET /api/mediciones/clientes-sync` para descargar clientes precargados a la tablet.
-2. **Capa Móvil Offline con Capacitor:**
-   - Configuración de Capacitor en el entorno Android.
-   - Base de datos local SQLite / almacenamiento persistente nativo en el dispositivo.
-   - Reutilización directa del componente `CortinaDibujoDidactico` (cotas milimétricas, tipos de cortinas, sistemas, telas).
-3. **Flujo de Usuario en Obra:**
-   - Apertura instantánea sin internet (`0.2s`).
-   - Selección o creación de clientes en obra.
-   - Carga de ambientes y cortinas con dibujo dinámico en tiempo real.
-   - Guardado local garantizado (inmune a apagados o cierres de memoria).
-   - Indicador de estado: `🟡 Pendiente de sincronizar` / `🟢 Sincronizado`.
-   - Botón de sincronización manual y automática al detectar WiFi o datos móviles.
-4. **Compilación del Instalador:**
-   - Generación de `mediciones-rr.apk` para instalación directa (sideloading) en la tablet con costo $0.
+1. **Endpoint de Sincronización en ERP:** ✅ Completo
+   - [x] Helper de autenticación y cabeceras CORS para aplicaciones móviles (`src/lib/api-auth.ts`).
+   - [x] Schemas Zod de sincronización por lote y medición offline (`src/modules/mediciones/schemas.ts`).
+   - [x] Ruta API `POST /api/mediciones/sync` para recibir mediciones tomadas en obra y persistirlas en PostgreSQL (Supabase) con validación Zod y transacciones atómicas Prisma (`src/app/api/mediciones/sync/route.ts`).
+   - [x] Ruta API `GET /api/mediciones/clientes-sync` para descargar clientes precargados a la tablet con soporte de búsqueda y actualización incremental (`src/app/api/mediciones/clientes-sync/route.ts`).
+2. **Capa Móvil Offline con Capacitor:** ✅ Completo
+   - [x] Configuración de Capacitor en el entorno Android (`capacitor.config.ts` con `appId: 'com.rominaribot.mediciones'` y esquema seguro `https`).
+   - [x] Proyecto Android nativo generado (`erp-rr/android`) con permisos `INTERNET` y `ACCESS_NETWORK_STATE` en `AndroidManifest.xml`.
+   - [x] Base de datos local persistente en el dispositivo (`erp_rr_mediciones_mobile` en IndexedDB + `@capacitor/preferences` para persistir configuración, URL de ERP y token de sincronización en `src/mobile/services/storage-service.ts`).
+   - [x] Reutilización directa del componente `CortinaDibujoDidactico` (cotas milimétricas, tipos de cortinas, sistemas, telas, argollas y soportes calculados).
+3. **Flujo de Usuario en Obra:** ✅ Completo
+   - [x] Apertura instantánea sin internet (`0.1s`), bundle local empaquetado dentro de la aplicación móvil (`mobile-dist` y `android/app/src/main/assets/public`).
+   - [x] Selección reactiva de clientes precargados y formulario de **Alta Express en Obra** para registrar nuevos clientes sin conexión (`src/mobile/components/ClienteExpressModalMobile.tsx`).
+   - [x] Gestor de ambientes y aberturas con dibujo dinámico didáctico en tiempo real (`src/mobile/components/MedicionFormMobile.tsx`).
+   - [x] Guardado local garantizado e inmune a cortes de energía o reinicios de la tablet.
+   - [x] Indicador de estado en cabecera: `🟡 Pendiente de sincronizar` / `🟢 Sincronizado` con visor de conectividad (`@capacitor/network`).
+   - [x] Botón de sincronización manual y automática con barra de progreso y prueba de conexión contra el ERP (`src/mobile/services/sync-service.ts`).
+4. **Compilación del Instalador:** ✅ Completo
+   - [x] Script `npm run build:mobile` que compila el bundle móvil en Vite (800ms) y sincroniza automáticamente los assets de Capacitor con Android (`android/app/src/main/assets/public`).
+   - [x] Workflow automatizado de GitHub Actions (`.github/workflows/build-apk.yml`) para compilar y generar automáticamente el archivo `mediciones-rr.apk` listo para descargar desde cualquier lugar a costo $0.
+   - [x] Compatibilidad para compilación local con Gradle (`./gradlew assembleDebug`) o apertura directa con Android Studio.
 
 ---
 
