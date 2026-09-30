@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -25,7 +25,13 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data?.user ?? null
+  } catch {
+    user = null
+  }
 
   // Rutas públicas (no requieren auth)
   const rutasPublicas = ["/login"]
@@ -34,21 +40,16 @@ export async function proxy(request: NextRequest) {
   )
 
   // Si no hay usuario y no es ruta pública:
-  // En entorno de desarrollo permitimos el acceso para pruebas locales directas
   if (!user && !esRutaPublica) {
     if (process.env.NODE_ENV === "development") {
       return supabaseResponse
     }
-    const url = request.nextUrl.clone()
-    url.pathname = "/login"
-    return NextResponse.redirect(url)
+    return NextResponse.redirect(new URL("/login", request.url))
   }
 
   // Si hay usuario y está en ruta pública → redirigir al dashboard
   if (user && esRutaPublica) {
-    const url = request.nextUrl.clone()
-    url.pathname = "/"
-    return NextResponse.redirect(url)
+    return NextResponse.redirect(new URL("/", request.url))
   }
 
   return supabaseResponse
@@ -56,6 +57,9 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 }
+
+export default middleware
+
