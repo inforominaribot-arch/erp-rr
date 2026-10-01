@@ -34,7 +34,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Rutas públicas (no requieren auth)
-  const rutasPublicas = ["/login"]
+  // Los endpoints de sync móvil tienen su propia autenticación por API key
+  const rutasPublicas = ["/login", "/api/mediciones/sync", "/api/mediciones/clientes-sync"]
   const esRutaPublica = rutasPublicas.some(ruta =>
     request.nextUrl.pathname.startsWith(ruta)
   )
