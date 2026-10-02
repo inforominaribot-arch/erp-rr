@@ -49,7 +49,7 @@ export function MedicionesPendientesAlerta({
               </h2>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-bold text-white shadow-2xs">
                 <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                {cantidad} {cantidad === 1 ? "cliente esperando" : "clientes esperando"}
+                {cantidad} {cantidad === 1 ? "a presupuestar" : "a presupuestar"}
               </span>
             </div>
             <p className="mt-0.5 text-xs text-amber-800/90 leading-relaxed">

@@ -426,11 +426,10 @@ export async function obtenerMedicionesClienteAction(
 
 export async function obtenerConteoPendientesPresupuestoAction(): Promise<number> {
   try {
-    const conteo = await prisma.cliente.count({
+    const conteo = await prisma.medicion.count({
       where: {
-        estado: "MEDICION_TOMADA",
-        mediciones: {
-          some: {},
+        cliente: {
+          estado: "MEDICION_TOMADA",
         },
       },
     })
