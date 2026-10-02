@@ -27,6 +27,7 @@ import type { IComandaDetalle, EstadoComanda, TipoItemComanda } from "../types"
 import { ComandaEstadoBadge } from "./comanda-estado-badge"
 import { ComandaTipoBadge } from "./comanda-tipo-badge"
 import { ComandaImprimible } from "./comanda-imprimible"
+import { CortinaDibujoDidactico } from "@/modules/mediciones/components/cortina-dibujo-didactico"
 import {
   cambiarEstadoComanda,
   toggleCompletadoItemComanda,
@@ -581,9 +582,22 @@ export function ComandaDetalle({
                               </span>
                             </div>
 
-                            {/* Especificaciones Técnicas */}
-                            {c && (
-                              <div className="mt-2 rounded-xl bg-slate-50 p-2.5 text-xs text-slate-700 space-y-1">
+                            {/* Especificaciones Técnicas y Dibujo Esquemático */}
+                            <div className="mt-3 flex flex-col sm:flex-row gap-4 items-start">
+                              {/* Dibujo Esquemático Didáctico */}
+                              <div className="w-full sm:w-44 shrink-0 rounded-xl bg-slate-50 border border-slate-200 p-2 flex items-center justify-center">
+                                <CortinaDibujoDidactico
+                                  ancho={Number(it.ancho)}
+                                  alto={Number(it.alto)}
+                                  caracteristicas={c}
+                                  modoCompacto={true}
+                                />
+                              </div>
+
+                              {/* Especificaciones Técnicas */}
+                              <div className="flex-1 w-full space-y-1">
+                                {c && (
+                                  <div className="rounded-xl bg-slate-50 p-2.5 text-xs text-slate-700 space-y-1">
                                 {c.tipo && (
                                   <div>
                                     <span className="text-slate-400 font-semibold">
@@ -652,11 +666,13 @@ export function ComandaDetalle({
                               </div>
                             )}
 
-                            {it.observaciones && (
-                              <p className="text-xs text-indigo-700 bg-indigo-50/60 rounded-lg p-2 mt-1">
-                                <strong>Nota Taller:</strong> {it.observaciones}
-                              </p>
-                            )}
+                              {it.observaciones && (
+                                <p className="text-xs text-indigo-700 bg-indigo-50/60 rounded-lg p-2 mt-1">
+                                  <strong>Nota Taller:</strong> {it.observaciones}
+                                </p>
+                              )}
+                              </div>
+                            </div>
                           </div>
                         </div>
 

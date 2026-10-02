@@ -2,6 +2,7 @@
 
 import { Printer, ArrowLeft, Scissors, Truck, CheckSquare } from "lucide-react"
 import type { IComandaDetalle } from "../types"
+import { CortinaDibujoDidactico } from "@/modules/mediciones/components/cortina-dibujo-didactico"
 
 interface ComandaImprimibleProps {
   comanda: IComandaDetalle
@@ -222,86 +223,101 @@ export function ComandaImprimible({
                       </span>
                     </td>
 
-                    {/* Especificaciones Técnicas */}
-                    <td className="p-2 border-r border-slate-300 space-y-1">
-                      {c ? (
-                        <div className="space-y-0.5 text-[10px] text-slate-700">
-                          {c.tipo && (
-                            <div>
-                              <strong>Tipo:</strong> {c.tipo}
-                              {c.sistema ? ` (${c.sistema})` : ""}
-                            </div>
-                          )}
-
-                          {/* Gaza */}
-                          {c.gaza?.activa && (
-                            <div className="text-slate-900">
-                              • <strong>Gaza:</strong>{" "}
-                              {c.gaza.nombreTela || "Tela base"} —{" "}
-                              {c.gaza.panos}{" "}
-                              {c.gaza.panos === 1 ? "paño" : "paños"}
-                              {c.gaza.anchosPanos?.length > 0 &&
-                                ` [${c.gaza.anchosPanos.join("m, ")}m]`}
-                            </div>
-                          )}
-
-                          {/* Black Out */}
-                          {c.bo?.activa && (
-                            <div className="text-slate-900">
-                              • <strong>Black Out:</strong>{" "}
-                              {c.bo.nombreTela || "B.O."} — {c.bo.tramos}{" "}
-                              {c.bo.tramos === 1 ? "tramo" : "tramos"}
-                              {c.bo.anchosTramos?.length > 0 &&
-                                ` [${c.bo.anchosTramos.join("m, ")}m]`}
-                            </div>
-                          )}
-
-                          {/* Mandos / Caídas / Soportes */}
-                          <div className="flex flex-wrap gap-x-3 text-[10px] text-slate-500 pt-0.5">
-                            {c.mando && (
-                              <span>
-                                Mando: <strong>{c.mando}</strong>
-                              </span>
-                            )}
-                            {c.caida && (
-                              <span>
-                                Caída: <strong>{c.caida}</strong>
-                              </span>
-                            )}
-                            {c.sujecion && (
-                              <span>
-                                Sujeción: <strong>{c.sujecion}</strong>
-                              </span>
-                            )}
-                            {c.colorBarral && (
-                              <span>
-                                Barral: <strong>{c.colorBarral}</strong>
-                              </span>
-                            )}
-                            {c.perfileria && (
-                              <span>
-                                Perfilería: <strong>{c.perfileria}</strong>
-                              </span>
-                            )}
-                            {c.aluminio && (
-                              <span>
-                                Aluminio: {c.aluminio.tipoLamina} -{" "}
-                                {c.aluminio.color}
-                              </span>
-                            )}
-                          </div>
+                    {/* Especificaciones Técnicas con Dibujo Didáctico */}
+                    <td className="p-2 border-r border-slate-300">
+                      <div className="flex flex-col md:flex-row items-center gap-3">
+                        {/* Dibujo Esquemático Compacto */}
+                        <div className="w-36 shrink-0 flex items-center justify-center p-1 bg-slate-50 border border-slate-200 rounded-lg">
+                          <CortinaDibujoDidactico
+                            ancho={Number(it.ancho)}
+                            alto={Number(it.alto)}
+                            caracteristicas={c}
+                            modoCompacto={true}
+                          />
                         </div>
-                      ) : (
-                        <span className="text-slate-400 italic text-[10px]">
-                          Sin especificaciones adicionales
-                        </span>
-                      )}
 
-                      {it.observaciones && (
-                        <div className="text-[10px] font-semibold text-indigo-700 bg-indigo-50/50 rounded p-1 mt-1">
-                          Nota: {it.observaciones}
+                        {/* Desglose Técnico Escrito */}
+                        <div className="flex-1 space-y-1 text-left">
+                          {c ? (
+                            <div className="space-y-0.5 text-[10px] text-slate-700">
+                              {c.tipo && (
+                                <div>
+                                  <strong>Tipo:</strong> {c.tipo}
+                                  {c.sistema ? ` (${c.sistema})` : ""}
+                                </div>
+                              )}
+
+                              {/* Gaza */}
+                              {c.gaza?.activa && (
+                                <div className="text-slate-900">
+                                  • <strong>Gaza:</strong>{" "}
+                                  {c.gaza.nombreTela || "Tela base"} —{" "}
+                                  {c.gaza.panos}{" "}
+                                  {c.gaza.panos === 1 ? "paño" : "paños"}
+                                  {c.gaza.anchosPanos?.length > 0 &&
+                                    ` [${c.gaza.anchosPanos.join("m, ")}m]`}
+                                </div>
+                              )}
+
+                              {/* Black Out */}
+                              {c.bo?.activa && (
+                                <div className="text-slate-900">
+                                  • <strong>Black Out:</strong>{" "}
+                                  {c.bo.nombreTela || "B.O."} — {c.bo.tramos}{" "}
+                                  {c.bo.tramos === 1 ? "tramo" : "tramos"}
+                                  {c.bo.anchosTramos?.length > 0 &&
+                                    ` [${c.bo.anchosTramos.join("m, ")}m]`}
+                                </div>
+                              )}
+
+                              {/* Mandos / Caídas / Soportes */}
+                              <div className="flex flex-wrap gap-x-3 text-[10px] text-slate-500 pt-0.5">
+                                {c.mando && (
+                                  <span>
+                                    Mando: <strong>{c.mando}</strong>
+                                  </span>
+                                )}
+                                {c.caida && (
+                                  <span>
+                                    Caída: <strong>{c.caida}</strong>
+                                  </span>
+                                )}
+                                {c.sujecion && (
+                                  <span>
+                                    Sujeción: <strong>{c.sujecion}</strong>
+                                  </span>
+                                )}
+                                {c.colorBarral && (
+                                  <span>
+                                    Barral: <strong>{c.colorBarral}</strong>
+                                  </span>
+                                )}
+                                {c.perfileria && (
+                                  <span>
+                                    Perfilería: <strong>{c.perfileria}</strong>
+                                  </span>
+                                )}
+                                {c.aluminio && (
+                                  <span>
+                                    Aluminio: {c.aluminio.tipoLamina} -{" "}
+                                    {c.aluminio.color}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 italic text-[10px]">
+                              Sin especificaciones adicionales
+                            </span>
+                          )}
+
+                          {it.observaciones && (
+                            <div className="text-[10px] font-semibold text-indigo-700 bg-indigo-50/50 rounded p-1 mt-1">
+                              Nota: {it.observaciones}
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </td>
 
                     {/* Casilleros para tildar con lapicera en taller */}
