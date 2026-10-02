@@ -533,7 +533,7 @@ export function PresupuestoForm({
                       </button>
                       <input
                         type="number"
-                        step="100"
+                        step="any"
                         min="0"
                         value={it.precioUnitario}
                         onChange={(e) =>
