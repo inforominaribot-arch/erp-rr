@@ -1,8 +1,14 @@
 "use client"
 
-import { Printer, ArrowLeft, Scissors, Truck, CheckSquare } from "lucide-react"
-import type { IComandaDetalle } from "../types"
+import { Printer, ArrowLeft, Scissors, Truck, CheckSquare, Layers } from "lucide-react"
+import type { IComandaDetalle, IItemComanda } from "../types"
 import { CortinaDibujoDidactico } from "@/modules/mediciones/components/cortina-dibujo-didactico"
+import {
+  calcularAnchoConfeccionGaza,
+  calcularArgollasGaza,
+  calcularCantidadSoportes,
+  determinarVarianteSoporte,
+} from "@/modules/mediciones/types"
 
 interface ComandaImprimibleProps {
   comanda: IComandaDetalle
@@ -153,196 +159,279 @@ export function ComandaImprimible({
           </div>
         )}
 
-        {/* ── TABLA DE CORTE Y CONFECCIÓN ── */}
-        <div className="mt-4">
-          <table className="w-full text-left border-collapse border border-slate-300">
-            <thead>
-              <tr className="bg-slate-100 text-[10px] font-black uppercase text-slate-700 border-b border-slate-300">
-                <th className="p-2 border-r border-slate-300 w-8 text-center">
-                  #
-                </th>
-                <th className="p-2 border-r border-slate-300 w-36">
-                  Ambiente & Cortina
-                </th>
-                <th className="p-2 border-r border-slate-300 w-24 text-center">
-                  Medidas
-                </th>
-                <th className="p-2 border-r border-slate-300 w-24 text-center">
-                  Clasificación
-                </th>
-                <th className="p-2 border-r border-slate-300">
-                  Especificaciones Técnicas Taller
-                </th>
-                <th className="p-2 w-28 text-center">Control Taller</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 text-[11px]">
-              {comanda.items.map((it, idx) => {
-                const c = it.caracteristicas
+        {/* ── SECCIÓN DE CORTINAS A FABRICAR EN TALLER (TARJETAS GRANDES CON DIBUJO) ── */}
+        {totalFabricar > 0 && (
+          <div className="mt-5 space-y-4">
+            <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
+              <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                <Scissors className="h-3.5 w-3.5" />
+                Cortinas para Confección y Corte en Taller ({totalFabricar})
+              </h2>
+              <span className="text-[10px] font-bold text-slate-500 uppercase">
+                Dibujo técnico y especificaciones
+              </span>
+            </div>
 
-                return (
-                  <tr
-                    key={it.id}
-                    className="break-inside-avoid hover:bg-slate-50/50"
-                  >
-                    {/* Índice */}
-                    <td className="p-2 border-r border-slate-300 text-center font-bold text-slate-400">
-                      {idx + 1}
-                    </td>
+            {/* Agrupadas por Ambiente */}
+            {(() => {
+              const itemsFabricar = comanda.items.filter((i) => i.tipo === "FABRICAR")
+              const porAmbiente = itemsFabricar.reduce<Record<string, IItemComanda[]>>((acc, it) => {
+                const amb = it.ambiente || "General"
+                if (!acc[amb]) acc[amb] = []
+                acc[amb].push(it)
+                return acc
+              }, {})
 
-                    {/* Ambiente y Descripción */}
-                    <td className="p-2 border-r border-slate-300">
-                      <div className="font-bold text-slate-900">
-                        {it.ambiente || "General"}
-                      </div>
-                      <div className="text-slate-600 text-[10px]">
-                        {it.descripcion}
-                      </div>
-                    </td>
+              return Object.entries(porAmbiente).map(([ambiente, itemsAmb]) => (
+                <div key={ambiente} className="space-y-3">
+                  {/* Encabezado de Ambiente */}
+                  <div className="flex items-center justify-between bg-slate-100 border border-slate-800 px-3 py-1 rounded-md">
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-900">
+                      📍 AMBIENTE: {ambiente}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-600">
+                      {itemsAmb.length} cortina{itemsAmb.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
 
-                    {/* Medidas */}
-                    <td className="p-2 border-r border-slate-300 text-center font-mono">
-                      <div className="font-bold text-slate-900">
-                        {it.ancho}m × {it.alto}m
-                      </div>
-                      <div className="text-[10px] text-slate-500">
-                        Cant: <strong>{it.cantidad}</strong>
-                      </div>
-                    </td>
+                  {/* Tarjetas de Cortinas del Ambiente (Layout de tu boceto) */}
+                  <div className="space-y-3">
+                    {itemsAmb.map((it, idx) => {
+                      const c = it.caracteristicas
+                      const tipo = c?.tipo || "Tradicional"
+                      const tieneGaza = Boolean(c?.gaza?.activa)
+                      const tieneBO = Boolean(c?.bo?.activa)
+                      const anchoGaza = c?.gaza?.ancho || it.ancho
+                      const altoGaza = c?.gaza?.alto || it.alto
+                      const panosGaza = c?.gaza?.panos || 1
+                      const anchosPanos = c?.gaza?.anchosPanos || []
+                      const anchoConfeccionGaza = tieneGaza ? calcularAnchoConfeccionGaza(anchoGaza) : 0
 
-                    {/* Clasificación */}
-                    <td className="p-2 border-r border-slate-300 text-center">
-                      <span
-                        className={`inline-block rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
-                          it.tipo === "FABRICAR"
-                            ? "bg-indigo-100 text-indigo-800"
-                            : "bg-amber-100 text-amber-800"
-                        }`}
-                      >
-                        {it.tipo === "FABRICAR" ? "Fabricar" : "Proveedor"}
-                      </span>
-                    </td>
+                      const anchoBO = c?.bo?.ancho || it.ancho
+                      const altoBO = c?.bo?.alto || it.alto
+                      const tramosBO = c?.bo?.tramos || 1
+                      const anchosTramos = c?.bo?.anchosTramos || []
 
-                    {/* Especificaciones Técnicas con Dibujo Didáctico */}
-                    <td className="p-2 border-r border-slate-300">
-                      <div className="flex flex-col md:flex-row items-center gap-3">
-                        {/* Dibujo Esquemático Compacto */}
-                        <div className="w-36 shrink-0 flex items-center justify-center p-1 bg-slate-50 border border-slate-200 rounded-lg">
-                          <CortinaDibujoDidactico
-                            ancho={Number(it.ancho)}
-                            alto={Number(it.alto)}
-                            caracteristicas={c}
-                            modoCompacto={true}
-                          />
-                        </div>
+                      const anchoEfectivo = tieneGaza ? anchoGaza : tieneBO ? anchoBO : it.ancho
+                      const argollas = tieneGaza && tipo === "Tradicional" ? calcularArgollasGaza(anchoGaza) : 0
+                      const cantidadSoportes = calcularCantidadSoportes(anchoEfectivo)
+                      const varianteSoporte = determinarVarianteSoporte(tieneGaza, tieneBO, c?.formatoBO)
+                      const caida = c?.caida || "Por delante"
 
-                        {/* Desglose Técnico Escrito */}
-                        <div className="flex-1 space-y-1 text-left">
-                          {c ? (
-                            <div className="space-y-0.5 text-[10px] text-slate-700">
-                              {c.tipo && (
+                      return (
+                        <div
+                          key={it.id}
+                          className="break-inside-avoid border-2 border-slate-900 rounded-xl p-3 bg-white shadow-2xs"
+                        >
+                          <div className="grid grid-cols-12 gap-3 items-center">
+                            {/* ── COLUMNA IZQUIERDA: DIBUJO DIDÁCTICO GRANDE (~44%) ── */}
+                            <div className="col-span-12 sm:col-span-5 border-b sm:border-b-0 sm:border-r border-slate-300 pb-2 sm:pb-0 sm:pr-3 flex flex-col items-center justify-center min-h-[140px]">
+                              <CortinaDibujoDidactico
+                                ancho={Number(it.ancho)}
+                                alto={Number(it.alto)}
+                                caracteristicas={c}
+                                modoCompacto={true}
+                              />
+                            </div>
+
+                            {/* ── COLUMNA DERECHA: ESPECIFICACIONES TÉCNICAS & CASILLEROS (~56%) ── */}
+                            <div className="col-span-12 sm:col-span-7 space-y-2 text-xs text-slate-800">
+                              {/* Título de la Cortina y Medidas */}
+                              <div className="flex items-center justify-between border-b border-slate-200 pb-1">
                                 <div>
-                                  <strong>Tipo:</strong> {c.tipo}
-                                  {c.sistema ? ` (${c.sistema})` : ""}
+                                  <span className="font-extrabold text-slate-950 text-xs block">
+                                    {idx + 1}. {it.descripcion}
+                                  </span>
+                                  <span className="text-[10px] text-slate-500 font-mono font-bold">
+                                    Medida: {it.ancho}m ancho × {it.alto}m alto • Cant: {it.cantidad}
+                                  </span>
                                 </div>
-                              )}
+                                <span className="rounded bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-black uppercase text-indigo-900 shrink-0">
+                                  {tipo}
+                                </span>
+                              </div>
 
-                              {/* Gaza */}
-                              {c.gaza?.activa && (
-                                <div className="text-slate-900">
-                                  • <strong>Gaza:</strong>{" "}
-                                  {c.gaza.nombreTela || "Tela base"} —{" "}
-                                  {c.gaza.panos}{" "}
-                                  {c.gaza.panos === 1 ? "paño" : "paños"}
-                                  {c.gaza.anchosPanos?.length > 0 &&
-                                    ` [${c.gaza.anchosPanos.join("m, ")}m]`}
+                              {/* Especificaciones de Sistema, Mandos y Soportes */}
+                              <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[11px]">
+                                <div>
+                                  <span className="text-slate-500 font-medium">Sistema: </span>
+                                  <strong>
+                                    {tipo === "Tradicional"
+                                      ? `${c?.sistema || "Riel"}${
+                                          c?.sistema === "Barral"
+                                            ? ` (${c?.colorBarral || "Negro"})`
+                                            : ""
+                                        }`
+                                      : c?.perfileria || "Blanco"}
+                                  </strong>
                                 </div>
-                              )}
 
-                              {/* Black Out */}
-                              {c.bo?.activa && (
-                                <div className="text-slate-900">
-                                  • <strong>Black Out:</strong>{" "}
-                                  {c.bo.nombreTela || "B.O."} — {c.bo.tramos}{" "}
-                                  {c.bo.tramos === 1 ? "tramo" : "tramos"}
-                                  {c.bo.anchosTramos?.length > 0 &&
-                                    ` [${c.bo.anchosTramos.join("m, ")}m]`}
+                                <div>
+                                  <span className="text-slate-500 font-medium">Sujeción: </span>
+                                  <strong>{c?.sujecion || "Pared"}</strong>
                                 </div>
-                              )}
 
-                              {/* Mandos / Caídas / Soportes */}
-                              <div className="flex flex-wrap gap-x-3 text-[10px] text-slate-500 pt-0.5">
-                                {c.mando && (
-                                  <span>
-                                    Mando: <strong>{c.mando}</strong>
-                                  </span>
+                                {c?.mando && (
+                                  <div>
+                                    <span className="text-slate-500 font-medium">Mando: </span>
+                                    <strong>{c.mando}</strong>
+                                  </div>
                                 )}
-                                {c.caida && (
-                                  <span>
-                                    Caída: <strong>{c.caida}</strong>
-                                  </span>
-                                )}
-                                {c.sujecion && (
-                                  <span>
-                                    Sujeción: <strong>{c.sujecion}</strong>
-                                  </span>
-                                )}
-                                {c.colorBarral && (
-                                  <span>
-                                    Barral: <strong>{c.colorBarral}</strong>
-                                  </span>
-                                )}
-                                {c.perfileria && (
-                                  <span>
-                                    Perfilería: <strong>{c.perfileria}</strong>
-                                  </span>
-                                )}
-                                {c.aluminio && (
-                                  <span>
-                                    Aluminio: {c.aluminio.tipoLamina} -{" "}
-                                    {c.aluminio.color}
-                                  </span>
+
+                                {c?.tipoSoporte && (
+                                  <div>
+                                    <span className="text-slate-500 font-medium">Soportes: </span>
+                                    <strong>
+                                      {cantidadSoportes} {c.tipoSoporte} ({varianteSoporte})
+                                    </strong>
+                                  </div>
                                 )}
                               </div>
-                            </div>
-                          ) : (
-                            <span className="text-slate-400 italic text-[10px]">
-                              Sin especificaciones adicionales
-                            </span>
-                          )}
 
+                              {/* Desglose de Confección de Telas */}
+                              <div className="rounded-lg bg-slate-50 border border-slate-200 p-2 space-y-1 text-[11px]">
+                                {/* Gaza */}
+                                {tieneGaza && (
+                                  <div className="border-b border-slate-200/80 pb-1">
+                                    <div className="flex items-center justify-between">
+                                      <span>
+                                        <strong>GAZA:</strong> {anchoGaza.toFixed(2)}m × {altoGaza.toFixed(2)}m
+                                        {c?.gaza?.nombreTela ? ` • ${c.gaza.nombreTela}` : ""}
+                                      </span>
+                                      <span className="rounded bg-amber-100 border border-amber-300 px-1.5 py-0.2 text-[9px] font-black text-amber-950">
+                                        Corte (+10cm): {anchoConfeccionGaza.toFixed(2)}m
+                                      </span>
+                                    </div>
+                                    <div className="text-[10px] text-slate-600 mt-0.5">
+                                      Paños ({panosGaza}):{" "}
+                                      {anchosPanos.length > 0
+                                        ? anchosPanos.map((p, pIdx) => `P${pIdx + 1}: ${p.toFixed(2)}m`).join(" + ")
+                                        : `${(anchoGaza / panosGaza).toFixed(2)}m c/u`}
+                                      {argollas > 0 && ` • ${argollas} argollas`}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Blackout */}
+                                {tieneBO && (
+                                  <div className="pt-0.5">
+                                    <div className="flex items-center justify-between">
+                                      <span>
+                                        <strong>BLACK OUT:</strong> {anchoBO.toFixed(2)}m × {altoBO.toFixed(2)}m
+                                        {c?.bo?.nombreTela ? ` • ${c.bo.nombreTela}` : ""}
+                                      </span>
+                                      <span className="text-[10px] text-slate-500 font-medium">
+                                        Caída: {caida}
+                                      </span>
+                                    </div>
+                                    <div className="text-[10px] text-slate-600 mt-0.5">
+                                      Tramos ({tramosBO}):{" "}
+                                      {anchosTramos.length > 0
+                                        ? anchosTramos.map((t, tIdx) => `T${tIdx + 1}: ${t.toFixed(2)}m`).join(" + ")
+                                        : `${(anchoBO / tramosBO).toFixed(2)}m c/u`}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Casilleros para tildar con lapicera en taller */}
+                              <div className="pt-1 flex items-center justify-between border-t border-slate-200">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                  Control de Fabricación:
+                                </span>
+                                <div className="flex items-center gap-4 text-[10px] font-bold text-slate-700">
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="h-3.5 w-3.5 rounded border-2 border-slate-400 bg-white" />
+                                    <span>Corte</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="h-3.5 w-3.5 rounded border-2 border-slate-400 bg-white" />
+                                    <span>Confección</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="h-3.5 w-3.5 rounded border-2 border-slate-400 bg-white" />
+                                    <span>Control OK</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))
+            })()}
+          </div>
+        )}
+
+        {/* ── SECCIÓN DE PEDIDOS A PROVEEDOR (LISTA COMPACTA SIN DIBUJO) ── */}
+        {totalProveedor > 0 && (
+          <div className="mt-6 break-inside-avoid space-y-2">
+            <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
+              <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                <Truck className="h-3.5 w-3.5" />
+                Artículos para Pedido a Proveedor Externo ({totalProveedor})
+              </h2>
+              <span className="text-[10px] font-bold text-slate-500 uppercase">
+                Fábrica / Terminados
+              </span>
+            </div>
+
+            <table className="w-full text-left border-collapse border border-slate-300">
+              <thead>
+                <tr className="bg-slate-100 text-[10px] font-black uppercase text-slate-700 border-b border-slate-300">
+                  <th className="p-2 border-r border-slate-300 w-8 text-center">#</th>
+                  <th className="p-2 border-r border-slate-300">Ambiente & Descripción</th>
+                  <th className="p-2 border-r border-slate-300 w-28 text-center">Medidas</th>
+                  <th className="p-2 border-r border-slate-300 w-24 text-center">Cant.</th>
+                  <th className="p-2 border-r border-slate-300">Detalles de Fábrica</th>
+                  <th className="p-2 w-24 text-center">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 text-[11px]">
+                {comanda.items
+                  .filter((i) => i.tipo === "PEDIR_PROVEEDOR")
+                  .map((it, idx) => {
+                    const c = it.caracteristicas
+                    return (
+                      <tr key={it.id} className="hover:bg-slate-50/50">
+                        <td className="p-2 border-r border-slate-300 text-center font-bold text-slate-400">
+                          {idx + 1}
+                        </td>
+                        <td className="p-2 border-r border-slate-300">
+                          <span className="font-bold text-slate-900 block">
+                            [{it.ambiente || "General"}] {it.descripcion}
+                          </span>
+                        </td>
+                        <td className="p-2 border-r border-slate-300 text-center font-mono font-bold">
+                          {it.ancho}m × {it.alto}m
+                        </td>
+                        <td className="p-2 border-r border-slate-300 text-center font-bold">
+                          {it.cantidad}
+                        </td>
+                        <td className="p-2 border-r border-slate-300 text-[10px] text-slate-600">
+                          {c?.marca && <span>Marca: <strong>{c.marca}</strong> • </span>}
+                          {c?.mando && <span>Mando: <strong>{c.mando}</strong> • </span>}
+                          {c?.perfileria && <span>Perfil: <strong>{c.perfileria}</strong></span>}
                           {it.observaciones && (
-                            <div className="text-[10px] font-semibold text-indigo-700 bg-indigo-50/50 rounded p-1 mt-1">
-                              Nota: {it.observaciones}
-                            </div>
+                            <div className="text-indigo-700 font-semibold">{it.observaciones}</div>
                           )}
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Casilleros para tildar con lapicera en taller */}
-                    <td className="p-2 text-center align-middle">
-                      <div className="space-y-1.5 text-[9px] text-slate-500 font-bold text-left pl-2">
-                        <div className="flex items-center gap-1.5">
-                          <div className="h-3.5 w-3.5 rounded border border-slate-400" />
-                          <span>Corte / Pedido</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <div className="h-3.5 w-3.5 rounded border border-slate-400" />
-                          <span>Confección</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <div className="h-3.5 w-3.5 rounded border border-slate-400" />
-                          <span>Control OK</span>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                        </td>
+                        <td className="p-2 text-center">
+                          <div className="flex items-center justify-center gap-1.5 text-[9px] font-bold text-slate-500">
+                            <div className="h-3.5 w-3.5 rounded border border-slate-400" />
+                            <span>Pedido</span>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Firmas y Recepción de Taller al Pie */}
         <div className="mt-8 pt-4 border-t border-slate-200 grid grid-cols-3 gap-4 text-center text-[10px] text-slate-500">
