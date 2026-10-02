@@ -148,6 +148,10 @@ _(Completar cuando se ejecute `prisma migrate`)_
 - [x] Tabla interactiva con buscador en vivo, filtros por estado y acciones rápidas (`src/modules/presupuestos/components/presupuesto-tabla.tsx`)
 - [x] Páginas del dashboard: `/presupuestos`, `/presupuestos/nuevo`, `/presupuestos/[id]`, `/presupuestos/[id]/editar`
 - [x] Panel de alerta de mediciones pendientes de presupuestar con acción directa "Presupuestar Cortinas" e insignia naranja reactiva en el menú lateral y cabecera (`src/modules/presupuestos/components/mediciones-pendientes-alerta.tsx`, `Sidebar.tsx`)
+- [x] Motor de explosión de materiales y control preventivo de stock al aprobar presupuestos (`src/modules/presupuestos/lib/explosion-materiales.ts`):
+  - Regla de negocio de rieles: múltiplos hacia arriba de 0.20m, máximo de 4.60m (si supera 4.60m se divide en 2 tramos iguales redondeados a 0.20m).
+  - Detección de doble capa para combinación Gasa + Blackout (2 rieles por tramo).
+  - Cruce en tiempo real contra inventario en `PresupuestoAprobarModal` y tarjeta de control en `PresupuestoDetalle`.
 
 
 ---

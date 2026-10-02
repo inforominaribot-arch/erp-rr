@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
   X,
@@ -12,10 +12,15 @@ import {
   Loader2,
   Check,
   AlertCircle,
+  Package,
+  Layers,
+  Ruler,
+  AlertTriangle,
 } from "lucide-react"
 import type { EstadoPresupuesto } from "@/types"
 import type { IPresupuestoDetalle } from "../types"
-import { cambiarEstadoPresupuesto } from "../actions"
+import { cambiarEstadoPresupuesto, verificarStockPresupuestoAction } from "../actions"
+import type { IReporteDisponibilidadStock } from "../lib/explosion-materiales"
 import { formatearPrecio } from "@/lib/utils"
 
 interface PresupuestoAprobarModalProps {
@@ -32,6 +37,8 @@ export function PresupuestoAprobarModal({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [cargandoStock, setCargandoStock] = useState<boolean>(false)
+  const [reporteStock, setReporteStock] = useState<IReporteDisponibilidadStock | null>(null)
 
   const [estadoSeleccionado, setEstadoSeleccionado] = useState<EstadoPresupuesto>(
     presupuesto.estado === "BORRADOR" ? "ENVIADO" : "ACEPTADO_TOTAL"
@@ -47,6 +54,41 @@ export function PresupuestoAprobarModal({
       ? previamentAceptados
       : presupuesto.items.map((it) => it.id)
   })
+
+  // Chequear stock cuando se selecciona ACEPTADO_TOTAL o ACEPTADO_PARCIAL
+  useEffect(() => {
+    if (
+      !abierto ||
+      (estadoSeleccionado !== "ACEPTADO_TOTAL" &&
+        estadoSeleccionado !== "ACEPTADO_PARCIAL")
+    ) {
+      setReporteStock(null)
+      return
+    }
+
+    let activo = true
+    setCargandoStock(true)
+
+    const idsAEvaluar =
+      estadoSeleccionado === "ACEPTADO_PARCIAL" ? itemsAceptados : undefined
+
+    verificarStockPresupuestoAction(presupuesto.id, idsAEvaluar)
+      .then((res) => {
+        if (activo && res.success && res.data) {
+          setReporteStock(res.data)
+        }
+      })
+      .catch((err) => {
+        console.error("Error al consultar stock:", err)
+      })
+      .finally(() => {
+        if (activo) setCargandoStock(false)
+      })
+
+    return () => {
+      activo = false
+    }
+  }, [abierto, estadoSeleccionado, itemsAceptados, presupuesto.id])
 
   function toggleItem(id: string) {
     setItemsAceptados((prev) =>
@@ -314,6 +356,98 @@ export function PresupuestoAprobarModal({
                   )}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* ── PANEL DE ANÁLISIS DE STOCK & RIELES ── */}
+          {(estadoSeleccionado === "ACEPTADO_TOTAL" ||
+            estadoSeleccionado === "ACEPTADO_PARCIAL") && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4 text-indigo-600" />
+                  <span className="text-xs font-bold text-slate-900">
+                    Disponibilidad de Materiales en Taller
+                  </span>
+                </div>
+                {cargandoStock && (
+                  <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Verificando stock...
+                  </span>
+                )}
+              </div>
+
+              {reporteStock && (
+                <div className="space-y-2.5">
+                  {/* Banner de Estado General */}
+                  {reporteStock.hayFaltantes ? (
+                    <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-2.5 border border-amber-200 text-xs text-amber-800">
+                      <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold block text-amber-950">
+                          Se detectaron materiales faltantes ({reporteStock.totalFaltantes})
+                        </span>
+                        <span className="text-[11px] text-amber-700">
+                          Podés aprobar el presupuesto para que el taller conozca qué pedir a fábrica o proveedores.
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-lg bg-emerald-50 p-2.5 border border-emerald-200 text-xs text-emerald-800 font-medium">
+                      <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <span>
+                        ¡Stock suficiente en taller para confeccionar e instalar estas cortinas!
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Lista de Materiales y Rieles Calculados */}
+                  {reporteStock.materiales.length > 0 && (
+                    <div className="divide-y divide-slate-200/80 rounded-lg border border-slate-200 bg-white overflow-hidden text-xs">
+                      {reporteStock.materiales.map((mat, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between p-2.5 hover:bg-slate-50/50"
+                        >
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-900">
+                                {mat.nombre}
+                              </span>
+                              <span
+                                className={`rounded px-1.5 py-0.2 text-[10px] font-bold ${
+                                  mat.tieneStockSuficiente
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : "bg-rose-100 text-rose-800"
+                                }`}
+                              >
+                                {mat.tieneStockSuficiente
+                                  ? "Stock OK"
+                                  : `Falta ${mat.faltante} ${mat.unidadMedida === "metro" ? "m" : "u"}`}
+                              </span>
+                            </div>
+                            {mat.detalles && (
+                              <p className="text-[11px] text-slate-500">
+                                {mat.detalles}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="text-right text-[11px] font-mono shrink-0 pl-3">
+                            <span className="text-slate-500 block">
+                              Nec: <strong>{mat.cantidadRequerida}</strong> {mat.unidadMedida === "metro" ? "m" : "u"}
+                            </span>
+                            <span className="text-slate-400 text-[10px]">
+                              Stock: {mat.stockActual} {mat.unidadMedida === "metro" ? "m" : "u"}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

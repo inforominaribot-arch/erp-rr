@@ -11,6 +11,11 @@ import {
   type CambiarEstadoPresupuestoInput,
 } from "./schemas"
 import type { IPresupuesto, MedicionImportable } from "./types"
+import {
+  analizarRielesItem,
+  type IReporteDisponibilidadStock,
+  type INecesidadMaterial,
+} from "./lib/explosion-materiales"
 
 // ─── 1. Crear Presupuesto ────────────────────────────────────────────────────
 
@@ -437,6 +442,164 @@ export async function obtenerConteoPendientesPresupuestoAction(): Promise<number
   } catch (error) {
     console.error("Error al obtener conteo de pendientes:", error)
     return 0
+  }
+}
+
+// ─── 7. Verificar Disponibilidad de Stock para Presupuesto (Rieles, Telas) ───
+
+export async function verificarStockPresupuestoAction(
+  presupuestoId: string,
+  itemsIdsAceptados?: string[]
+): Promise<ActionResponse<IReporteDisponibilidadStock>> {
+  try {
+    const presupuesto = await prisma.presupuesto.findUnique({
+      where: { id: presupuestoId },
+      include: {
+        items: {
+          include: {
+            itemMedicion: true,
+          },
+        },
+      },
+    })
+
+    if (!presupuesto) {
+      return { success: false, error: "Presupuesto no encontrado" }
+    }
+
+    // Filtrar sólo ítems aprobados si se indicó
+    const itemsAEvaluar = itemsIdsAceptados && itemsIdsAceptados.length > 0
+      ? presupuesto.items.filter((it) => itemsIdsAceptados.includes(it.id))
+      : presupuesto.items
+
+    // Obtener catálogo de productos activos de stock
+    const productosStock = await prisma.producto.findMany({
+      where: { activo: true },
+    })
+
+    const necesidadesMap = new Map<string, INecesidadMaterial>()
+    const resumenRieles: string[] = []
+    const resumenTelas: string[] = []
+
+    for (const it of itemsAEvaluar) {
+      const ancho = Number(it.ancho) || 0
+      const alto = Number(it.alto) || 0
+      const cantidad = it.cantidad || 1
+      const carac = it.itemMedicion?.caracteristicas as any
+
+      // 1. Análisis de Rieles
+      const rielesCalculados = analizarRielesItem(it.descripcion, ancho, cantidad, carac)
+      if (rielesCalculados) {
+        resumenRieles.push(
+          `${it.descripcion} (${ancho}m): ${rielesCalculados.descripcionRiel}`
+        )
+
+        // Buscar producto de riel en catálogo (ej: "Riel Europeo Blanco", "Riel", etc.)
+        const prodRiel =
+          productosStock.find(
+            (p) =>
+              p.nombre.toLowerCase().includes("riel") ||
+              (p.descripcion && p.descripcion.toLowerCase().includes("riel"))
+          ) || null
+
+        const claveRiel = prodRiel ? prodRiel.id : "RIEL_GENERAL"
+        const nombreRiel = prodRiel ? prodRiel.nombre : "Riel Tradicional (Metros lineales)"
+        const stockActual = prodRiel ? Number(prodRiel.stockActual) : 0
+
+        const existente = necesidadesMap.get(claveRiel) || {
+          tipo: "RIEL",
+          nombre: nombreRiel,
+          unidadMedida: "metro",
+          cantidadRequerida: 0,
+          stockActual,
+          faltante: 0,
+          tieneStockSuficiente: true,
+          detalles: "",
+          productoId: prodRiel?.id,
+        }
+
+        existente.cantidadRequerida += rielesCalculados.totalMetrosLineales
+        existente.detalles += `${existente.detalles ? " • " : ""}${rielesCalculados.descripcionRiel}`
+        necesidadesMap.set(claveRiel, existente)
+      }
+
+      // 2. Análisis de Telas (si la medición tiene tela o la descripción lo indica)
+      const nombreTela =
+        carac?.gaza?.nombreTela ||
+        carac?.bo?.nombreTela ||
+        (it.descripcion.toLowerCase().includes("gaza")
+          ? "Gasa"
+          : it.descripcion.toLowerCase().includes("blackout")
+          ? "Black Out"
+          : null)
+
+      if (nombreTela) {
+        // En cortina tradicional, aprox frunce x 2 + dobladillo
+        const metrosAprox = Number(((ancho * 2 + 0.4) * cantidad).toFixed(2))
+        resumenTelas.push(`${nombreTela}: ${metrosAprox}m para ${it.descripcion}`)
+
+        const prodTela = productosStock.find((p) =>
+          p.nombre.toLowerCase().includes(nombreTela.toLowerCase())
+        )
+
+        const claveTela = prodTela ? prodTela.id : `TELA_${nombreTela.toUpperCase()}`
+        const nombreProductoTela = prodTela ? prodTela.nombre : `Tela: ${nombreTela}`
+        const stockActual = prodTela ? Number(prodTela.stockActual) : 0
+
+        const existenteTela = necesidadesMap.get(claveTela) || {
+          tipo: "TELA",
+          nombre: nombreProductoTela,
+          unidadMedida: "metro",
+          cantidadRequerida: 0,
+          stockActual,
+          faltante: 0,
+          tieneStockSuficiente: true,
+          detalles: "",
+          productoId: prodTela?.id,
+        }
+
+        existenteTela.cantidadRequerida = Number(
+          (existenteTela.cantidadRequerida + metrosAprox).toFixed(2)
+        )
+        necesidadesMap.set(claveTela, existenteTela)
+      }
+    }
+
+    // Calcular faltantes y estado de suficiencia
+    let hayFaltantes = false
+    let totalFaltantes = 0
+    const materiales: INecesidadMaterial[] = []
+
+    necesidadesMap.forEach((mat) => {
+      mat.cantidadRequerida = Number(mat.cantidadRequerida.toFixed(2))
+      if (mat.stockActual < mat.cantidadRequerida) {
+        mat.faltante = Number((mat.cantidadRequerida - mat.stockActual).toFixed(2))
+        mat.tieneStockSuficiente = false
+        hayFaltantes = true
+        totalFaltantes++
+      } else {
+        mat.faltante = 0
+        mat.tieneStockSuficiente = true
+      }
+      materiales.push(mat)
+    })
+
+    return {
+      success: true,
+      data: {
+        materiales,
+        hayFaltantes,
+        totalFaltantes,
+        resumenRieles,
+        resumenTelas,
+      },
+    }
+  } catch (error: any) {
+    console.error("Error al verificar stock del presupuesto:", error)
+    return {
+      success: false,
+      error: error.message || "Error al verificar stock de materiales.",
+    }
   }
 }
 

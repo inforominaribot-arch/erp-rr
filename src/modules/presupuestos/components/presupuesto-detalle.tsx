@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useMemo } from "react"
+import { useState, useTransition, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -30,7 +30,9 @@ import { PresupuestoAprobarModal } from "./presupuesto-aprobar-modal"
 import { PresupuestoImprimible } from "./presupuesto-imprimible"
 import { ComandaGenerarModal } from "@/modules/comandas/components/comanda-generar-modal"
 import type { IPresupuestoAceptadoResumen } from "@/modules/comandas/types"
-import { eliminarPresupuesto } from "../actions"
+import { eliminarPresupuesto, verificarStockPresupuestoAction } from "../actions"
+import type { IReporteDisponibilidadStock } from "../lib/explosion-materiales"
+import { Package, AlertTriangle, Check } from "lucide-react"
 import { formatearPrecio, formatearFecha } from "@/lib/utils"
 
 interface PresupuestoDetalleProps {
@@ -49,6 +51,27 @@ export function PresupuestoDetalle({
   const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false)
   const [mostrarModalComanda, setMostrarModalComanda] = useState(false)
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null)
+  const [reporteStock, setReporteStock] = useState<IReporteDisponibilidadStock | null>(null)
+  const [cargandoStock, setCargandoStock] = useState(false)
+
+  // Cargar disponibilidad de stock si el presupuesto está aprobado
+  useEffect(() => {
+    if (
+      presupuesto.estado === "ACEPTADO_TOTAL" ||
+      presupuesto.estado === "ACEPTADO_PARCIAL"
+    ) {
+      setCargandoStock(true)
+      verificarStockPresupuestoAction(presupuesto.id)
+        .then((res) => {
+          if (res.success && res.data) {
+            setReporteStock(res.data)
+          }
+        })
+        .finally(() => setCargandoStock(false))
+    } else {
+      setReporteStock(null)
+    }
+  }, [presupuesto.id, presupuesto.estado])
 
   const presupuestosParaComanda = useMemo<IPresupuestoAceptadoResumen[]>(() => {
     const itemsFiltrados =
@@ -261,6 +284,66 @@ export function PresupuestoDetalle({
                   </button>
                 )
               )}
+            </div>
+          )}
+
+          {/* ── TARJETA DE DISPONIBILIDAD DE STOCK (RIEL & TELAS) ── */}
+          {reporteStock && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4 text-indigo-600" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                    Control de Materiales & Rieles en Stock
+                  </h3>
+                </div>
+                {reporteStock.hayFaltantes ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800">
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                    {reporteStock.totalFaltantes} faltante(s) a pedir
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+                    <Check className="h-3.5 w-3.5 text-emerald-600" />
+                    Materiales disponibles en taller
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {reporteStock.materiales.map((mat, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl border border-slate-100 bg-slate-50/60 p-3 space-y-1 text-xs"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-bold text-slate-900 block truncate">
+                        {mat.nombre}
+                      </span>
+                      <span
+                        className={`rounded px-1.5 py-0.2 text-[10px] font-bold shrink-0 ${
+                          mat.tieneStockSuficiente
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-rose-100 text-rose-800"
+                        }`}
+                      >
+                        {mat.tieneStockSuficiente
+                          ? "OK"
+                          : `Falta ${mat.faltante} ${mat.unidadMedida === "metro" ? "m" : "u"}`}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-500 line-clamp-2">
+                      {mat.detalles || "Requerido para confección"}
+                    </p>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-200/50 text-[11px] font-mono text-slate-600">
+                      <span>Requerido: {mat.cantidadRequerida}m</span>
+                      <span>Stock: {mat.stockActual}m</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
