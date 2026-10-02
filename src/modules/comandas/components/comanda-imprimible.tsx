@@ -9,6 +9,7 @@ import {
   calcularCantidadSoportes,
   determinarVarianteSoporte,
 } from "@/modules/mediciones/types"
+import { calcularCorteRiel } from "@/modules/presupuestos/lib/explosion-materiales"
 
 interface ComandaImprimibleProps {
   comanda: IComandaDetalle
@@ -217,15 +218,30 @@ export function ComandaImprimible({
                       const cantidadSoportes = calcularCantidadSoportes(anchoEfectivo)
                       const varianteSoporte = determinarVarianteSoporte(tieneGaza, tieneBO, c?.formatoBO)
                       const caida = c?.caida || "Por delante"
+                      // Cálculo de medida de Riel o Barral
+                      const esBarral = tipo === "Tradicional" && c?.sistema === "Barral"
+                      const calculoRiel = calcularCorteRiel(Number(it.ancho))
+                      let textoMedidaSoporte = ""
+                      if (esBarral) {
+                        textoMedidaSoporte = `Barral: ${Number(it.ancho).toFixed(2)}m (sin corte)`
+                      } else if (tipo === "Tradicional" || c?.sistema === "Riel") {
+                        if (calculoRiel.cantidadTramos === 1) {
+                          textoMedidaSoporte = `Riel: ${calculoRiel.medidaPorTramo.toFixed(2)}m (1 tramo)`
+                        } else {
+                          textoMedidaSoporte = `Riel: ${calculoRiel.totalMetros.toFixed(2)}m (2 tramos de ${calculoRiel.medidaPorTramo.toFixed(2)}m)`
+                        }
+                      } else {
+                        textoMedidaSoporte = `Sistema: ${Number(it.ancho).toFixed(2)}m`
+                      }
 
                       return (
                         <div
                           key={it.id}
-                          className="break-inside-avoid border-2 border-slate-900 rounded-xl p-3 bg-white shadow-2xs"
+                          className="break-inside-avoid border-2 border-slate-900 rounded-xl p-3.5 bg-white shadow-2xs"
                         >
-                          <div className="grid grid-cols-12 gap-3 items-center">
-                            {/* ── COLUMNA IZQUIERDA: DIBUJO DIDÁCTICO GRANDE (~44%) ── */}
-                            <div className="col-span-12 sm:col-span-5 border-b sm:border-b-0 sm:border-r border-slate-300 pb-2 sm:pb-0 sm:pr-3 flex flex-col items-center justify-center min-h-[140px]">
+                          <div className="grid grid-cols-12 gap-3.5 items-center">
+                            {/* ── COLUMNA IZQUIERDA: DIBUJO DIDÁCTICO MUCHO MÁS GRANDE (~48%) ── */}
+                            <div className="col-span-12 sm:col-span-6 border-b sm:border-b-0 sm:border-r border-slate-300 pb-2 sm:pb-0 sm:pr-3 flex flex-col items-center justify-center min-h-[175px] bg-slate-50/50 rounded-lg p-1.5">
                               <CortinaDibujoDidactico
                                 ancho={Number(it.ancho)}
                                 alto={Number(it.alto)}
@@ -234,17 +250,23 @@ export function ComandaImprimible({
                               />
                             </div>
 
-                            {/* ── COLUMNA DERECHA: ESPECIFICACIONES TÉCNICAS & CASILLEROS (~56%) ── */}
-                            <div className="col-span-12 sm:col-span-7 space-y-2 text-xs text-slate-800">
-                              {/* Título de la Cortina y Medidas */}
-                              <div className="flex items-center justify-between border-b border-slate-200 pb-1">
+                            {/* ── COLUMNA DERECHA: ESPECIFICACIONES TÉCNICAS & CASILLEROS (~52%) ── */}
+                            <div className="col-span-12 sm:col-span-6 space-y-2 text-xs text-slate-800">
+                              {/* Título de la Cortina y Medida de Riel/Barral */}
+                              <div className="flex items-start justify-between border-b border-slate-200 pb-1.5">
                                 <div>
-                                  <span className="font-extrabold text-slate-950 text-xs block">
+                                  <span className="font-extrabold text-slate-950 text-sm block">
                                     {idx + 1}. {it.descripcion}
                                   </span>
-                                  <span className="text-[10px] text-slate-500 font-mono font-bold">
-                                    Medida: {it.ancho}m ancho × {it.alto}m alto • Cant: {it.cantidad}
-                                  </span>
+                                  {/* MEDIDA DE RIEL O BARRAL REMARCADA */}
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="inline-block rounded-md bg-slate-900 px-2 py-0.5 text-[11px] font-black text-white font-mono shadow-2xs">
+                                      {textoMedidaSoporte}
+                                    </span>
+                                    <span className="text-[10px] text-slate-500 font-bold">
+                                      Cant: {it.cantidad}
+                                    </span>
+                                  </div>
                                 </div>
                                 <span className="rounded bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-black uppercase text-indigo-900 shrink-0">
                                   {tipo}
@@ -404,6 +426,11 @@ export function ComandaImprimible({
                           <span className="font-bold text-slate-900 block">
                             [{it.ambiente || "General"}] {it.descripcion}
                           </span>
+                          {(c?.bo?.nombreTela || c?.gaza?.nombreTela) && (
+                            <span className="text-[10px] font-semibold text-indigo-900 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200 inline-block mt-0.5">
+                              Tela: {c?.bo?.nombreTela || c?.gaza?.nombreTela}
+                            </span>
+                          )}
                         </td>
                         <td className="p-2 border-r border-slate-300 text-center font-mono font-bold">
                           {it.ancho}m × {it.alto}m
@@ -411,13 +438,19 @@ export function ComandaImprimible({
                         <td className="p-2 border-r border-slate-300 text-center font-bold">
                           {it.cantidad}
                         </td>
-                        <td className="p-2 border-r border-slate-300 text-[10px] text-slate-600">
-                          {c?.marca && <span>Marca: <strong>{c.marca}</strong> • </span>}
-                          {c?.mando && <span>Mando: <strong>{c.mando}</strong> • </span>}
-                          {c?.perfileria && <span>Perfil: <strong>{c.perfileria}</strong></span>}
-                          {it.observaciones && (
-                            <div className="text-indigo-700 font-semibold">{it.observaciones}</div>
-                          )}
+                        <td className="p-2 border-r border-slate-300 text-[10px] text-slate-700">
+                          <div className="space-y-0.5">
+                            <div className="flex flex-wrap gap-x-2">
+                              {c?.marca && <span>Marca: <strong>{c.marca}</strong></span>}
+                              {c?.sujecion && <span>Sujeción: <strong>{c.sujecion}</strong></span>}
+                              {c?.mando && <span>Mando: <strong>{c.mando}</strong></span>}
+                              {c?.perfileria && <span>Perfil: <strong>{c.perfileria}</strong></span>}
+                              {c?.caida && <span>Caída: <strong>{c.caida}</strong></span>}
+                            </div>
+                            {it.observaciones && (
+                              <div className="text-indigo-700 font-semibold">{it.observaciones}</div>
+                            )}
+                          </div>
                         </td>
                         <td className="p-2 text-center">
                           <div className="flex items-center justify-center gap-1.5 text-[9px] font-bold text-slate-500">

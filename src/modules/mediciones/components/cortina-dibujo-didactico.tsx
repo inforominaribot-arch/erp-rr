@@ -151,28 +151,28 @@ export function CortinaDibujoDidactico({
   const { boxWidth, boxHeight, formatoTexto } = useMemo(() => {
     if (modoCompacto) {
       if (clampedRatio < 0.92) {
-        // Vertical compacto
-        const h = 115
-        const w = Math.max(48, Math.min(105, Math.round(h * clampedRatio)))
+        // Vertical compacto ampliado (para aprovechar bien el alto)
+        const h = 185
+        const w = Math.max(80, Math.min(170, Math.round(h * clampedRatio)))
         return {
           boxWidth: w,
           boxHeight: h,
           formatoTexto: "Vertical",
         }
       } else if (clampedRatio > 1.08) {
-        // Horizontal compacto
-        const w = Math.min(180, Math.max(105, Math.round(80 * clampedRatio)))
-        const h = Math.max(50, Math.min(95, Math.round(w / clampedRatio)))
+        // Horizontal compacto ampliado (para aprovechar bien el ancho)
+        const w = Math.min(260, Math.max(160, Math.round(130 * clampedRatio)))
+        const h = Math.max(85, Math.min(160, Math.round(w / clampedRatio)))
         return {
           boxWidth: w,
           boxHeight: h,
           formatoTexto: "Horizontal",
         }
       } else {
-        // Cuadrado compacto
+        // Cuadrado compacto ampliado
         return {
-          boxWidth: 80,
-          boxHeight: 80,
+          boxWidth: 155,
+          boxHeight: 155,
           formatoTexto: "Cuadrado",
         }
       }
