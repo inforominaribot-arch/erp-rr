@@ -68,11 +68,22 @@ export async function crearMedicion(
         },
       })
 
-      // Actualizar estado del cliente a MEDICION_TOMADA si está en un estado inicial
-      if (cliente.estado === "MEDICION_TOMADA") {
+      // Actualizar estado del cliente a MEDICION_TOMADA si está en POR_VISITAR
+      if (cliente.estado === "POR_VISITAR" || cliente.estado === "MEDICION_TOMADA") {
         await tx.cliente.update({
           where: { id: clienteId },
           data: { estado: "MEDICION_TOMADA" },
+        })
+
+        // Si el cliente tenía una visita programada o confirmada, marcarla como realizada
+        await tx.visita.updateMany({
+          where: {
+            clienteId,
+            estado: { in: ["PROGRAMADA", "CONFIRMADA"] },
+          },
+          data: {
+            estado: "REALIZADA",
+          },
         })
       }
 

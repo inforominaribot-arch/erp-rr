@@ -22,11 +22,27 @@ enum Rol {
 }
 
 enum EstadoCliente {
+  POR_VISITAR
   MEDICION_TOMADA
   PRESUPUESTO_ENVIADO
   PRESUPUESTO_ACEPTADO
   EN_PRODUCCION
   INSTALADO
+}
+
+enum TipoVisita {
+  PRIMERA_MEDICION
+  REMEDICION
+  MUESTRA_TELAS
+  ASESORAMIENTO
+}
+
+enum EstadoVisita {
+  PROGRAMADA
+  CONFIRMADA
+  REALIZADA
+  REPROGRAMADA
+  CANCELADA
 }
 
 enum EstadoPresupuesto {
@@ -86,6 +102,7 @@ model Usuario {
   instaladorInstalaciones InstaladorInstalacion[]
   medicionesRealizadas    Medicion[]
   bloqueosAgenda          BloqueoAgenda[]
+  visitasAsignadas        Visita[]
 
   @@map("usuarios")
 }
@@ -100,13 +117,14 @@ model Cliente {
   direccion   String?
   localidad   String?
   notas       String?
-  estado      EstadoCliente @default(MEDICION_TOMADA)
+  estado      EstadoCliente @default(POR_VISITAR)
   creadoEn    DateTime      @default(now()) @map("creado_en")
   actualizadoEn DateTime    @updatedAt @map("actualizado_en")
 
   // Relaciones
   mediciones   Medicion[]
   presupuestos Presupuesto[]
+  visitas      Visita[]
 
   @@map("clientes")
 }
@@ -416,5 +434,30 @@ model BloqueoAgenda {
   usuario       Usuario? @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@map("bloqueos_agenda")
+}
+
+// ─── VISITAS (Agenda Comercial y Medición en Obra) ──────────────────────────
+
+model Visita {
+  id            String       @id @default(uuid())
+  clienteId     String       @map("cliente_id")
+  usuarioId     String       @map("usuario_id")
+  fecha         DateTime
+  horaInicio    String       @map("hora_inicio") // "15:00"
+  horaFin       String       @map("hora_fin")    // "16:30"
+  tipoVisita    TipoVisita   @default(PRIMERA_MEDICION) @map("tipo_visita")
+  estado        EstadoVisita @default(PROGRAMADA)
+  direccion     String
+  localidad     String?
+  notas         String?
+  googleEventId String?      @map("google_event_id")
+  creadoEn      DateTime     @default(now()) @map("creado_en")
+  actualizadoEn DateTime     @updatedAt @map("actualizado_en")
+
+  // Relaciones
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@map("visitas")
 }
 

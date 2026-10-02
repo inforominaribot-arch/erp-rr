@@ -137,11 +137,28 @@ export interface IDashboardOperativoData {
     stockCritico: {
       total: number
     }
+    visitasSemana?: {
+      totalHoy: number
+      totalSemana: number
+    }
   }
   proximasInstalaciones: IInstalacionProximaDashboard[]
   presupuestosPendientes: IPresupuestoPendienteDashboard[]
   stockAlerta: IStockAlertaDashboard[]
   actividadReciente: IActividadRecienteDashboard[]
+  visitasHoy?: Array<{
+    id: string
+    clienteId: string
+    clienteNombre: string
+    clienteTelefono: string | null
+    horaInicio: string
+    horaFin: string
+    direccion: string
+    localidad: string | null
+    tipoVisita: string
+    estado: string
+    notas: string | null
+  }>
   // Datos específicos si el rol es Taller o Instalación
   tallerData?: {
     comandasHoy: Array<{

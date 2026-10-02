@@ -14,6 +14,7 @@ import {
   Package,
   Truck,
   Calendar,
+  CalendarCheck,
   BarChart3,
   ChevronDown,
   Building2,
@@ -31,6 +32,7 @@ const navegacion = [
   {
     titulo: "Comercial",
     items: [
+      { nombre: "Visitas", href: "/visitas", icono: CalendarCheck },
       { nombre: "Clientes", href: "/clientes", icono: Users },
       { nombre: "Mediciones", href: "/mediciones", icono: Ruler },
       { nombre: "Presupuestos", href: "/presupuestos", icono: FileText },

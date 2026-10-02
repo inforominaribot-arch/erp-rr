@@ -23,9 +23,10 @@ export default async function ClienteDetallePage({
       {/* Cabecera del Cliente con datos de contacto y estado */}
       <ClienteDetalleHeader cliente={cliente as unknown as ICliente} />
 
-      {/* Historial de Trabajos: Mediciones, Presupuestos y Comandas */}
+      {/* Historial de Trabajos: Visitas, Mediciones, Presupuestos y Comandas */}
       <ClienteHistorial
         clienteId={cliente.id}
+        visitas={(cliente as any).visitas || []}
         mediciones={cliente.mediciones as unknown as IMedicionResumen[]}
         presupuestos={cliente.presupuestos as unknown as IPresupuestoResumen[]}
       />

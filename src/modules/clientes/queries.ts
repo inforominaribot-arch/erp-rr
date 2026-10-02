@@ -83,6 +83,17 @@ export async function obtenerClientePorId(id: string) {
           },
         },
       },
+      visitas: {
+        orderBy: [{ fecha: "desc" }, { horaInicio: "desc" }],
+        include: {
+          usuario: {
+            select: {
+              id: true,
+              nombre: true,
+            },
+          },
+        },
+      },
     },
   })
 

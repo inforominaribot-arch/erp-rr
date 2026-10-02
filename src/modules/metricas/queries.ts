@@ -152,7 +152,14 @@ export async function obtenerDashboardOperativo(
   )
 
   // ── Lote 2: Instalaciones, Catálogo de Stock y Actividad reciente ───────────
-  const [instalacionesSemanaDb, productosDb, presupuestosRecientesDb, movimientosStockDb] = await Promise.all([
+  const [
+    instalacionesSemanaDb,
+    productosDb,
+    presupuestosRecientesDb,
+    movimientosStockDb,
+    visitasHoyDb,
+    visitasSemanaCount,
+  ] = await Promise.all([
     prisma.instalacion.findMany({
       where: {
         estado: "PROGRAMADA",
@@ -194,6 +201,20 @@ export async function obtenerDashboardOperativo(
       orderBy: { creadoEn: "desc" },
       include: { producto: true },
       take: 4,
+    }),
+    prisma.visita.findMany({
+      where: {
+        fecha: { gte: inicioHoy, lte: new Date(inicioHoy.getTime() + 24 * 60 * 60 * 1000 - 1) },
+        estado: { not: "CANCELADA" },
+      },
+      include: { cliente: true },
+      orderBy: { horaInicio: "asc" },
+    }),
+    prisma.visita.count({
+      where: {
+        fecha: { gte: inicioHoy, lte: finSemana },
+        estado: { not: "CANCELADA" },
+      },
     }),
   ])
 
@@ -457,11 +478,28 @@ export async function obtenerDashboardOperativo(
       stockCritico: {
         total: productosBajoMinimo.length,
       },
+      visitasSemana: {
+        totalHoy: visitasHoyDb.length,
+        totalSemana: visitasSemanaCount,
+      },
     },
     proximasInstalaciones,
     presupuestosPendientes,
     stockAlerta,
     actividadReciente,
+    visitasHoy: visitasHoyDb.map((v) => ({
+      id: v.id,
+      clienteId: v.cliente.id,
+      clienteNombre: v.cliente.nombre,
+      clienteTelefono: v.cliente.telefono,
+      horaInicio: v.horaInicio,
+      horaFin: v.horaFin,
+      direccion: v.direccion,
+      localidad: v.localidad,
+      tipoVisita: v.tipoVisita,
+      estado: v.estado,
+      notas: v.notas,
+    })),
     tallerData,
     instalacionData,
   }

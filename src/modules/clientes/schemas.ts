@@ -51,6 +51,7 @@ export type ClienteInput = z.infer<typeof clienteSchema>
 export const actualizarEstadoSchema = z.object({
   id: z.string().uuid("ID de cliente inválido"),
   estado: z.enum([
+    "POR_VISITAR",
     "MEDICION_TOMADA",
     "PRESUPUESTO_ENVIADO",
     "PRESUPUESTO_ACEPTADO",
@@ -68,6 +69,7 @@ export const filtrosClienteSchema = z.object({
   estado: z
     .enum([
       "TODOS",
+      "POR_VISITAR",
       "MEDICION_TOMADA",
       "PRESUPUESTO_ENVIADO",
       "PRESUPUESTO_ACEPTADO",

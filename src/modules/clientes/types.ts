@@ -30,6 +30,23 @@ export interface IClienteConConteo extends ICliente {
 export interface IClienteDetalle extends ICliente {
   mediciones: IMedicionResumen[]
   presupuestos: IPresupuestoResumen[]
+  visitas?: IVisitaClienteResumen[]
+}
+
+export interface IVisitaClienteResumen {
+  id: string
+  fecha: Date
+  horaInicio: string
+  horaFin: string
+  tipoVisita: string
+  estado: string
+  direccion: string
+  localidad: string | null
+  notas: string | null
+  usuario: {
+    id: string
+    nombre: string
+  }
 }
 
 export interface IMedicionResumen {
@@ -87,6 +104,7 @@ export interface IErrorImportacion {
 // ─── Constantes de UI ─────────────────────────────────────────────────────────
 
 export const ESTADOS_CLIENTE_ORDEN: EstadoCliente[] = [
+  "POR_VISITAR",
   "MEDICION_TOMADA",
   "PRESUPUESTO_ENVIADO",
   "PRESUPUESTO_ACEPTADO",
@@ -100,6 +118,12 @@ export const ESTADO_CLIENTE_COLORES: Record<EstadoCliente, {
   border: string
   dot: string
 }> = {
+  POR_VISITAR: {
+    bg: "bg-purple-50",
+    text: "text-purple-700",
+    border: "border-purple-200",
+    dot: "bg-purple-500",
+  },
   MEDICION_TOMADA: {
     bg: "bg-amber-50",
     text: "text-amber-700",

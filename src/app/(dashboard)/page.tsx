@@ -2,11 +2,12 @@
 // Conexión 100% en vivo a la BD con Prisma y adaptación por roles
 
 import { Metadata } from "next"
-import { Users, ClipboardList, Package, Calendar, FileText, ArrowRight } from "lucide-react"
+import { Users, ClipboardList, Package, Calendar, FileText, ArrowRight, CalendarCheck } from "lucide-react"
 import Link from "next/link"
 import { tienePermisoModuloMetricas } from "@/modules/metricas/lib/auth"
 import { obtenerDashboardOperativo } from "@/modules/metricas/queries"
 import { DashboardKpiCard } from "@/modules/metricas/components/dashboard-kpi-card"
+import { DashboardVisitasHoy } from "@/modules/metricas/components/dashboard-visitas-hoy"
 import { DashboardInstalacionesProximas } from "@/modules/metricas/components/dashboard-instalaciones-proximas"
 import { DashboardPresupuestosPendientes } from "@/modules/metricas/components/dashboard-presupuestos-pendientes"
 import { DashboardStockAlerta } from "@/modules/metricas/components/dashboard-stock-alerta"
@@ -113,15 +114,26 @@ export default async function DashboardPage() {
       </div>
 
       {/* Tarjetas de KPIs principales en vivo */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-        {/* 1. Clientes nuevos este mes */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        {/* 1. Visitas de obra para hoy / semana */}
+        <DashboardKpiCard
+          titulo="Visitas de obra"
+          valor={data.kpis.visitasSemana?.totalHoy ?? 0}
+          descripcion={`${data.kpis.visitasSemana?.totalSemana ?? 0} agendadas esta semana`}
+          icono={CalendarCheck}
+          color="text-indigo-600"
+          fondo="bg-indigo-50"
+          href="/visitas"
+        />
+
+        {/* 2. Clientes nuevos este mes */}
         <DashboardKpiCard
           titulo="Clientes nuevos"
           valor={data.kpis.clientesNuevos.total}
           descripcion="Incorporados este mes"
           icono={Users}
-          color="text-indigo-600"
-          fondo="bg-indigo-50"
+          color="text-blue-600"
+          fondo="bg-blue-50"
           comparativa={{
             porcentaje: data.kpis.clientesNuevos.variacionMesAnterior,
             esPositivo: data.kpis.clientesNuevos.aumento,
@@ -130,7 +142,7 @@ export default async function DashboardPage() {
           href="/clientes"
         />
 
-        {/* 2. Comandas activas */}
+        {/* 3. Comandas activas */}
         <DashboardKpiCard
           titulo="Comandas activas"
           valor={data.kpis.comandasActivas.total}
@@ -141,7 +153,7 @@ export default async function DashboardPage() {
           href="/comandas"
         />
 
-        {/* 3. Presupuestos pendientes de respuesta */}
+        {/* 4. Presupuestos pendientes de respuesta */}
         <DashboardKpiCard
           titulo="Presupuestos pendientes"
           valor={data.kpis.presupuestosPendientes.total}
@@ -153,7 +165,7 @@ export default async function DashboardPage() {
           href="/presupuestos"
         />
 
-        {/* 4. Próximas instalaciones de la semana */}
+        {/* 5. Próximas instalaciones de la semana */}
         <DashboardKpiCard
           titulo="Instalaciones"
           valor={data.kpis.instalacionesSemana.total}
@@ -164,7 +176,7 @@ export default async function DashboardPage() {
           href="/instalaciones"
         />
 
-        {/* 5. Alerta de stock crítico */}
+        {/* 6. Alerta de stock crítico */}
         <DashboardKpiCard
           titulo="Stock bajo mínimo"
           valor={data.kpis.stockCritico.total}
@@ -183,6 +195,9 @@ export default async function DashboardPage() {
 
       {/* Paneles operativos con accesos rápidos (Grilla 2 columnas) */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Visitas de medición para hoy */}
+        <DashboardVisitasHoy visitas={data.visitasHoy} />
+
         {/* Próximas 5 instalaciones con estado de materiales */}
         <DashboardInstalacionesProximas
           instalaciones={data.proximasInstalaciones}

@@ -12,22 +12,29 @@ import {
   Plus,
   AlertCircle,
   PackageCheck,
+  CalendarCheck,
+  MapPin,
+  Navigation,
 } from "lucide-react"
-import type { IMedicionResumen, IPresupuestoResumen } from "../types"
-import { ESTADO_PRESUPUESTO_LABELS, ESTADO_COMANDA_LABELS } from "@/types"
+import type { IMedicionResumen, IPresupuestoResumen, IVisitaClienteResumen } from "../types"
+import { ESTADO_PRESUPUESTO_LABELS, ESTADO_COMANDA_LABELS, ESTADO_VISITA_LABELS } from "@/types"
 
 interface ClienteHistorialProps {
   clienteId: string
   mediciones: IMedicionResumen[]
   presupuestos: IPresupuestoResumen[]
+  visitas?: IVisitaClienteResumen[]
 }
 
 export function ClienteHistorial({
   clienteId,
   mediciones,
   presupuestos,
+  visitas = [],
 }: ClienteHistorialProps) {
-  const [pestanaActiva, setPestanaActiva] = useState<"mediciones" | "presupuestos" | "comandas">("mediciones")
+  const [pestanaActiva, setPestanaActiva] = useState<"visitas" | "mediciones" | "presupuestos" | "comandas">(
+    visitas.length > 0 && mediciones.length === 0 ? "visitas" : "mediciones"
+  )
 
   // Extraer comandas asociadas a los presupuestos
   const comandas = presupuestos
@@ -58,11 +65,27 @@ export function ClienteHistorial({
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       {/* Selector de Pestañas */}
-      <div className="flex border-b border-slate-200 bg-slate-50/60 px-6">
+      <div className="flex border-b border-slate-200 bg-slate-50/60 px-6 overflow-x-auto touch-scroll">
+        <button
+          type="button"
+          onClick={() => setPestanaActiva("visitas")}
+          className={`flex items-center gap-2 border-b-2 py-4 px-3 text-sm font-semibold transition whitespace-nowrap ${
+            pestanaActiva === "visitas"
+              ? "border-indigo-600 text-indigo-600"
+              : "border-transparent text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <CalendarCheck className="h-4 w-4" />
+          Visitas Agendadas
+          <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-xs font-bold text-slate-700">
+            {visitas.length}
+          </span>
+        </button>
+
         <button
           type="button"
           onClick={() => setPestanaActiva("mediciones")}
-          className={`flex items-center gap-2 border-b-2 py-4 px-3 text-sm font-semibold transition ${
+          className={`flex items-center gap-2 border-b-2 py-4 px-3 text-sm font-semibold transition whitespace-nowrap ${
             pestanaActiva === "mediciones"
               ? "border-indigo-600 text-indigo-600"
               : "border-transparent text-slate-500 hover:text-slate-800"
@@ -110,6 +133,118 @@ export function ClienteHistorial({
 
       {/* Contenido de la pestaña */}
       <div className="p-6">
+        {/* Pestaña: Visitas Agendadas */}
+        {pestanaActiva === "visitas" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-slate-900">
+                Visitas de Medición y Asesoramiento en Obra
+              </h3>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/visitas"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Ir a Agenda de Visitas
+                </Link>
+                <Link
+                  href={`/mediciones/nueva?clienteId=${clienteId}`}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 transition-colors"
+                >
+                  <Ruler className="h-3.5 w-3.5" />
+                  Iniciar Medición Directa
+                </Link>
+              </div>
+            </div>
+
+            {visitas.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 py-10 text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                  <CalendarCheck className="h-5 w-5" />
+                </div>
+                <p className="mt-2 text-sm font-medium text-slate-700">
+                  No hay visitas agendadas para este cliente
+                </p>
+                <p className="text-xs text-slate-400 max-w-sm">
+                  Coordiná una cita de medición o muestra de telas con el cliente desde la agenda comercial.
+                </p>
+                <Link
+                  href="/visitas"
+                  className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                >
+                  Agendar primera visita
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+                {visitas.map((v) => {
+                  const labelEstado = ESTADO_VISITA_LABELS[v.estado as keyof typeof ESTADO_VISITA_LABELS] || v.estado
+                  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    v.localidad ? `${v.direccion}, ${v.localidad}` : v.direccion
+                  )}`
+
+                  return (
+                    <div
+                      key={v.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-3 transition hover:bg-slate-50/70"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-slate-900">
+                            {formatearFecha(v.fecha)} • {v.horaInicio} a {v.horaFin} hs
+                          </span>
+                          <span className="rounded-full bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
+                            {labelEstado}
+                          </span>
+                          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                            {v.tipoVisita.replace(/_/g, " ")}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1 text-xs text-slate-600">
+                          <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                          <span>
+                            {v.direccion} {v.localidad ? `(${v.localidad})` : ""}
+                          </span>
+                        </div>
+
+                        {v.notas && (
+                          <p className="text-xs text-slate-500 italic mt-0.5">
+                            "{v.notas}"
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                        <a
+                          href={mapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                          title="Ver en Google Maps"
+                        >
+                          <Navigation className="h-3.5 w-3.5 text-sky-600" />
+                          <span>Mapa</span>
+                        </a>
+
+                        <Link
+                          href={`/mediciones/nueva?clienteId=${clienteId}`}
+                          className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-indigo-700 transition-colors"
+                        >
+                          <Ruler className="h-3.5 w-3.5" />
+                          <span>Medir</span>
+                        </Link>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Pestaña: Mediciones */}
         {pestanaActiva === "mediciones" && (
           <div className="space-y-4">

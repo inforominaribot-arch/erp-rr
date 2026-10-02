@@ -4,11 +4,25 @@
 export type Rol = "ADMIN_GENERAL" | "ADMINISTRACION" | "TALLER" | "INSTALACION"
 
 export type EstadoCliente =
+  | "POR_VISITAR"
   | "MEDICION_TOMADA"
   | "PRESUPUESTO_ENVIADO"
   | "PRESUPUESTO_ACEPTADO"
   | "EN_PRODUCCION"
   | "INSTALADO"
+
+export type TipoVisita =
+  | "PRIMERA_MEDICION"
+  | "REMEDICION"
+  | "MUESTRA_TELAS"
+  | "ASESORAMIENTO"
+
+export type EstadoVisita =
+  | "PROGRAMADA"
+  | "CONFIRMADA"
+  | "REALIZADA"
+  | "REPROGRAMADA"
+  | "CANCELADA"
 
 export type EstadoPresupuesto =
   | "BORRADOR"
@@ -51,11 +65,27 @@ export const ROL_LABELS: Record<Rol, string> = {
 }
 
 export const ESTADO_CLIENTE_LABELS: Record<EstadoCliente, string> = {
+  POR_VISITAR: "Por visitar",
   MEDICION_TOMADA: "Medición tomada",
   PRESUPUESTO_ENVIADO: "Presupuesto enviado",
   PRESUPUESTO_ACEPTADO: "Presupuesto aceptado",
   EN_PRODUCCION: "En producción",
   INSTALADO: "Instalado",
+}
+
+export const TIPO_VISITA_LABELS: Record<TipoVisita, string> = {
+  PRIMERA_MEDICION: "Primera medición",
+  REMEDICION: "Remedición",
+  MUESTRA_TELAS: "Muestra de telas",
+  ASESORAMIENTO: "Asesoramiento",
+}
+
+export const ESTADO_VISITA_LABELS: Record<EstadoVisita, string> = {
+  PROGRAMADA: "Programada",
+  CONFIRMADA: "Confirmada",
+  REALIZADA: "Realizada",
+  REPROGRAMADA: "Reprogramada",
+  CANCELADA: "Cancelada",
 }
 
 export const ESTADO_PRESUPUESTO_LABELS: Record<EstadoPresupuesto, string> = {

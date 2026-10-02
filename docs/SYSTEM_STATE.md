@@ -17,6 +17,7 @@
 | Dashboard & Métricas | Chat 8 | ✅ Completo | 2026-09-29 |
 | Adaptación Mobile & Responsive | Chat 9 | ✅ Completo | 2026-09-30 |
 | App Móvil Nativa Android (APK) | Chat 10 | ✅ Completo | 2026-09-30 |
+| Visitas de Medición & Obra | Chat 11 | ✅ Completo | 2026-10-02 |
 
 ## Leyenda
 - ✅ Completo
@@ -444,10 +445,59 @@ Construir una aplicación móvil nativa instalable (`.apk`) para tablets Android
 
 ---
 
+## Chat 11 — Visitas de Medición & Asesoramiento en Obra (Agendar Visitas)
+
+### 🎯 Objetivo
+Organizar la agenda previa comercial antes de generar la medición técnica en obra para Romina Ribot. Permite coordinar citas cuando los clientes escriben por WhatsApp o llaman, dar de alta clientes express en 15 segundos, sincronizar con Google Calendar del celular, y contar con una consola táctil en la calle con WhatsApp, Google Maps y acceso directo a la app de mediciones en la tablet.
+
+### ✅ Completado
+- [x] **Base de Datos y Modelos Prisma (`prisma/schema.prisma`):**
+  - Modelo `Visita` con campos: `id`, `clienteId`, `usuarioId`, `fecha`, `horaInicio`, `horaFin`, `tipoVisita`, `estado`, `direccion`, `localidad`, `notas`, `googleEventId`.
+  - Enums `TipoVisita` (`PRIMERA_MEDICION`, `REMEDICION`, `MUESTRA_TELAS`, `ASESORAMIENTO`) y `EstadoVisita` (`PROGRAMADA`, `CONFIRMADA`, `REALIZADA`, `REPROGRAMADA`, `CANCELADA`).
+  - Nuevo estado inicial en `EstadoCliente`: `POR_VISITAR` (el cliente se agenda antes de la medición técnica).
+  - Migración aplicada exitosamente a Supabase PostgreSQL y cliente Prisma regenerado.
+- [x] **Tipos y Validación End-to-End (`src/modules/visitas/types.ts` y `schemas.ts`):**
+  - Interfaces `IVisita`, `IVisitaConRelaciones`, `IVisitasMetricas`.
+  - Funciones auxiliares: `generarLinkWhatsAppVisita`, `generarLinkGoogleMaps`, `generarGoogleCalendarUrl`.
+  - Validaciones Zod estrictas para agendar, editar, cambiar estado, reprogramar y alta rápida de cliente.
+- [x] **Control de Permisos y Roles (`src/modules/visitas/lib/auth.ts`):**
+  - `ADMIN_GENERAL` y `ADMINISTRACION`: control total (diseñado para la agenda central de Romina Ribot).
+  - Bloqueo de acceso para `TALLER` e `INSTALACION`.
+- [x] **Consultas y Mutaciones Prisma (`src/modules/visitas/queries.ts` y `actions.ts`):**
+  - `obtenerVisitas` (con filtros de fecha, estado y buscador de texto reactivo).
+  - `obtenerVisitasHoy`, `obtenerMetricasVisitas`, `obtenerClientesParaVisita`.
+  - Server Actions: `agendarVisitaAction`, `actualizarVisitaAction`, `cambiarEstadoVisitaAction`, `reprogramarVisitaAction`, `eliminarVisitaAction`, `crearClienteRapidoVisitaAction`.
+- [x] **Integración con Google Calendar:**
+  - Botón directo universal *"📅 Guardar en Google Calendar"* en cada visita agendada.
+  - Endpoint de suscripción en vivo iCal (`/api/visitas/calendario.ics`) para sincronizar el calendario personal del teléfono Android/iPhone de Romina con 1 clic.
+- [x] **Componentes Visuales Mobile-First (`src/modules/visitas/components/`):**
+  - `VisitaEstadoBadge` y `VisitaTipoBadge` con paleta de estados oficial.
+  - `VisitaKPIs`: resumen de visitas hoy, semana, confirmadas y realizadas.
+  - `VisitaCard`: tarjeta táctil para la calle con WhatsApp prearmado, GPS en Google Maps, Google Calendar y botón prioritario **"Iniciar Medición en Obra"** (redirecciona a `/mediciones/nueva?clienteId=...` para cargar ambientes y telas en la tablet).
+  - `VisitasCalendarioView`: calendario interactivo con vistas Mes, Semana, Día e Itinerario táctil.
+  - `VisitasTabla`: vista tabular para escritorio.
+  - `VisitaModalForm`: agendador express en 15 segundos con selector reactivo de cliente, alta express integrada y franjas sugeridas.
+  - `VisitaCambiarEstadoModal`: registro rápido de notas y reprogramación.
+  - `VisitasView`: orquestador general con pestañas y modal de suscripción a Google Calendar.
+- [x] **Integración con el resto del ERP:**
+  - **Sidebar (`src/components/shared/layout/Sidebar.tsx`):** Ítem *"Visitas"* en la sección Comercial.
+  - **Ficha de Cliente (`/clientes/[id]` y `ClienteHistorial`):** Pestaña *"Visitas Agendadas"* con historial completo, estado y acciones rápidas.
+  - **CRM Pipeline (`src/modules/clientes/components/cliente-pipeline.tsx`):** Nueva columna *"Por Visitar"* como etapa inicial del embudo comercial.
+  - **Mediciones (`src/modules/mediciones/actions.ts`):** Al guardar la medición en obra, el cliente pasa automáticamente de `POR_VISITAR` a `MEDICION_TOMADA`, y las visitas activas pasan a `REALIZADA`.
+  - **Dashboard Principal (`/` y `src/modules/metricas/queries.ts`):** Nuevo KPI *"Visitas de obra"* (hoy / semana) y widget dedicado `DashboardVisitasHoy` para Romina.
+- [x] **Páginas del Dashboard:**
+  - `/visitas` (`src/app/(dashboard)/visitas/page.tsx`): Página principal del módulo.
+
+---
+
 ## Notas de integración entre módulos
 
 | De | A | Dato compartido |
 |---|---|---|
+| Visitas de Obra | Clientes & CRM | Alta rápida de cliente (`estado = POR_VISITAR`), historial en ficha de cliente |
+| Visitas de Obra | Google Calendar | Deep links directos + Feed iCal `/api/visitas/calendario.ics` |
+| Visitas de Obra | App Medición | Botón "Iniciar Medición" (`/mediciones/nueva?clienteId=...`) precargando cliente |
+| App Medición | Visitas de Obra | Al guardar medición → cliente pasa a `MEDICION_TOMADA` y visita a `REALIZADA` |
 | App Medición | Presupuestos | `ItemMedicion` → `ItemPresupuesto` |
 | Presupuestos | Comandas | `Presupuesto` aceptado → `Comanda` |
 | Comandas | Stock | Al confirmar comanda → descuento automático |
@@ -457,5 +507,6 @@ Construir una aplicación móvil nativa instalable (`.apk`) para tablets Android
 | Comandas | Instalaciones | `Comanda` lista → `Instalacion` programada en calendario |
 | Instalaciones | Comandas & Clientes | Al marcar `Instalacion = COMPLETADA` → `Comanda = INSTALADO` y `Cliente = INSTALADO` (cierre comercial) |
 | Taller & Instaladores | Agenda | `BloqueoAgenda` (turnos médicos, trámites) previene asignación de instalaciones |
-| Todos los Módulos | Dashboard & Métricas | Agregación en vivo de clientes, presupuestos, comandas, stock e instalaciones para KPIs, alertas y analítica con Recharts |
+| Todos los Módulos | Dashboard & Métricas | Agregación en vivo de visitas, clientes, presupuestos, comandas, stock e instalaciones para KPIs, alertas y analítica con Recharts |
+
 
