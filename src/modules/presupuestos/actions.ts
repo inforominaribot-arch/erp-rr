@@ -422,3 +422,23 @@ export async function obtenerMedicionesClienteAction(
   }
 }
 
+// ─── 6. Conteo de Mediciones Pendientes de Presupuesto (Para Badges / Sidebar) ──
+
+export async function obtenerConteoPendientesPresupuestoAction(): Promise<number> {
+  try {
+    const conteo = await prisma.cliente.count({
+      where: {
+        estado: "MEDICION_TOMADA",
+        mediciones: {
+          some: {},
+        },
+      },
+    })
+    return conteo
+  } catch (error) {
+    console.error("Error al obtener conteo de pendientes:", error)
+    return 0
+  }
+}
+
+

@@ -2,7 +2,8 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { obtenerConteoPendientesPresupuestoAction } from "@/modules/presupuestos/actions"
 import {
   LayoutDashboard,
   Users,
@@ -65,11 +66,30 @@ interface SidebarProps {
 
 export function Sidebar({ mobileAbierto, onCerrarMobile }: SidebarProps) {
   const pathname = usePathname()
+  const [conteoPendientesPresupuesto, setConteoPendientesPresupuesto] = useState(0)
 
   // Cerrar el drawer móvil automáticamente al cambiar de ruta
   useEffect(() => {
     if (onCerrarMobile) {
       onCerrarMobile()
+    }
+  }, [pathname])
+
+  // Consultar conteo de mediciones pendientes de presupuestar
+  useEffect(() => {
+    let cancelado = false
+    obtenerConteoPendientesPresupuestoAction()
+      .then((conteo) => {
+        if (!cancelado && typeof conteo === "number") {
+          setConteoPendientesPresupuesto(conteo)
+        }
+      })
+      .catch((err) => {
+        console.error("Error al obtener badge de presupuestos pendientes:", err)
+      })
+
+    return () => {
+      cancelado = true
     }
   }, [pathname])
 
@@ -83,8 +103,10 @@ export function Sidebar({ mobileAbierto, onCerrarMobile }: SidebarProps) {
           <ul className="space-y-1">
             {seccion.items.map((item) => {
               const Icono = item.icono
-              const activo = pathname === item.href ||
+              const activo =
+                pathname === item.href ||
                 (item.href !== "/" && pathname.startsWith(item.href))
+              const esPresupuestos = item.href === "/presupuestos"
 
               return (
                 <li key={item.href}>
@@ -94,19 +116,30 @@ export function Sidebar({ mobileAbierto, onCerrarMobile }: SidebarProps) {
                       if (onCerrarMobile) onCerrarMobile()
                     }}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                      "flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                       activo
                         ? "bg-indigo-50 text-indigo-700 font-semibold"
                         : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                     )}
                   >
-                    <Icono
-                      className={cn(
-                        "h-4 w-4 shrink-0",
-                        activo ? "text-indigo-600" : "text-slate-400"
-                      )}
-                    />
-                    {item.nombre}
+                    <div className="flex items-center gap-3 min-w-0 truncate">
+                      <Icono
+                        className={cn(
+                          "h-4 w-4 shrink-0",
+                          activo ? "text-indigo-600" : "text-slate-400"
+                        )}
+                      />
+                      <span className="truncate">{item.nombre}</span>
+                    </div>
+
+                    {esPresupuestos && conteoPendientesPresupuesto > 0 && (
+                      <span
+                        title={`${conteoPendientesPresupuesto} mediciones pendientes de cotizar`}
+                        className="inline-flex items-center justify-center rounded-full bg-amber-500 px-2 py-0.5 text-[11px] font-black text-white shadow-2xs shrink-0"
+                      >
+                        {conteoPendientesPresupuesto}
+                      </span>
+                    )}
                   </Link>
                 </li>
               )

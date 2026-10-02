@@ -1,9 +1,11 @@
 import Link from "next/link"
 import { PageHeader } from "@/components/shared/layout/PageHeader"
 import { PresupuestoTabla } from "@/modules/presupuestos/components/presupuesto-tabla"
+import { MedicionesPendientesAlerta } from "@/modules/presupuestos/components/mediciones-pendientes-alerta"
 import {
   obtenerPresupuestos,
   obtenerMetricasPresupuestos,
+  obtenerMedicionesPendientesPresupuesto,
 } from "@/modules/presupuestos/queries"
 import { tienePermisoModuloPresupuestos } from "@/modules/presupuestos/lib/auth"
 import {
@@ -13,37 +15,56 @@ import {
   CheckCheck,
   TrendingUp,
   DollarSign,
+  Clock,
 } from "lucide-react"
 import { formatearPrecio } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
 
 export default async function PresupuestosPage() {
-  const [auth, metricas, { presupuestos }] = await Promise.all([
+  const [auth, metricas, { presupuestos }, pendientes] = await Promise.all([
     tienePermisoModuloPresupuestos(true),
     obtenerMetricasPresupuestos(),
     obtenerPresupuestos({ porPagina: 100 }),
+    obtenerMedicionesPendientesPresupuesto(),
   ])
 
   const puedeEscribir = auth.permitido
+  const cantidadPendientes = pendientes.length
 
   return (
     <div className="space-y-6">
       {/* ── Encabezado Principal ── */}
-      <PageHeader
-        titulo="Presupuestos & Cotizaciones"
-        descripcion="Cotización ágil de cortinas a medida, integración de fórmulas de taller y gestión de ciclo comercial"
-      >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 truncate">
+              Presupuestos & Cotizaciones
+            </h1>
+            {cantidadPendientes > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-bold text-white shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                {cantidadPendientes} {cantidadPendientes === 1 ? "pendiente" : "pendientes"}
+              </span>
+            )}
+          </div>
+          <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-slate-500">
+            Cotización ágil de cortinas a medida, integración de fórmulas de taller y gestión de ciclo comercial
+          </p>
+        </div>
+
         {puedeEscribir && (
-          <Link
-            href="/presupuestos/nuevo"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition"
-          >
-            <Plus className="h-4 w-4" />
-            Nuevo Presupuesto
-          </Link>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
+            <Link
+              href="/presupuestos/nuevo"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition"
+            >
+              <Plus className="h-4 w-4" />
+              Nuevo Presupuesto
+            </Link>
+          </div>
         )}
-      </PageHeader>
+      </div>
 
       {/* ── Métricas Superiores ── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -111,6 +132,12 @@ export default async function PresupuestosPage() {
           </span>
         </div>
       </div>
+
+      {/* ── Panel de Alerta: Mediciones Pendientes de Presupuestar ── */}
+      <MedicionesPendientesAlerta
+        mediciones={pendientes}
+        puedeEditar={puedeEscribir}
+      />
 
       {/* ── Tabla de Presupuestos ── */}
       <PresupuestoTabla

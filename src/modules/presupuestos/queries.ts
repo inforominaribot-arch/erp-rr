@@ -9,6 +9,7 @@ import type {
   IItemPresupuesto,
   IPresupuestoDetalle,
   IMetricasPresupuestos,
+  IMedicionPendientePresupuesto,
 } from "./types"
 
 type PresupuestoConRelaciones = Presupuesto & {
@@ -252,3 +253,77 @@ export async function obtenerClientesParaPresupuesto() {
 
   return clientes
 }
+
+// ─── Mediciones de Clientes Pendientes de Presupuestar ───────────────────────
+
+export async function obtenerMedicionesPendientesPresupuesto(): Promise<
+  IMedicionPendientePresupuesto[]
+> {
+  const clientes = await prisma.cliente.findMany({
+    where: {
+      estado: "MEDICION_TOMADA",
+      mediciones: {
+        some: {},
+      },
+    },
+    orderBy: { actualizadoEn: "desc" },
+    include: {
+      mediciones: {
+        orderBy: { creadoEn: "desc" },
+        include: {
+          ambientes: {
+            orderBy: { orden: "asc" },
+            include: {
+              items: true,
+            },
+          },
+        },
+      },
+    },
+  })
+
+  const lista: IMedicionPendientePresupuesto[] = []
+
+  for (const c of clientes) {
+    for (const m of c.mediciones) {
+      let totalCortinas = 0
+      const ambientesNombres: string[] = []
+
+      for (const amb of m.ambientes) {
+        ambientesNombres.push(amb.nombre)
+        for (const item of amb.items) {
+          totalCortinas += item.cantidad || 1
+        }
+      }
+
+      lista.push({
+        medicionId: m.id,
+        clienteId: c.id,
+        clienteNombre: c.nombre,
+        clienteTelefono: c.telefono,
+        clienteDireccion: c.direccion,
+        clienteLocalidad: c.localidad,
+        creadoEn: m.creadoEn,
+        totalAmbientes: m.ambientes.length,
+        totalCortinas,
+        ambientesNombres,
+        observaciones: m.observaciones,
+      })
+    }
+  }
+
+  return lista
+}
+
+export async function obtenerConteoMedicionesPendientes(): Promise<number> {
+  const conteo = await prisma.cliente.count({
+    where: {
+      estado: "MEDICION_TOMADA",
+      mediciones: {
+        some: {},
+      },
+    },
+  })
+  return conteo
+}
+

@@ -8,6 +8,14 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
     cleartext: true,
   },
+  plugins: {
+    // Redirige todos los fetch() por HTTP nativo de Android (OkHttp)
+    // Esto evita las restricciones CORS del WebView completamente
+    CapacitorHttp: {
+      enabled: true,
+    },
+  },
 };
 
 export default config;
+

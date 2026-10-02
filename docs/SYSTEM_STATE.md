@@ -99,18 +99,16 @@ _(Completar cuando se ejecute `prisma migrate`)_
   - Alineación precisa de cota superior sobre el marco de cortina.
   - Eliminación de cotas redundantes y alturas internas innecesarias.
   - Modo compacto para impresión de alta densidad en hojas A4.
-- [x] Formulario ágil de cortina con Aluminio y Tradicional/Roller/Bandas/Roller Noche Total (`src/modules/mediciones/components/cortina-item-form.tsx`)
-  - Auto-balance interactivo de paños (Gaza) y cortinas/tramos (B.O.) respetando el ancho total ingresado.
-  - Botón "Centrar" para distribución equitativa en un solo toque.
-  - Validación estricta antes de guardar sin avisos redundantes en pantalla.
-  - Soporte para Tradicional con B.O. Roller:
-    - Nomenclatura "Cantidad de Cortinas B.O. Roller" (mecanismos independientes con impacto presupuestario).
-    - Marca de proveedor seleccionada una sola vez para el B.O. Roller.
-    - Mandos individuales por cortina: 1 cortina (Der por default), 2 cortinas (Izq y Der por default), 3 cortinas (sin selección por default, selección obligatoria).
-    - Soportes Kent / Grampa exclusivos para el tipo "Tradicional" (removidos de Roller, Bandas, Aluminio y Roller Noche Total).
-  - Marca no obligatoria para confección de taller propio ("Sin marca").
-  - Terminología técnica refinada: "Moldura" en sujeción, "Roller Noche Total" y "Caída B.O.".
-  - Ocultamiento total de "Caída B.O." en formulario, esquema visual y ficha técnica A4 si no hay Black Out activo (evita sobrecarga cuando es Solo Gaza).
+- [x] Formulario ágil de cortina con Aluminio, Tradicional, Roller, Bandas, Roller Noche Total y Mosquera (`src/modules/mediciones/components/cortina-item-form.tsx`)
+  - Auto-balance interactivo de paños (Gaza) y cortinas/tramos (B.O.) en Tradicional respetando el ancho total ingresado.
+  - Soporte hasta 5 paños / cortinas con botón discreto "+ Agregar opción" para mantener la interfaz limpia.
+  - Entrada de anchos independientes para cortinas de Roller, Bandas, Roller Noche Total y Mosquera con alto compartido.
+  - Soportes Roller Común / Extendido disponibles para Roller y para Tradicional con B.O. Roller.
+  - Selector de Marca antes de Perfilería; la marca RS expande colores de perfilería a Blanco, Negro, Gris y Beige.
+  - Perfilería configurable también en Tradicional cuando se selecciona B.O. Roller.
+  - Nuevo tipo de cortina Mosquera: perfilería de Noche Total, marca fija MG, sujeción estándar y mando con opción "Sin mando" por defecto.
+  - Persiana de Aluminio con opción informativa de Tensor (SÍ / NO).
+  - Cálculo automático de la cantidad de cortinas para el presupuesto según combinaciones de Gaza y B.O. (individuales por mecanismo).
 - [x] Gestor de ambientes y aberturas con botones sugeridos y duplicación (`src/modules/mediciones/components/ambiente-manager.tsx`)
 - [x] Selector de cliente con soporte offline y Alta Express en obra (`src/modules/mediciones/components/cliente-selector.tsx` y `cliente-express-modal.tsx`)
 - [x] Barra de estado de red (`src/modules/mediciones/components/network-status-bar.tsx`) y Badge de sync (`src/modules/mediciones/components/medicion-sync-badge.tsx`)
@@ -148,8 +146,9 @@ _(Completar cuando se ejecute `prisma migrate`)_
 - [x] Formulario dinámico de creación y edición con selector de clientes, importación automática de mediciones y desglose por ambientes (`src/modules/presupuestos/components/presupuesto-form.tsx`)
 - [x] Vista de detalle del presupuesto con conmutador Digital / Ficha A4 y alerta de comanda (`src/modules/presupuestos/components/presupuesto-detalle.tsx`)
 - [x] Tabla interactiva con buscador en vivo, filtros por estado y acciones rápidas (`src/modules/presupuestos/components/presupuesto-tabla.tsx`)
-- [x] Control de roles en layout (`ADMIN_GENERAL` y `ADMINISTRACION` total; `TALLER` e `INSTALACION` solo lectura)
 - [x] Páginas del dashboard: `/presupuestos`, `/presupuestos/nuevo`, `/presupuestos/[id]`, `/presupuestos/[id]/editar`
+- [x] Panel de alerta de mediciones pendientes de presupuestar con acción directa "Presupuestar Cortinas" e insignia naranja reactiva en el menú lateral y cabecera (`src/modules/presupuestos/components/mediciones-pendientes-alerta.tsx`, `Sidebar.tsx`)
+
 
 ---
 

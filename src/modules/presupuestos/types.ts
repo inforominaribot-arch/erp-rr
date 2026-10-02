@@ -187,3 +187,20 @@ export interface MedicionImportable {
   observaciones: string | null
   ambientes: MedicionImportableAmbiente[]
 }
+
+// ─── Tipos para Mediciones Pendientes de Presupuesto ─────────────────────────
+
+export interface IMedicionPendientePresupuesto {
+  medicionId: string
+  clienteId: string
+  clienteNombre: string
+  clienteTelefono: string | null
+  clienteDireccion: string | null
+  clienteLocalidad: string | null
+  creadoEn: Date | string
+  totalAmbientes: number
+  totalCortinas: number
+  ambientesNombres: string[]
+  observaciones: string | null
+}
+

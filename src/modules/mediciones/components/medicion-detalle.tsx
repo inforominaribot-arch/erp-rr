@@ -228,7 +228,7 @@ export function MedicionDetalle({
                   const anchoEfectivo = tieneGaza ? anchoGaza : tieneBO ? anchoBO : item.ancho
                   const argollas = tieneGaza && tipo === "Tradicional" ? calcularArgollasGaza(anchoGaza) : 0
                   const cantidadSoportes = calcularCantidadSoportes(anchoEfectivo)
-                  const varianteSoporte = determinarVarianteSoporte(tieneGaza, tieneBO)
+                  const varianteSoporte = determinarVarianteSoporte(tieneGaza, tieneBO, carac?.formatoBO)
                   const caida = carac?.caida || "Por delante"
                   const boAdelante = caida === "Por delante"
 
@@ -432,6 +432,18 @@ export function MedicionDetalle({
                                 <strong>
                                   {cantidadSoportes} {carac.tipoSoporte} {varianteSoporte}
                                 </strong>
+                              </span>
+                            )}
+                            {carac?.tipoSoporteRoller && (
+                              <span>
+                                Soporte Roller:{" "}
+                                <strong>{carac.tipoSoporteRoller}</strong>
+                              </span>
+                            )}
+                            {tipo === "Aluminio" && carac?.aluminio?.tensor !== undefined && (
+                              <span>
+                                Tensor:{" "}
+                                <strong>{carac.aluminio.tensor ? "SÍ" : "NO"}</strong>
                               </span>
                             )}
                           </div>

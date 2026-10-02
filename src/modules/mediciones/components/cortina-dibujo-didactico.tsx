@@ -42,7 +42,7 @@ const COLORES_ALUMINIO_HEX: Record<string, { bg: string; border: string; slatGra
   Beige: { bg: "#f5f5dc", border: "#e6e2be", slatGradient: "from-amber-50 via-stone-100 to-amber-100" },
   Natural: { bg: "#e2e8f0", border: "#cbd5e1", slatGradient: "from-slate-100 via-slate-200 to-slate-300" },
   Aluminio: { bg: "#94a3b8", border: "#64748b", slatGradient: "from-slate-300 via-slate-400 to-slate-500" },
-  Kongo: { bg: "#3e2723", border: "#271613", slatGradient: "from-amber-950 via-stone-900 to-stone-950" },
+  Congo: { bg: "#3e2723", border: "#271613", slatGradient: "from-amber-950 via-stone-900 to-stone-950" },
   Negro: { bg: "#1e293b", border: "#0f172a", slatGradient: "from-slate-800 via-slate-900 to-slate-950" },
 }
 
@@ -50,6 +50,8 @@ const COLORES_ALUMINIO_HEX: Record<string, { bg: string; border: string; slatGra
 const COLORES_PERFILERIA_HEX: Record<string, { bg: string; border: string }> = {
   Negro: { bg: "#0f172a", border: "#334155" },
   Blanco: { bg: "#ffffff", border: "#cbd5e1" },
+  Gris: { bg: "#64748b", border: "#475569" },
+  Beige: { bg: "#d6c7b2", border: "#b8a68f" },
   "Bronce Colonial": { bg: "#5c3a21", border: "#784528" },
   "Aluminio Anodizado": { bg: "#94a3b8", border: "#64748b" },
 }
@@ -108,8 +110,8 @@ export function CortinaDibujoDidactico({
   }, [anchoEfectivo])
 
   const varianteSoporte = useMemo(() => {
-    return determinarVarianteSoporte(tieneGaza, tieneBO)
-  }, [tieneGaza, tieneBO])
+    return determinarVarianteSoporte(tieneGaza, tieneBO, caracteristicas?.formatoBO)
+  }, [tieneGaza, tieneBO, caracteristicas?.formatoBO])
 
   const anchoConfeccionGaza = useMemo(() => {
     return calcularAnchoConfeccionGaza(anchoGaza)
@@ -120,7 +122,8 @@ export function CortinaDibujoDidactico({
   const esTradicionalConBORoller =
     tipo === "Tradicional" && tieneBO && caracteristicas?.formatoBO === "Roller"
 
-  const mostrarMando = tipo !== "Tradicional" || esTradicionalConBORoller
+  const mostrarMando =
+    tipo !== "Tradicional" || esTradicionalConBORoller
   const mando =
     tipo === "Aluminio"
       ? caracteristicas?.aluminio?.mando || "Derecho"
@@ -128,6 +131,7 @@ export function CortinaDibujoDidactico({
       ? caracteristicas?.mandoBO || caracteristicas?.mando || "Derecha"
       : caracteristicas?.mando || "Derecha"
 
+  const tieneMandoVisible = mando !== "Sin mando"
   const mandoLadoIzquierdo =
     String(mando) === "Izquierda" || String(mando) === "Izquierdo"
 
@@ -204,48 +208,65 @@ export function CortinaDibujoDidactico({
 
   const capaActiva = tieneGaza && tieneBO ? capaSeleccionada : tieneGaza ? "Gaza" : "BO"
 
-  // Lista de paños o tramos con sus anchos proporcionales
+  // Lista de paños de Gaza con sus anchos
+  const listaPanosGaza = useMemo(() => {
+    if (!tieneGaza) return []
+    return Array.from({ length: panosGaza }).map((_, idx) => ({
+      numero: idx + 1,
+      etiqueta: `Paño ${idx + 1}`,
+      ancho: anchosPanos[idx] || Number((anchoGaza / panosGaza).toFixed(2)),
+    }))
+  }, [tieneGaza, panosGaza, anchosPanos, anchoGaza])
+
+  // Lista de cortinas/tramos de Black Out con sus anchos y mandos
+  const listaTramosBO = useMemo(() => {
+    if (!tieneBO) return []
+    return Array.from({ length: tramosBO }).map((_, idx) => ({
+      numero: idx + 1,
+      etiqueta: esTradicionalConBORoller ? `Cortina ${idx + 1}` : `Tramo ${idx + 1}`,
+      ancho: anchosTramos[idx] || Number((anchoBO / tramosBO).toFixed(2)),
+      mando: esTradicionalConBORoller
+        ? caracteristicas?.mandosRollerBO?.[idx] ||
+          caracteristicas?.bo?.mandosRoller?.[idx] ||
+          null
+        : null,
+    }))
+  }, [tieneBO, tramosBO, anchosTramos, anchoBO, esTradicionalConBORoller, caracteristicas])
+
+  // Sumas de anchos para proporciones
+  const sumaAnchosGaza = useMemo(() => {
+    return listaPanosGaza.reduce((acc, p) => acc + (p.ancho > 0 ? p.ancho : 0), 0)
+  }, [listaPanosGaza])
+
+  const sumaAnchosBO = useMemo(() => {
+    return listaTramosBO.reduce((acc, p) => acc + (p.ancho > 0 ? p.ancho : 0), 0)
+  }, [listaTramosBO])
+
+  // Lista de paños principal (para compatibilidad de interacción y vista única)
   const divisiones = useMemo(() => {
     if (tipo === "Aluminio") return []
-    if (capaActiva === "Gaza" && tieneGaza) {
-      return Array.from({ length: panosGaza }).map((_, idx) => ({
-        numero: idx + 1,
-        etiqueta: `Paño ${idx + 1}`,
+    if (tieneGaza && !tieneBO) {
+      return listaPanosGaza.map((p) => ({
+        ...p,
         tipoTela: "Gaza",
-        ancho: anchosPanos[idx] || Number((anchoGaza / panosGaza).toFixed(2)),
         mando: null as string | null,
       }))
     }
-    if (capaActiva === "BO" && tieneBO) {
-      return Array.from({ length: tramosBO }).map((_, idx) => ({
-        numero: idx + 1,
-        etiqueta: esTradicionalConBORoller ? `Cortina ${idx + 1}` : `Tramo ${idx + 1}`,
+    if (tieneBO && !tieneGaza) {
+      return listaTramosBO.map((p) => ({
+        ...p,
         tipoTela: esTradicionalConBORoller ? "B.O. Roller" : "B.O.",
-        ancho: anchosTramos[idx] || Number((anchoBO / tramosBO).toFixed(2)),
-        mando: esTradicionalConBORoller
-          ? caracteristicas?.mandosRollerBO?.[idx] ||
-            caracteristicas?.bo?.mandosRoller?.[idx] ||
-            null
-          : null,
       }))
     }
-    return []
-  }, [
-    tipo,
-    capaActiva,
-    tieneGaza,
-    tieneBO,
-    panosGaza,
-    anchosPanos,
-    anchoGaza,
-    tramosBO,
-    anchosTramos,
-    anchoBO,
-    esTradicionalConBORoller,
-    caracteristicas,
-  ])
+    // Si conviven ambas, usamos Gaza como base de referencia principal
+    return listaPanosGaza.map((p) => ({
+      ...p,
+      tipoTela: "Gaza",
+      mando: null as string | null,
+    }))
+  }, [tipo, tieneGaza, tieneBO, listaPanosGaza, listaTramosBO, esTradicionalConBORoller])
 
-  // Suma de los anchos de los paños para calcular el porcentaje exacto de cada uno
+  // Suma de los anchos de los paños
   const sumaAnchos = useMemo(() => {
     return divisiones.reduce((acc, p) => acc + (p.ancho > 0 ? p.ancho : 0), 0)
   }, [divisiones])
@@ -337,12 +358,13 @@ export function CortinaDibujoDidactico({
       <div className="flex items-start justify-center gap-1.5 p-0.5">
         {/* Columna de Cortina (Cota superior perfectamente sobre el marco) */}
         <div className="flex flex-col items-center" style={{ width: `${boxWidth}px` }}>
-          {/* Cota Superior Ancho */}
+          {/* Cota Superior Ancho Gaza (o total) */}
           <div className="flex w-full items-center justify-between text-[8px] font-bold text-slate-700 mb-0.5">
             <span>|</span>
             <div className="flex flex-1 items-center px-0.5">
               <div className="h-[1px] flex-1 bg-slate-400" />
               <span className="px-0.5 text-[8px] font-extrabold text-slate-900 bg-white">
+                {tieneGaza && tieneBO ? "Gaza: " : ""}
                 {anchoEfectivo > 0 ? anchoEfectivo.toFixed(2) : "0.00"}m
               </span>
               <div className="h-[1px] flex-1 bg-slate-400" />
@@ -359,35 +381,68 @@ export function CortinaDibujoDidactico({
             <div className="h-1.5 w-full bg-slate-300 border-b border-slate-700 shrink-0" />
 
             {/* Paños */}
-            <div className="flex flex-1 w-full h-full overflow-hidden divide-x divide-slate-700">
+            <div className="relative flex flex-1 w-full h-full overflow-hidden">
               {divisiones.length === 0 ? (
                 <div className="flex-1 flex items-center justify-center text-[8px] text-slate-400">
                   {anchoEfectivo > 0 ? anchoEfectivo.toFixed(2) : "0.00"}m
                 </div>
               ) : (
-                divisiones.map((p, idx) => {
-                  const peso = p.ancho > 0 ? p.ancho : 1
-                  return (
-                    <div
-                      key={idx}
-                      style={{ flex: `${peso} 1 0%` }}
-                      className="flex flex-col justify-between p-0.5 bg-slate-50 text-center"
-                    >
-                      <span className="text-[7px] font-bold text-slate-600">
-                        {p.etiqueta
-                          .replace("Cortina", "C")
-                          .replace("Paño", "P")
-                          .replace("Tramo", "T")}
-                      </span>
-                      <span className="text-[9px] font-extrabold text-slate-950">
-                        {p.ancho.toFixed(2)}m
-                      </span>
-                    </div>
-                  )
-                })
+                <div className="flex flex-1 w-full h-full divide-x divide-slate-700">
+                  {divisiones.map((p, idx) => {
+                    const peso = p.ancho > 0 ? p.ancho : 1
+                    return (
+                      <div
+                        key={idx}
+                        style={{ flex: `${peso} 1 0%` }}
+                        className="flex flex-col justify-between p-0.5 bg-slate-50 text-center"
+                      >
+                        <span className="text-[7px] font-bold text-slate-600">
+                          {p.etiqueta
+                            .replace("Cortina", "C")
+                            .replace("Paño", "P")
+                            .replace("Tramo", "T")}
+                        </span>
+                        <span className="text-[9px] font-extrabold text-slate-950">
+                          {p.ancho.toFixed(2)}m
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Si conviven ambas: líneas de corte entrecortadas de BO */}
+              {tieneGaza && tieneBO && listaTramosBO.length > 1 && (
+                <div className="absolute inset-0 flex pointer-events-none">
+                  {listaTramosBO.map((b, bIdx) => {
+                    const peso = b.ancho > 0 ? b.ancho : 1
+                    return (
+                      <div
+                        key={bIdx}
+                        style={{ flex: `${peso} 1 0%` }}
+                        className={`h-full ${bIdx > 0 ? "border-l-2 border-dashed border-slate-800" : ""}`}
+                      />
+                    )
+                  })}
+                </div>
               )}
             </div>
           </div>
+
+          {/* Cota Inferior BO si conviven ambas */}
+          {tieneGaza && tieneBO && (
+            <div className="flex w-full items-center justify-between text-[7px] font-bold text-slate-700 mt-0.5">
+              <span>|</span>
+              <div className="flex flex-1 items-center px-0.5">
+                <div className="h-[1px] flex-1 bg-slate-500 border-b border-dashed" />
+                <span className="px-0.5 text-[7px] font-extrabold text-slate-900 bg-white">
+                  B.O.: {anchoBO > 0 ? Number(anchoBO).toFixed(2) : "0.00"}m
+                </span>
+                <div className="h-[1px] flex-1 bg-slate-500 border-b border-dashed" />
+              </div>
+              <span>|</span>
+            </div>
+          )}
         </div>
 
         {/* Cota Lateral Alto */}
@@ -451,33 +506,18 @@ export function CortinaDibujoDidactico({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          {/* Selector de capa cuando conviven Gaza y B.O. */}
+          {/* Referencia técnica si conviven ambas telas */}
           {tieneGaza && tieneBO && (
-            <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-              <button
-                type="button"
-                onClick={() => setCapaSeleccionada("Gaza")}
-                className={`rounded-md px-2 py-1 text-[11px] font-bold transition ${
-                  capaActiva === "Gaza"
-                    ? "bg-white text-indigo-700 shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Gaza ({panosGaza} {panosGaza > 1 ? "paños" : "paño"})
-              </button>
-              <button
-                type="button"
-                onClick={() => setCapaSeleccionada("BO")}
-                className={`rounded-md px-2 py-1 text-[11px] font-bold transition ${
-                  capaActiva === "BO"
-                    ? "bg-white text-slate-950 shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                {esTradicionalConBORoller
-                  ? `B.O. Roller (${tramosBO} ${tramosBO > 1 ? "cortinas" : "cortina"})`
-                  : `B.O. (${tramosBO} ${tramosBO > 1 ? "tramos" : "tramo"})`}
-              </button>
+            <div className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-700">
+              <span className="flex items-center gap-1">
+                <span className="inline-block w-3.5 h-[2px] bg-slate-900" />
+                <span>Gaza</span>
+              </span>
+              <span className="text-slate-300">|</span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block w-3.5 h-[2px] border-b-2 border-dashed border-slate-800" />
+                <span>B.O.</span>
+              </span>
             </div>
           )}
 
@@ -506,7 +546,7 @@ export function CortinaDibujoDidactico({
                   <span className="text-slate-400">|</span>
                   <div className="flex flex-1 items-center gap-1 px-1">
                     <div className="h-[1.5px] flex-1 bg-slate-400" />
-                    <span className="rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-extrabold text-slate-900 shadow-2xs whitespace-nowrap">
+                    <span className="rounded-full border border-slate-300 bg-white px-2.5 py-0.5 text-[10px] font-extrabold text-slate-900 shadow-2xs whitespace-nowrap">
                       Ancho Total: {anchoEfectivo > 0 ? anchoEfectivo.toFixed(2) : "0.00"} m
                     </span>
                     <div className="h-[1.5px] flex-1 bg-slate-400" />
@@ -619,9 +659,9 @@ export function CortinaDibujoDidactico({
             </div>
           </div>
         ) : (
-          /* Caso 2: TRADICIONAL / ROLLER / BANDAS / NOCHE TOTAL */
+          /* Caso 2: TRADICIONAL / ROLLER / BANDAS / NOCHE TOTAL / MOSQUERA */
           <div className="flex flex-col items-center">
-            {divisiones.length === 0 ? (
+            {(!tieneGaza && !tieneBO) ? (
               <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-xs text-slate-500 max-w-sm">
                 <Sparkles className="h-6 w-6 text-indigo-400 mb-2" />
                 <p className="font-semibold text-slate-700">
@@ -633,22 +673,64 @@ export function CortinaDibujoDidactico({
               </div>
             ) : (
               <>
-                {/* Contenedor alineado: Cota Superior + Marco de la Cortina + Cota Lateral */}
+                {/* Contenedor alineado: Cotas Superiores + Marco de la Cortina + Cotas Inferiores + Cota Lateral */}
                 <div className="flex items-start justify-center gap-2.5">
-                  {/* Columna de la Cortina (con cota superior exactamente encima del marco) */}
+                  {/* Columna de la Cortina con sus cotas arriba y abajo */}
                   <div className="flex flex-col items-center" style={{ width: `${boxWidth}px` }}>
-                    {/* Cota Superior Ancho Total */}
-                    <div className="mb-2 flex w-full items-center justify-between text-xs font-bold text-slate-600">
-                      <span className="text-slate-400">|</span>
-                      <div className="flex flex-1 items-center gap-1 px-1">
-                        <div className="h-[1.5px] flex-1 bg-slate-400" />
-                        <span className="rounded-full border border-slate-300 bg-white px-2.5 py-0.5 text-[10px] font-extrabold text-slate-900 shadow-2xs whitespace-nowrap">
-                          Ancho Total: {anchoEfectivo > 0 ? anchoEfectivo.toFixed(2) : "0.00"} m
-                        </span>
-                        <div className="h-[1.5px] flex-1 bg-slate-400" />
+                    {/* ── COTAS SUPERIORES: GAZA (O TOTAL SI SOLO HAY BO) ── */}
+                    {tieneGaza && tieneBO ? (
+                      /* Si conviven ambas: Cotas individuales de Gaza arriba */
+                      <div className="mb-2 w-full flex flex-col gap-1">
+                        <div className="flex w-full items-center justify-between text-[11px] font-bold text-indigo-900">
+                          <span className="text-slate-400">|</span>
+                          <div className="flex flex-1 items-center gap-1 px-1">
+                            <div className="h-[1.5px] flex-1 bg-indigo-300" />
+                            <span className="rounded-full border border-indigo-200 bg-indigo-50/90 px-2 py-0.5 text-[9px] font-extrabold text-indigo-900 shadow-2xs whitespace-nowrap">
+                              Gaza Total: {anchoGaza > 0 ? Number(anchoGaza).toFixed(2) : "0.00"} m
+                            </span>
+                            <div className="h-[1.5px] flex-1 bg-indigo-300" />
+                          </div>
+                          <span className="text-slate-400">|</span>
+                        </div>
+
+                        {/* Desglose de paños de Gaza arriba con línea continua */}
+                        <div className="flex w-full gap-1">
+                          {listaPanosGaza.map((p, idx) => {
+                            const peso = p.ancho > 0 ? p.ancho : 1
+                            return (
+                              <div
+                                key={idx}
+                                style={{ flex: `${peso} 1 0%` }}
+                                className="flex items-center justify-between text-[10px] font-bold text-indigo-950 px-0.5"
+                              >
+                                <span className="text-slate-400">|</span>
+                                <div className="flex flex-1 items-center px-0.5">
+                                  <div className="h-[1.5px] flex-1 bg-indigo-400" />
+                                  <span className="px-1 text-[9px] font-extrabold text-indigo-950 bg-white rounded border border-indigo-200 shadow-2xs whitespace-nowrap">
+                                    G{p.numero}: {p.ancho.toFixed(2)} m
+                                  </span>
+                                  <div className="h-[1.5px] flex-1 bg-indigo-400" />
+                                </div>
+                                <span className="text-slate-400">|</span>
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
-                      <span className="text-slate-400">|</span>
-                    </div>
+                    ) : (
+                      /* Cota Superior única */
+                      <div className="mb-2 flex w-full items-center justify-between text-xs font-bold text-slate-600">
+                        <span className="text-slate-400">|</span>
+                        <div className="flex flex-1 items-center gap-1 px-1">
+                          <div className="h-[1.5px] flex-1 bg-slate-400" />
+                          <span className="rounded-full border border-slate-300 bg-white px-2.5 py-0.5 text-[10px] font-extrabold text-slate-900 shadow-2xs whitespace-nowrap">
+                            Ancho Total: {anchoEfectivo > 0 ? anchoEfectivo.toFixed(2) : "0.00"} m
+                          </span>
+                          <div className="h-[1.5px] flex-1 bg-slate-400" />
+                        </div>
+                        <span className="text-slate-400">|</span>
+                      </div>
+                    )}
 
                     {/* Marco Proporcional de la Cortina */}
                     <div
@@ -716,7 +798,7 @@ export function CortinaDibujoDidactico({
                             <div className="h-2 w-full rounded-xs bg-slate-300 border border-slate-400 shadow-2xs" />
                           )
                         ) : (
-                          // Perfilería para Roller / Bandas / Noche total
+                          // Perfilería para Roller / Bandas / Noche total / Mosquera
                           <div
                             className="h-3 w-full rounded-xs border shadow-2xs"
                             style={{
@@ -740,128 +822,167 @@ export function CortinaDibujoDidactico({
                         </div>
                       </div>
 
-                      {/* 2. Cuerpo de la Cortina: Paños Proporcionales */}
-                      <div className="flex flex-1 w-full h-full overflow-hidden divide-x-2 divide-slate-800">
-                        {divisiones.map((p, idx) => {
-                          const peso = p.ancho > 0 ? p.ancho : 1
-                          const porcentaje =
-                            sumaAnchos > 0
-                              ? Math.round((p.ancho / sumaAnchos) * 100)
-                              : Math.round(100 / divisiones.length)
-                          const isHovered = panoHovered === idx
-                          const isSeleccionado = panoSeleccionado === idx
+                      {/* 2. Cuerpo de la Cortina: Paños y Cortes */}
+                      <div className="relative flex flex-1 w-full h-full overflow-hidden">
+                        {/* CAPA 1: PAÑOS DE GAZA (LÍNEAS CONTINUAS SÓLIDAS) */}
+                        {tieneGaza ? (
+                          <div className="flex flex-1 w-full h-full divide-x-2 divide-slate-900">
+                            {listaPanosGaza.map((p, idx) => {
+                              const peso = p.ancho > 0 ? p.ancho : 1
+                              const isHovered = panoHovered === idx
+                              const isSeleccionado = panoSeleccionado === idx
 
-                          return (
-                            <div
-                              key={idx}
-                              onMouseEnter={() => setPanoHovered(idx)}
-                              onMouseLeave={() => setPanoHovered(null)}
-                              onClick={() =>
-                                setPanoSeleccionado((prev) => (prev === idx ? null : idx))
-                              }
-                              style={{
-                                flex: `${peso} 1 0%`,
-                                minWidth: "48px",
-                              }}
-                              className={`group relative flex flex-col justify-between p-2 cursor-pointer transition-all duration-200 select-none ${
-                                isSeleccionado
-                                  ? "ring-2 ring-inset ring-indigo-600 bg-indigo-100/60"
-                                  : isHovered
-                                  ? "bg-indigo-50/70"
-                                  : "hover:bg-slate-50"
-                              }`}
-                            >
-                              {/* Textura de Tejido y Pliegues de la Tela */}
-                              <div className="absolute inset-0 pointer-events-none opacity-40">
-                                {/* Caída y superposición de telas */}
-                                {tieneGaza && tieneBO ? (
-                                  boAdelante ? (
-                                    <div className="h-full w-full bg-linear-to-b from-slate-300 via-slate-200 to-slate-400 border-r border-slate-400/40" />
-                                  ) : (
-                                    <div className="h-full w-full bg-linear-to-b from-indigo-100 via-white to-indigo-200 border-r border-indigo-300/40" />
-                                  )
-                                ) : tieneGaza ? (
-                                  <div className="h-full w-full bg-linear-to-b from-indigo-50/70 via-white to-indigo-100/60" />
-                                ) : (
-                                  <div className="h-full w-full bg-linear-to-b from-slate-200 via-slate-300 to-slate-400" />
-                                )}
-
-                                {/* Pliegues verticales sutiles */}
-                                <div className="absolute inset-0 flex justify-around opacity-25">
-                                  <div className="w-[1px] h-full bg-slate-900/30" />
-                                  <div className="w-[1px] h-full bg-slate-900/30" />
-                                </div>
-                              </div>
-
-                              {/* Mando de cada cortina B.O. Roller individual */}
-                              {esTradicionalConBORoller && capaActiva === "BO" && p.mando && (
+                              return (
                                 <div
-                                  className={`absolute top-1.5 z-20 flex flex-col items-center pointer-events-none ${
-                                    String(p.mando) === "Izquierda" ? "left-1.5" : "right-1.5"
+                                  key={idx}
+                                  onMouseEnter={() => setPanoHovered(idx)}
+                                  onMouseLeave={() => setPanoHovered(null)}
+                                  onClick={() =>
+                                    setPanoSeleccionado((prev) => (prev === idx ? null : idx))
+                                  }
+                                  style={{
+                                    flex: `${peso} 1 0%`,
+                                    minWidth: "48px",
+                                  }}
+                                  className={`group relative flex flex-col justify-between p-2 cursor-pointer transition-all duration-200 select-none ${
+                                    isSeleccionado
+                                      ? "ring-2 ring-inset ring-indigo-600 bg-indigo-100/60"
+                                      : isHovered
+                                      ? "bg-indigo-50/70"
+                                      : "hover:bg-slate-50"
                                   }`}
                                 >
-                                  <div className="w-1.5 h-1.5 rounded-full bg-slate-900 shadow-xs" />
-                                  <div
-                                    className="w-[1.5px] bg-slate-600 shadow-xs"
-                                    style={{ height: `${Math.round(boxHeight * 0.55)}px` }}
-                                  />
-                                  <div className="w-auto px-1 h-3 rounded-full border border-slate-700 bg-white text-[7px] flex items-center justify-center font-black text-slate-900 shadow-xs">
-                                    {String(p.mando) === "Izquierda" ? "Izq" : "Der"}
+                                  {/* Textura sutil de tela limpia */}
+                                  <div className="absolute inset-0 pointer-events-none opacity-40">
+                                    <div className="h-full w-full bg-linear-to-b from-indigo-50/70 via-white to-indigo-100/60" />
+                                    <div className="absolute inset-0 flex justify-around opacity-25">
+                                      <div className="w-[1px] h-full bg-slate-900/30" />
+                                      <div className="w-[1px] h-full bg-slate-900/30" />
+                                    </div>
                                   </div>
                                 </div>
-                              )}
+                              )
+                            })}
+                          </div>
+                        ) : (
+                          /* Si solo tiene BO: cuerpo limpio con divisiones continuas */
+                          <div className="flex flex-1 w-full h-full divide-x-2 divide-slate-800">
+                            {listaTramosBO.map((b, idx) => {
+                              const peso = b.ancho > 0 ? b.ancho : 1
+                              return (
+                                <div
+                                  key={idx}
+                                  style={{ flex: `${peso} 1 0%`, minWidth: "48px" }}
+                                  className="relative flex flex-col justify-between p-2 select-none bg-slate-100/80"
+                                />
+                              )
+                            })}
+                          </div>
+                        )}
 
-                              {/* Encabezado del Paño */}
-                              <div className="relative z-10">
-                                <span
-                                  className={`inline-block rounded-md px-1.5 py-0.5 text-[10px] font-extrabold transition ${
-                                    isSeleccionado
-                                      ? "bg-indigo-600 text-white"
-                                      : "bg-white/90 text-slate-800 shadow-2xs border border-slate-200"
+                        {/* CAPA 2 SUPERPUESTA: LÍNEAS ENTRECORTADAS / DASHED DE BLACK OUT (CUANDO COEXISTEN AMBAS) */}
+                        {tieneGaza && tieneBO && (
+                          <div className="absolute inset-0 flex pointer-events-none z-20">
+                            {listaTramosBO.map((b, bIdx) => {
+                              const peso = b.ancho > 0 ? b.ancho : 1
+                              return (
+                                <div
+                                  key={bIdx}
+                                  style={{ flex: `${peso} 1 0%` }}
+                                  className={`relative h-full flex flex-col justify-between p-1.5 ${
+                                    bIdx > 0 ? "border-l-2 border-dashed border-slate-900" : ""
                                   }`}
                                 >
-                                  {p.etiqueta}
-                                </span>
-                              </div>
-
-                              {/* Medida Central Proporcional del Paño */}
-                              <div className="relative z-10 my-auto text-center">
-                                <span className="block text-sm font-extrabold tracking-tight text-slate-950 drop-shadow-xs">
-                                  {p.ancho.toFixed(2)} m
-                                </span>
-                                <span className="block text-[10px] font-bold text-indigo-700">
-                                  ({porcentaje}%)
-                                </span>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-
-                      {/* Mando Colgante (Roller, Bandas, Noche total) cuando no es B.O. Roller individual */}
-                      {mostrarMando && (!esTradicionalConBORoller || capaActiva !== "BO") && (
-                        <div
-                          className={`absolute top-2 z-20 flex flex-col items-center pointer-events-none ${
-                            mandoLadoIzquierdo ? "left-2" : "right-2"
-                          }`}
-                        >
-                          <div className="w-1.5 h-1.5 rounded-full bg-slate-800 shadow-xs" />
-                          <div
-                            className="w-[1.5px] bg-slate-500 shadow-xs"
-                            style={{ height: `${Math.round(boxHeight * 0.65)}px` }}
-                          />
-                          <div className="w-2.5 h-4 rounded-full border border-slate-600 bg-white text-[8px] flex items-center justify-center font-bold text-slate-800 shadow-xs">
-                            ●
+                                  {/* Mando de cada cortina B.O. Roller si corresponde */}
+                                  {b.mando && (
+                                    <div
+                                      className={`absolute top-1 flex flex-col items-center ${
+                                        String(b.mando) === "Izquierda" ? "left-1" : "right-1"
+                                      }`}
+                                    >
+                                      <div className="w-1.5 h-1.5 rounded-full bg-slate-950 shadow-xs" />
+                                      <div
+                                        className="w-[1.5px] bg-slate-700 shadow-xs"
+                                        style={{ height: `${Math.round(boxHeight * 0.5)}px` }}
+                                      />
+                                      <div className="w-auto px-1 h-3 rounded-full border border-slate-800 bg-white text-[7px] flex items-center justify-center font-black text-slate-900 shadow-xs">
+                                        {String(b.mando) === "Izquierda" ? "Izq" : "Der"}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
                           </div>
-                        </div>
-                      )}
+                        )}
+
+                        {/* Mando Colgante General cuando no son mandos individuales de BO Roller */}
+                        {mostrarMando && tieneMandoVisible && (!esTradicionalConBORoller || !tieneBO) && (
+                          <div
+                            className={`absolute top-2 z-30 flex flex-col items-center pointer-events-none ${
+                              mandoLadoIzquierdo ? "left-2" : "right-2"
+                            }`}
+                          >
+                            <div className="w-1.5 h-1.5 rounded-full bg-slate-800 shadow-xs" />
+                            <div
+                              className="w-[1.5px] bg-slate-500 shadow-xs"
+                              style={{ height: `${Math.round(boxHeight * 0.65)}px` }}
+                            />
+                            <div className="w-2.5 h-4 rounded-full border border-slate-600 bg-white text-[8px] flex items-center justify-center font-bold text-slate-800 shadow-xs">
+                              ●
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
+
+                    {/* ── COTAS INFERIORES: BLACK OUT (CUANDO COEXISTEN AMBAS) ── */}
+                    {tieneGaza && tieneBO && (
+                      <div className="mt-2 w-full flex flex-col gap-1">
+                        {/* Desglose de cortinas/tramos de B.O. abajo con línea entrecortada */}
+                        <div className="flex w-full gap-1">
+                          {listaTramosBO.map((b, idx) => {
+                            const peso = b.ancho > 0 ? b.ancho : 1
+                            return (
+                              <div
+                                key={idx}
+                                style={{ flex: `${peso} 1 0%` }}
+                                className="flex items-center justify-between text-[10px] font-bold text-slate-800 px-0.5"
+                              >
+                                <span className="text-slate-400">|</span>
+                                <div className="flex flex-1 items-center px-0.5">
+                                  <div className="h-[1.5px] flex-1 bg-slate-600 border-b border-dashed" />
+                                  <span className="px-1 text-[9px] font-extrabold text-white bg-slate-900 rounded shadow-2xs whitespace-nowrap">
+                                    BO{b.numero}: {b.ancho.toFixed(2)} m
+                                  </span>
+                                  <div className="h-[1.5px] flex-1 bg-slate-600 border-b border-dashed" />
+                                </div>
+                                <span className="text-slate-400">|</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                        {/* Cota Total BO al pie */}
+                        <div className="flex w-full items-center justify-between text-[11px] font-bold text-slate-700">
+                          <span className="text-slate-400">|</span>
+                          <div className="flex flex-1 items-center gap-1 px-1">
+                            <div className="h-[1.5px] flex-1 bg-slate-400 border-b border-dashed" />
+                            <span className="rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[9px] font-extrabold text-slate-800 shadow-2xs whitespace-nowrap">
+                              B.O. Total: {anchoBO > 0 ? Number(anchoBO).toFixed(2) : "0.00"} m
+                            </span>
+                            <div className="h-[1.5px] flex-1 bg-slate-400 border-b border-dashed" />
+                          </div>
+                          <span className="text-slate-400">|</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Cota Lateral Alto Total */}
                   <div
                     className="flex flex-col items-center justify-between text-xs font-bold text-slate-600 pt-7"
-                    style={{ height: `${boxHeight + 28}px` }}
+                    style={{ height: `${boxHeight + (tieneGaza && tieneBO ? 65 : 28)}px` }}
                   >
                     <span className="text-slate-400">─</span>
                     <div className="flex flex-1 flex-col items-center justify-center gap-1 my-1">
@@ -877,16 +998,13 @@ export function CortinaDibujoDidactico({
               </>
             )}
 
-            {/* Fila Informativa de la selección actual */}
+            {/* Fila Informativa de la selección actual (SIN PORCENTAJES) */}
             {panoActivo && (
               <div className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white px-3.5 py-1.5 text-xs font-bold text-indigo-950 border border-indigo-200 shadow-2xs animate-in fade-in duration-150">
                 <Info className="h-3.5 w-3.5 text-indigo-600" />
                 <span>
-                  {panoActivo.etiqueta}: <strong>{panoActivo.ancho.toFixed(2)} m</strong> (
-                  {sumaAnchos > 0
-                    ? Math.round((panoActivo.ancho / sumaAnchos) * 100)
-                    : 100}
-                  % del vano) • Alto: <strong>{altoEfectivo.toFixed(2)} m</strong>
+                  {panoActivo.etiqueta}: <strong>{panoActivo.ancho.toFixed(2)} m</strong> • Alto:{" "}
+                  <strong>{altoEfectivo.toFixed(2)} m</strong>
                   {tieneGaza && tipo === "Tradicional" && (
                     <span className="text-amber-800 ml-1">
                       • Confección: {(panoActivo.ancho + 0.1).toFixed(2)} m

@@ -8,6 +8,7 @@ export type TipoCortina =
   | "Aluminio"
   | "Roller Noche total"
   | "Noche total" // compatibilidad con registros previos
+  | "Mosquera"
 
 export type SistemaTradicional = "Riel" | "Barral"
 
@@ -24,9 +25,9 @@ export type PerfileriaNocheTotal =
   | "Bronce Colonial"
   | "Aluminio Anodizado"
 
-export type PerfileriaRoller = "Blanco" | "Negro"
+export type PerfileriaRoller = "Blanco" | "Negro" | "Gris" | "Beige"
 
-export type PerfileriaBandas = "Blanco" | "Negro"
+export type PerfileriaBandas = "Blanco" | "Negro" | "Gris" | "Beige"
 
 export type TipoLaminaAluminio = "16 mm" | "25 mm" | "Perforado"
 
@@ -35,7 +36,7 @@ export type ColorAluminio =
   | "Beige"
   | "Natural"
   | "Aluminio"
-  | "Kongo"
+  | "Congo"
   | "Negro"
 
 export type TipoSujecion =
@@ -46,7 +47,7 @@ export type TipoSujecion =
   | "Aire"
   | "Abertura"
 
-export type LadoMando = "Izquierda" | "Derecha" | "Izquierdo" | "Derecho"
+export type LadoMando = "Izquierda" | "Derecha" | "Izquierdo" | "Derecho" | "Sin mando"
 
 export type TipoCaida = "Por delante" | "Por detrás"
 
@@ -54,6 +55,7 @@ export type MarcaCortina = "HD" | "RS" | "MG"
 
 export type TipoModeloSoporte = "Grampa" | "Kent"
 export type VarianteSoporte = "Simple" | "Doble"
+export type TipoSoporteRoller = "Común" | "Extendido"
 
 // ─── Estructuras para Capas de Telas ──────────────────────────────────────────
 
@@ -61,7 +63,7 @@ export interface IGazaConfig {
   activa: boolean
   ancho: number
   alto: number
-  panos: 1 | 2 | 3
+  panos: 1 | 2 | 3 | 4 | 5
   anchosPanos: number[]
   nombreTela: string
 }
@@ -70,7 +72,7 @@ export interface IBOConfig {
   activa: boolean
   ancho: number
   alto: number
-  tramos: 1 | 2 | 3
+  tramos: 1 | 2 | 3 | 4 | 5
   anchosTramos: number[]
   nombreTela: string
   mandosRoller?: LadoMando[]
@@ -86,9 +88,10 @@ export interface ICaracteristicasItem {
     tipoLamina: TipoLaminaAluminio
     color: ColorAluminio
     mando: LadoMando
+    tensor?: boolean
   }
 
-  // Para Tradicional, Roller, Bandas, Roller Noche total
+  // Para Tradicional, Roller, Bandas, Roller Noche total, Mosquera
   sistema?: SistemaTradicional
   colorBarral?: ColorBarral
   perfileria?: string // PerfileriaNocheTotal | PerfileriaRoller | PerfileriaBandas
@@ -112,6 +115,7 @@ export interface ICaracteristicasItem {
   tipoSoporte?: TipoModeloSoporte
   varianteSoporte?: VarianteSoporte
   cantidadSoportes?: number
+  tipoSoporteRoller?: TipoSoporteRoller
 
   // Argollas (calculadas exclusivamente para gaza)
   cantidadArgollas?: number
@@ -208,6 +212,7 @@ export const TIPOS_CORTINA: TipoCortina[] = [
   "Bandas verticales",
   "Aluminio",
   "Roller Noche total",
+  "Mosquera",
 ]
 
 export const FORMATOS_BO = ["Tradicional", "Roller"] as const
@@ -244,7 +249,7 @@ export const COLORES_ALUMINIO: ColorAluminio[] = [
   "Beige",
   "Natural",
   "Aluminio",
-  "Kongo",
+  "Congo",
   "Negro",
 ]
 
@@ -307,8 +312,11 @@ export function calcularCantidadSoportes(anchoMetros: number): number {
  */
 export function determinarVarianteSoporte(
   tieneGaza: boolean,
-  tieneBO: boolean
+  tieneBO: boolean,
+  formatoBO?: "Tradicional" | "Roller"
 ): VarianteSoporte {
+  // Si el B.O. se confecciona como Roller, el soporte tradicional (Kent/Grampa) es solo para la Gaza (Simple)
+  if (formatoBO === "Roller") return "Simple"
   if (tieneGaza && tieneBO) return "Doble"
   return "Simple"
 }

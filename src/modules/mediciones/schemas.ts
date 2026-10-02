@@ -9,7 +9,7 @@ export const gazaConfigSchema = z.object({
   activa: z.boolean().default(false),
   ancho: z.number().min(0).default(0),
   alto: z.number().min(0).default(0),
-  panos: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
+  panos: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).default(1),
   anchosPanos: z.array(z.number().min(0)).default([]),
   nombreTela: z.string().default(""),
 })
@@ -18,11 +18,11 @@ export const boConfigSchema = z.object({
   activa: z.boolean().default(false),
   ancho: z.number().min(0).default(0),
   alto: z.number().min(0).default(0),
-  tramos: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
+  tramos: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).default(1),
   anchosTramos: z.array(z.number().min(0)).default([]),
   nombreTela: z.string().default(""),
   mandosRoller: z
-    .array(z.enum(["Izquierda", "Derecha", "Izquierdo", "Derecho"]))
+    .array(z.enum(["Izquierda", "Derecha", "Izquierdo", "Derecho", "Sin mando"]))
     .optional(),
 })
 
@@ -36,6 +36,7 @@ export const caracteristicasItemSchema = z.object({
     "Aluminio",
     "Roller Noche total",
     "Noche total",
+    "Mosquera",
   ]),
 
   // Aluminio exclusivo
@@ -47,10 +48,11 @@ export const caracteristicasItemSchema = z.object({
         "Beige",
         "Natural",
         "Aluminio",
-        "Kongo",
+        "Congo",
         "Negro",
       ]),
-      mando: z.enum(["Izquierdo", "Derecho", "Izquierda", "Derecha"]),
+      mando: z.enum(["Izquierdo", "Derecho", "Izquierda", "Derecha", "Sin mando"]),
+      tensor: z.boolean().optional(),
     })
     .optional(),
 
@@ -66,7 +68,7 @@ export const caracteristicasItemSchema = z.object({
     ])
     .optional(),
 
-  // Roller, Bandas, Roller Noche total: Perfilería
+  // Roller, Bandas, Roller Noche total, Mosquera: Perfilería
   perfileria: z.string().optional(),
 
   // Campos comunes no-aluminio
@@ -74,7 +76,7 @@ export const caracteristicasItemSchema = z.object({
     .enum(["Techo", "Pared", "Moldura", "Sócalo", "Aire", "Abertura"])
     .optional(),
   mando: z
-    .enum(["Izquierda", "Derecha", "Izquierdo", "Derecho"])
+    .enum(["Izquierda", "Derecha", "Izquierdo", "Derecho", "Sin mando"])
     .optional(),
   caida: z.enum(["Por delante", "Por detrás"]).optional(),
   marca: z.enum(["HD", "RS", "MG"]).optional().nullable(),
@@ -82,11 +84,11 @@ export const caracteristicasItemSchema = z.object({
   // Formato B.O. (Tradicional de taller vs Roller proveedor)
   formatoBO: z.enum(["Tradicional", "Roller"]).optional(),
   mandoBO: z
-    .enum(["Izquierda", "Derecha", "Izquierdo", "Derecho"])
+    .enum(["Izquierda", "Derecha", "Izquierdo", "Derecho", "Sin mando"])
     .optional(),
   marcaBO: z.enum(["HD", "RS", "MG"]).optional().nullable(),
   mandosRollerBO: z
-    .array(z.enum(["Izquierda", "Derecha", "Izquierdo", "Derecho"]))
+    .array(z.enum(["Izquierda", "Derecha", "Izquierdo", "Derecho", "Sin mando"]))
     .optional(),
 
   // Capas de tela
@@ -97,6 +99,7 @@ export const caracteristicasItemSchema = z.object({
   tipoSoporte: z.enum(["Grampa", "Kent"]).optional(),
   varianteSoporte: z.enum(["Simple", "Doble"]).optional(),
   cantidadSoportes: z.number().optional(),
+  tipoSoporteRoller: z.enum(["Común", "Extendido"]).optional(),
   cantidadArgollas: z.number().optional(),
   anchoConfeccionGaza: z.number().optional(),
 })
