@@ -2,6 +2,7 @@
 // Esquemas de validación Zod
 
 import { z } from "zod"
+import { MAX_OPCIONES_POR_CORTINA } from "./types"
 
 // ─── Esquema de Ítem de Presupuesto ──────────────────────────────────────────
 
@@ -23,6 +24,16 @@ export const itemPresupuestoSchema = z.object({
   precioUnitario: z.number().min(0, "El precio unitario no puede ser negativo"),
   subtotal: z.number().min(0, "El subtotal no puede ser negativo"),
   aceptado: z.boolean().default(false),
+  // Alternativas de una misma cortina
+  caracteristicas: z.record(z.string(), z.unknown()).nullable().optional(),
+  grupoAlternativa: z.string().max(64).nullable().optional(),
+  nombreOpcion: z
+    .string()
+    .trim()
+    .max(40, "El nombre de la opción no puede superar 40 caracteres")
+    .nullable()
+    .optional(),
+  esOpcionPrincipal: z.boolean().default(true),
 })
 
 export type ItemPresupuestoInput = z.infer<typeof itemPresupuestoSchema>
@@ -48,6 +59,41 @@ export const presupuestoFormSchema = z.object({
   items: z
     .array(itemPresupuestoSchema)
     .min(1, "Debe incluir al menos una cortina o ítem en el presupuesto"),
+}).superRefine((data, ctx) => {
+  const grupos = new Map<string, ItemPresupuestoInput[]>()
+  for (const it of data.items) {
+    if (!it.grupoAlternativa) {
+      if (it.esOpcionPrincipal === false) {
+        ctx.addIssue({ code: "custom", message: "Hay una alternativa sin cortina principal." })
+      }
+      continue
+    }
+    const lista = grupos.get(it.grupoAlternativa) ?? []
+    lista.push(it)
+    grupos.set(it.grupoAlternativa, lista)
+  }
+  for (const opciones of grupos.values()) {
+    const desc = opciones[0]?.descripcion || "cortina"
+    if (opciones.length > MAX_OPCIONES_POR_CORTINA) {
+      ctx.addIssue({
+        code: "custom",
+        message: `"${desc}" tiene más de ${MAX_OPCIONES_POR_CORTINA} opciones.`,
+      })
+    }
+    if (opciones.filter((o) => o.esOpcionPrincipal !== false).length !== 1) {
+      ctx.addIssue({ code: "custom", message: `"${desc}" debe tener una sola opción principal.` })
+    }
+    if (opciones.length > 1 && opciones.some((o) => !o.nombreOpcion?.trim())) {
+      ctx.addIssue({
+        code: "custom",
+        message: `Poné un nombre a cada opción de "${desc}" (ej: Riel / Barral).`,
+      })
+    }
+    const nombres = opciones.map((o) => o.nombreOpcion?.trim().toLowerCase() || "")
+    if (new Set(nombres).size !== nombres.length) {
+      ctx.addIssue({ code: "custom", message: `Las opciones de "${desc}" tienen nombres repetidos.` })
+    }
+  }
 })
 
 export type PresupuestoFormInput = z.infer<typeof presupuestoFormSchema>

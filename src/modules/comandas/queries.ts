@@ -561,11 +561,13 @@ export async function obtenerPresupuestosAceptadosSinComanda(): Promise<
     })
 
     return presupuestos.map((p) => {
-      // Filtrar ítems aceptados (si es total, todos; si es parcial, solo aceptados)
+      // Filtrar ítems aceptados (opción elegida de cada cortina). En aceptación total
+      // sin marcas previas se toman las opciones principales.
+      const marcados = p.items.filter((it) => it.aceptado)
       const itemsAceptadosFiltrados =
-        p.estado === "ACEPTADO_TOTAL"
-          ? p.items
-          : p.items.filter((it) => it.aceptado)
+        p.estado === "ACEPTADO_TOTAL" && marcados.length === 0
+          ? p.items.filter((it) => it.esOpcionPrincipal)
+          : marcados
 
       return {
         id: p.id,
@@ -577,13 +579,17 @@ export async function obtenerPresupuestosAceptadosSinComanda(): Promise<
         itemsAceptados: itemsAceptadosFiltrados.map((it) => ({
           id: it.id,
           itemMedicionId: it.itemMedicionId,
-          descripcion: it.descripcion,
+          descripcion:
+            it.grupoAlternativa && it.nombreOpcion
+              ? `${it.descripcion} (${it.nombreOpcion})`
+              : it.descripcion,
           ambiente: it.ambiente || "General",
           ancho: Number(it.ancho),
           alto: Number(it.alto),
           cantidad: it.cantidad,
           caracteristicas:
-            (it.itemMedicion?.caracteristicas as unknown as ICaracteristicasItem) || null,
+            ((it.caracteristicas ?? it.itemMedicion?.caracteristicas) as unknown as ICaracteristicasItem) ||
+            null,
         })),
       }
     })

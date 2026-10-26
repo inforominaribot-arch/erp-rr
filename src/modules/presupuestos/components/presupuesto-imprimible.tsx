@@ -12,6 +12,7 @@ import {
 } from "../types"
 import type { IPresupuestoDetalle, IAmbientePresupuestoGrupo } from "../types"
 import { PresupuestoWhatsappButton } from "./presupuesto-whatsapp-button"
+import { calcularTotalesPorOpcion, esPrincipal, itemsAprobados } from "../lib/alternativas"
 
 interface PresupuestoImprimibleProps {
   presupuesto: IPresupuestoDetalle
@@ -52,13 +53,18 @@ export function PresupuestoImprimible({
         }
       }
       acc[amb].items.push(it)
-      acc[amb].subtotalAmbiente += it.subtotal
+      // Las alternativas no suman: solo la opción principal
+      if (esPrincipal(it)) acc[amb].subtotalAmbiente += it.subtotal
       return acc
     },
     {}
   )
 
   const listaAmbientes = Object.values(gruposAmbientes)
+  const hayAlternativas = items.some((it) => !esPrincipal(it))
+  const totalesPorOpcion = calcularTotalesPorOpcion(items, presupuesto.descuento)
+  const estaAceptado =
+    presupuesto.estado === "ACEPTADO_TOTAL" || presupuesto.estado === "ACEPTADO_PARCIAL"
 
   function handleImprimir() {
     const nombreCliente = cliente.nombre ? cliente.nombre.trim() : "Cliente"
@@ -260,7 +266,9 @@ export function PresupuestoImprimible({
                   Ambiente: {grupo.ambiente}
                 </span>
                 <span className="text-xs font-semibold text-indigo-700">
-                  Subtotal: {formatearPrecio(grupo.subtotalAmbiente)}
+                  {grupo.items.some((it) => !esPrincipal(it))
+                    ? `Subtotal (opción principal): ${formatearPrecio(grupo.subtotalAmbiente)}`
+                    : `Subtotal: ${formatearPrecio(grupo.subtotalAmbiente)}`}
                 </span>
               </div>
 
@@ -287,9 +295,25 @@ export function PresupuestoImprimible({
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {grupo.items.map((it, idx) => (
-                      <tr key={it.id || idx} className="hover:bg-slate-50/50">
-                        <td className="py-1.5 px-3">
-                          <p className="font-bold text-slate-900">{it.descripcion}</p>
+                      <tr
+                        key={it.id || idx}
+                        className={esPrincipal(it) ? "hover:bg-slate-50/50" : "bg-indigo-50/30"}
+                      >
+                        <td className={`py-1.5 px-3 ${esPrincipal(it) ? "" : "pl-7"}`}>
+                          {esPrincipal(it) && (
+                            <p className="font-bold text-slate-900">{it.descripcion}</p>
+                          )}
+                          {it.grupoAlternativa && (
+                            <p
+                              className={`text-[11px] ${
+                                esPrincipal(it) ? "text-indigo-800" : "font-semibold text-indigo-800"
+                              }`}
+                            >
+                              {esPrincipal(it) ? "Opción " : "↳ Opción "}
+                              <strong>{it.nombreOpcion || "alternativa"}</strong>
+                              {estaAceptado && it.aceptado ? " ✓ elegida" : ""}
+                            </p>
+                          )}
                         </td>
                         <td className="py-1.5 px-3 text-center text-slate-600 font-mono">
                           {it.ancho > 0 && it.alto > 0
@@ -378,8 +402,29 @@ export function PresupuestoImprimible({
             style={{ flex: "0 0 38%", width: "38%" }}
             className="rounded-xl bg-slate-50 p-3 border border-slate-200 space-y-1.5 text-xs"
           >
+            {totalesPorOpcion ? (
+              <>
+                {presupuesto.descuento > 0 && (
+                  <p className="text-[11px] text-emerald-700 font-semibold">
+                    Incluye descuento del {presupuesto.descuento}%
+                  </p>
+                )}
+                {totalesPorOpcion.map((t) => (
+                  <div
+                    key={t.nombre}
+                    className="flex justify-between items-baseline border-t border-slate-200 pt-1"
+                  >
+                    <span className="text-xs font-bold text-slate-900">Total con {t.nombre}:</span>
+                    <span className="text-base font-black text-indigo-950 font-mono">
+                      {formatearPrecio(t.total)}
+                    </span>
+                  </div>
+                ))}
+              </>
+            ) : (
+            <>
             <div className="flex justify-between text-slate-600">
-              <span>Subtotal:</span>
+              <span>{hayAlternativas ? "Subtotal (opciones principales):" : "Subtotal:"}</span>
               <span className="font-mono font-bold text-slate-800">
                 {formatearPrecio(presupuesto.subtotal)}
               </span>
@@ -405,17 +450,24 @@ export function PresupuestoImprimible({
                 {formatearPrecio(presupuesto.total)}
               </span>
             </div>
+            </>
+            )}
 
-            {presupuesto.estado === "ACEPTADO_PARCIAL" && (
+            {estaAceptado && (presupuesto.estado === "ACEPTADO_PARCIAL" || hayAlternativas) && (
               <div className="border-t border-indigo-200 pt-1 text-[11px] text-indigo-900">
-                <span className="block font-semibold">Aceptación Parcial:</span>
+                <span className="block font-semibold">
+                  {presupuesto.estado === "ACEPTADO_PARCIAL"
+                    ? "Aceptación Parcial:"
+                    : "Opciones elegidas:"}
+                </span>
                 <div className="flex justify-between font-bold mt-0.5">
                   <span>Monto Aprobado:</span>
                   <span>
                     {formatearPrecio(
-                      items
-                        .filter((it) => it.aceptado)
-                        .reduce((acc, it) => acc + it.subtotal, 0) *
+                      itemsAprobados(items, presupuesto.estado).reduce(
+                        (acc, it) => acc + it.subtotal,
+                        0
+                      ) *
                         (1 - presupuesto.descuento / 100)
                     )}
                   </span>

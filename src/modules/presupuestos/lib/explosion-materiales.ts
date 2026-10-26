@@ -96,6 +96,12 @@ export function analizarRielesItem(
     return null
   }
 
+  // La especificación manda sobre la descripción: con Barral no se consumen rieles
+  // (ej: alternativa "Barral" de una cortina descripta como "Tradicional")
+  if (caracteristicas?.sistema === "Barral") {
+    return null
+  }
+
   // Verificar si lleva riel
   const tieneRiel =
     descLower.includes("riel") ||

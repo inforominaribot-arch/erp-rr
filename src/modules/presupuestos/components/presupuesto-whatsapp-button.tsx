@@ -4,6 +4,7 @@ import { MessageCircle } from "lucide-react"
 import { formatearPrecio, formatearFecha } from "@/lib/utils"
 import { formatearNumeroPresupuesto } from "../types"
 import type { IPresupuestoDetalle } from "../types"
+import { agruparCortinas, calcularTotalesPorOpcion, etiquetaOpcion } from "../lib/alternativas"
 
 interface PresupuestoWhatsappButtonProps {
   presupuesto: IPresupuestoDetalle
@@ -21,24 +22,42 @@ export function PresupuestoWhatsappButton({
     const numPresu = formatearNumeroPresupuesto(presupuesto.numero)
     const fecha = formatearFecha(presupuesto.creadoEn)
 
-    // Agrupar items por ambiente
-    const itemsTexto = presupuesto.items
-      .map(
-        (it) =>
-          `• *${it.ambiente || "General"}*: ${it.descripcion} (${it.ancho}m × ${it.alto}m) - Cant: ${it.cantidad}`
-      )
+    // Una línea por cortina; si tiene alternativas, sus opciones con precio
+    const cortinas = agruparCortinas(presupuesto.items)
+    const itemsTexto = cortinas
+      .map(({ principal: it, opciones }) => {
+        let linea = `• *${it.ambiente || "General"}*: ${it.descripcion} (${it.ancho}m × ${it.alto}m) - Cant: ${it.cantidad}`
+        if (opciones.length > 1) {
+          linea += `\n   ↳ ${opciones
+            .map((o, idx) => `${etiquetaOpcion(o, idx)} ${formatearPrecio(o.subtotal)}`)
+            .join(" / ")}`
+        }
+        return linea
+      })
       .join("\n")
+    const hayAlternativas = cortinas.some((c) => c.opciones.length > 1)
+    const totalesPorOpcion = calcularTotalesPorOpcion(presupuesto.items, presupuesto.descuento)
 
     let mensaje = `Hola *${cliente.nombre}*! 👋\n`
     mensaje += `Te compartimos el presupuesto *${numPresu}* de *ROMINA RIBOT Cortinados*.\n\n`
     mensaje += `📅 Fecha: ${fecha}\n`
     mensaje += `⏳ Validez: ${presupuesto.validezDias} días\n\n`
     mensaje += `📝 *Detalle de Cortinas:*\n${itemsTexto}\n\n`
-    mensaje += `💰 *Subtotal:* ${formatearPrecio(presupuesto.subtotal)}\n`
-    if (presupuesto.descuento > 0) {
-      mensaje += `🏷️ *Descuento:* ${presupuesto.descuento}%\n`
+    if (totalesPorOpcion) {
+      if (presupuesto.descuento > 0) {
+        mensaje += `🏷️ *Descuento:* ${presupuesto.descuento}% (incluido)\n`
+      }
+      mensaje += `✨ ${totalesPorOpcion
+        .map((t) => `*Total con ${t.nombre}:* ${formatearPrecio(t.total)}`)
+        .join(" — ")}\n\n`
+    } else {
+      const aclaracion = hayAlternativas ? " (opciones principales)" : ""
+      mensaje += `💰 *Subtotal${aclaracion}:* ${formatearPrecio(presupuesto.subtotal)}\n`
+      if (presupuesto.descuento > 0) {
+        mensaje += `🏷️ *Descuento:* ${presupuesto.descuento}%\n`
+      }
+      mensaje += `✨ *TOTAL${aclaracion}:* ${formatearPrecio(presupuesto.total)}\n\n`
     }
-    mensaje += `✨ *TOTAL:* ${formatearPrecio(presupuesto.total)}\n\n`
     mensaje += `💳 *Forma de pago:* 50% de seña y 50% contra entrega e instalación.\n`
     mensaje += `⏱️ *Plazo de entrega:* 25 días a partir de la aprobación.\n\n`
     mensaje += `Quedamos a tu total disposición por cualquier duda o ajuste!`

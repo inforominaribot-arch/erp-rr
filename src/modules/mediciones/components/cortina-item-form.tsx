@@ -59,12 +59,15 @@ interface CortinaItemFormProps {
   itemInicial?: Partial<IItemMedicion> | null
   onGuardar: (item: Partial<IItemMedicion>) => void
   onCancelar: () => void
+  /** Texto opcional del botón de guardar (ej: en alternativas de presupuesto) */
+  textoGuardar?: string
 }
 
 export function CortinaItemForm({
   itemInicial,
   onGuardar,
   onCancelar,
+  textoGuardar,
 }: CortinaItemFormProps) {
   const caracInicial = itemInicial?.caracteristicas
 
@@ -5016,7 +5019,7 @@ export function CortinaItemForm({
           className="min-h-[44px] inline-flex items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-6 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition"
         >
           <Check className="h-4 w-4" />
-          {itemInicial?.id ? "Guardar Cambios de Cortina" : "Agregar Cortina al Ambiente"}
+          {textoGuardar ?? (itemInicial?.id ? "Guardar Cambios de Cortina" : "Agregar Cortina al Ambiente")}
         </button>
       </div>
     </div>

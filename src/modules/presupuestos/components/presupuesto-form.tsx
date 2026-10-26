@@ -14,6 +14,10 @@ import {
   ArrowLeft,
   Calendar,
   Layers,
+  GitBranch,
+  Pencil,
+  CornerDownRight,
+  X,
 } from "lucide-react"
 import {
   crearPresupuesto,
@@ -21,9 +25,24 @@ import {
   obtenerMedicionesClienteAction,
 } from "../actions"
 import { PresupuestoCalculadoraModal } from "./presupuesto-calculadora-modal"
+import { CortinaItemForm } from "@/modules/mediciones/components/cortina-item-form"
+import type { IItemMedicion, ICaracteristicasItem } from "@/modules/mediciones/types"
 import { formatearPrecio } from "@/lib/utils"
 import type { ItemPresupuestoInput, PresupuestoFormInput } from "../schemas"
 import type { IPresupuestoDetalle, MedicionImportable } from "../types"
+import { MAX_OPCIONES_POR_CORTINA } from "../types"
+import { calcularTotalesPorOpcion, subtotalPrincipales } from "../lib/alternativas"
+
+/** Editor de alternativa: nueva (a partir de la cortina principal) o edición de una existente */
+type EditorAlternativa =
+  | { modo: "nueva"; indexPrincipal: number }
+  | { modo: "editar"; index: number }
+
+function nuevoGrupoId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `g-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
 
 interface ClienteOpcion {
   id: string
@@ -87,6 +106,10 @@ export function PresupuestoForm({
         precioUnitario: it.precioUnitario,
         subtotal: it.subtotal,
         aceptado: it.aceptado,
+        caracteristicas: (it.caracteristicas as Record<string, unknown> | null) ?? null,
+        grupoAlternativa: it.grupoAlternativa,
+        nombreOpcion: it.nombreOpcion,
+        esOpcionPrincipal: it.esOpcionPrincipal,
       }))
     }
     return [
@@ -99,12 +122,19 @@ export function PresupuestoForm({
         precioUnitario: 0,
         subtotal: 0,
         aceptado: false,
+        esOpcionPrincipal: true,
       },
     ]
   })
 
   // Estado para la calculadora modal
   const [calculadoraIndex, setCalculadoraIndex] = useState<number | null>(null)
+
+  // Editor de alternativas (formulario de cortina de la medición)
+  const [editorAlternativa, setEditorAlternativa] = useState<EditorAlternativa | null>(null)
+  const [nombreOpcionNueva, setNombreOpcionNueva] = useState("")
+  const [nombreOpcionPrincipal, setNombreOpcionPrincipal] = useState("")
+  const [errorAlternativa, setErrorAlternativa] = useState<string | null>(null)
 
   // Importar ambientes e items de una medición
   function aplicarImportacionMedicion(medicion: MedicionImportable) {
@@ -128,6 +158,7 @@ export function PresupuestoForm({
           precioUnitario: 0,
           subtotal: 0,
           aceptado: false,
+          esOpcionPrincipal: true,
         })
       })
     })
@@ -197,6 +228,28 @@ export function PresupuestoForm({
       }
 
       copia[index] = actual
+
+      // Las alternativas comparten cortina, ambiente y medidas con la principal
+      const camposCompartidos: (keyof ItemPresupuestoInput)[] = [
+        "ambiente",
+        "descripcion",
+        "ancho",
+        "alto",
+        "cantidad",
+      ]
+      if (
+        actual.grupoAlternativa &&
+        actual.esOpcionPrincipal !== false &&
+        camposCompartidos.includes(campo)
+      ) {
+        copia.forEach((otro, i) => {
+          if (i === index || otro.grupoAlternativa !== actual.grupoAlternativa) return
+          const alt = { ...otro, [campo]: valor }
+          alt.subtotal =
+            Math.round(Math.max(1, alt.cantidad) * Math.max(0, alt.precioUnitario) * 100) / 100
+          copia[i] = alt
+        })
+      }
       return copia
     })
   }
@@ -213,17 +266,177 @@ export function PresupuestoForm({
         precioUnitario: 0,
         subtotal: 0,
         aceptado: false,
+        esOpcionPrincipal: true,
       },
     ])
   }
 
   function handleEliminarItem(index: number) {
     if (items.length <= 1) return
-    setItems((prev) => prev.filter((_, i) => i !== index))
+    const eliminado = items[index]
+    if (!eliminado) return
+
+    setItems((prev) => {
+      let resto = prev.filter((_, i) => i !== index)
+      const grupo = eliminado.grupoAlternativa
+      if (!grupo) return resto
+
+      const opciones = resto.filter((it) => it.grupoAlternativa === grupo)
+      if (opciones.length === 0) return resto
+      // Si se quitó la principal, la siguiente opción pasa a ser principal
+      if (eliminado.esOpcionPrincipal !== false) {
+        const nueva = opciones[0]
+        resto = resto.map((it) => (it === nueva ? { ...it, esOpcionPrincipal: true } : it))
+      }
+      // Si queda una sola opción, deja de ser un grupo de alternativas
+      if (opciones.length === 1) {
+        resto = resto.map((it) =>
+          it.grupoAlternativa === grupo
+            ? { ...it, grupoAlternativa: null, nombreOpcion: null, esOpcionPrincipal: true }
+            : it
+        )
+      }
+      return resto
+    })
   }
 
-  // Cálculos de Totales
-  const subtotalGeneral = items.reduce((acc, it) => acc + (it.subtotal || 0), 0)
+  // ── Alternativas ──
+
+  /** Cortina de la medición vinculada a un ítem del presupuesto */
+  function buscarItemMedicion(itemMedicionId?: string | null) {
+    if (!itemMedicionId) return null
+    for (const m of medicionesDisponibles) {
+      for (const amb of m.ambientes) {
+        const encontrado = amb.items.find((it) => it.id === itemMedicionId)
+        if (encontrado) return encontrado
+      }
+    }
+    return null
+  }
+
+  function abrirNuevaAlternativa(indexPrincipal: number) {
+    setNombreOpcionNueva("")
+    setNombreOpcionPrincipal(items[indexPrincipal]?.nombreOpcion || "")
+    setErrorAlternativa(null)
+    setEditorAlternativa({ modo: "nueva", indexPrincipal })
+  }
+
+  function abrirEditarAlternativa(index: number) {
+    setNombreOpcionNueva(items[index]?.nombreOpcion || "")
+    setErrorAlternativa(null)
+    setEditorAlternativa({ modo: "editar", index })
+  }
+
+  /** Datos con los que se precarga el formulario de cortina */
+  function itemInicialEditor(): Partial<IItemMedicion> | null {
+    if (!editorAlternativa) return null
+    const idx =
+      editorAlternativa.modo === "nueva" ? editorAlternativa.indexPrincipal : editorAlternativa.index
+    const it = items[idx]
+    if (!it) return null
+    const medido = buscarItemMedicion(it.itemMedicionId)
+    const carac = (it.caracteristicas ?? medido?.caracteristicas ?? null) as ICaracteristicasItem | null
+    return {
+      descripcion: medido?.descripcion || it.descripcion,
+      ancho: it.ancho,
+      alto: it.alto,
+      cantidad: it.cantidad,
+      caracteristicas: carac,
+      observaciones: medido?.observaciones ?? null,
+    }
+  }
+
+  function guardarAlternativa(cortina: Partial<IItemMedicion>) {
+    if (!editorAlternativa) return
+    const nombre = nombreOpcionNueva.trim()
+    if (!nombre) {
+      setErrorAlternativa("Poné un nombre a esta opción (ej: Barral, Blackout).")
+      return
+    }
+    const carac = (cortina.caracteristicas ?? null) as Record<string, unknown> | null
+
+    if (editorAlternativa.modo === "editar") {
+      const idx = editorAlternativa.index
+      const actual = items[idx]
+      const repetido = items.some(
+        (o, i) =>
+          i !== idx &&
+          o.grupoAlternativa === actual?.grupoAlternativa &&
+          (o.nombreOpcion || "").trim().toLowerCase() === nombre.toLowerCase()
+      )
+      if (repetido) {
+        setErrorAlternativa("Ya hay otra opción con ese nombre en esta cortina.")
+        return
+      }
+      setItems((prev) =>
+        prev.map((it, i) =>
+          i === idx ? { ...it, nombreOpcion: nombre, caracteristicas: carac } : it
+        )
+      )
+      setEditorAlternativa(null)
+      return
+    }
+
+    const idxPrincipal = editorAlternativa.indexPrincipal
+    const principal = items[idxPrincipal]
+    if (!principal) return
+    const nombrePrincipal = (principal.nombreOpcion || nombreOpcionPrincipal).trim()
+    if (!nombrePrincipal) {
+      setErrorAlternativa("Poné también un nombre a la opción principal (ej: Riel).")
+      return
+    }
+    const grupo = principal.grupoAlternativa || nuevoGrupoId()
+    const opcionesGrupo = principal.grupoAlternativa
+      ? items.filter((o) => o.grupoAlternativa === grupo)
+      : [principal]
+    if (opcionesGrupo.length >= MAX_OPCIONES_POR_CORTINA) {
+      setErrorAlternativa(`Máximo ${MAX_OPCIONES_POR_CORTINA} opciones por cortina.`)
+      return
+    }
+    const nombresUsados = [
+      nombrePrincipal,
+      ...opcionesGrupo.filter((o) => o !== principal).map((o) => o.nombreOpcion || ""),
+    ]
+    if (nombresUsados.some((n) => n.trim().toLowerCase() === nombre.toLowerCase())) {
+      setErrorAlternativa("Ya hay otra opción con ese nombre en esta cortina.")
+      return
+    }
+
+    const nuevaOpcion: ItemPresupuestoInput = {
+      itemMedicionId: principal.itemMedicionId ?? null,
+      descripcion: principal.descripcion,
+      ambiente: principal.ambiente,
+      ancho: principal.ancho,
+      alto: principal.alto,
+      cantidad: principal.cantidad,
+      precioUnitario: 0,
+      subtotal: 0,
+      aceptado: false,
+      caracteristicas: carac,
+      grupoAlternativa: grupo,
+      nombreOpcion: nombre,
+      esOpcionPrincipal: false,
+    }
+
+    setItems((prev) => {
+      const copia = prev.map((it, i) =>
+        i === idxPrincipal ? { ...it, grupoAlternativa: grupo, nombreOpcion: nombrePrincipal } : it
+      )
+      // Insertar después de la última opción de esta cortina
+      let posicion = idxPrincipal
+      copia.forEach((it, i) => {
+        if (it.grupoAlternativa === grupo) posicion = Math.max(posicion, i)
+      })
+      copia.splice(posicion + 1, 0, nuevaOpcion)
+      return copia
+    })
+    setEditorAlternativa(null)
+  }
+
+  const totalesPorOpcion = calcularTotalesPorOpcion(items, descuento)
+
+  // Cálculos de Totales (solo suman las opciones principales)
+  const subtotalGeneral = subtotalPrincipales(items)
   const montoDescuento =
     Math.round(subtotalGeneral * (descuento / 100) * 100) / 100
   const totalGeneral = Math.max(0, subtotalGeneral - montoDescuento)
@@ -238,6 +451,79 @@ export function PresupuestoForm({
           c.localidad?.toLowerCase().includes(busquedaCliente.toLowerCase())
       )
     : clientes
+
+  /** Fila compacta de una alternativa (comparte ambiente, cortina y medidas con la principal) */
+  function renderFilaAlternativa(it: ItemPresupuestoInput, idx: number) {
+    return (
+      <tr key={idx} className="bg-indigo-50/40">
+        <td className="py-2 px-2 text-right">
+          <CornerDownRight className="ml-auto h-4 w-4 text-indigo-300" />
+        </td>
+        <td className="py-2 px-2" colSpan={4}>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1 rounded-md bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-700">
+              <GitBranch className="h-3 w-3" />
+              Alternativa
+            </span>
+            <input
+              type="text"
+              value={it.nombreOpcion || ""}
+              onChange={(e) => handleActualizarItem(idx, "nombreOpcion", e.target.value)}
+              placeholder="Nombre (ej: Barral)"
+              maxLength={40}
+              className="w-40 rounded-lg border border-indigo-200 bg-white px-2 py-1 text-xs font-bold text-indigo-900"
+            />
+            <span className="text-[11px] text-slate-500 truncate">
+              {it.descripcion} · {it.ancho} × {it.alto} m
+            </span>
+            <button
+              type="button"
+              onClick={() => abrirEditarAlternativa(idx)}
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-600 hover:bg-slate-50"
+            >
+              <Pencil className="h-3 w-3" />
+              Editar especificación
+            </button>
+          </div>
+        </td>
+        <td className="py-2 px-2">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setCalculadoraIndex(idx)}
+              title="Calcular precio con fórmulas del Excel"
+              className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition shadow-2xs shrink-0"
+            >
+              <Calculator className="h-3.5 w-3.5" />
+            </button>
+            <input
+              type="number"
+              step="any"
+              min="0"
+              value={it.precioUnitario}
+              onChange={(e) =>
+                handleActualizarItem(idx, "precioUnitario", parseFloat(e.target.value) || 0)
+              }
+              className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-right font-mono font-bold text-slate-900"
+            />
+          </div>
+        </td>
+        <td className="py-2 px-2 text-right font-mono font-bold text-slate-500">
+          {formatearPrecio(it.subtotal)}
+        </td>
+        <td className="py-2 px-2 text-center">
+          <button
+            type="button"
+            onClick={() => handleEliminarItem(idx)}
+            title="Quitar alternativa"
+            className="rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </td>
+      </tr>
+    )
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -438,8 +724,12 @@ export function PresupuestoForm({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {items.map((it, idx) => (
-                <tr key={idx} className="hover:bg-slate-50/50">
+              {items.map((it, idx) =>
+                it.esOpcionPrincipal === false ? renderFilaAlternativa(it, idx) : (
+                <tr
+                  key={idx}
+                  className={it.grupoAlternativa ? "bg-indigo-50/20" : "hover:bg-slate-50/50"}
+                >
                   {/* Ambiente */}
                   <td className="py-2 px-2">
                     <input
@@ -465,6 +755,43 @@ export function PresupuestoForm({
                       className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-900"
                       required
                     />
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      {it.grupoAlternativa && (
+                        <input
+                          type="text"
+                          value={it.nombreOpcion || ""}
+                          onChange={(e) =>
+                            handleActualizarItem(idx, "nombreOpcion", e.target.value)
+                          }
+                          placeholder="Nombre opción (ej: Riel)"
+                          maxLength={40}
+                          title="Nombre de la opción principal"
+                          className="w-40 rounded-lg border border-indigo-200 bg-white px-2 py-0.5 text-[11px] font-bold text-indigo-900"
+                        />
+                      )}
+                      {(() => {
+                        const cantOpciones = it.grupoAlternativa
+                          ? items.filter((o) => o.grupoAlternativa === it.grupoAlternativa).length
+                          : 1
+                        const lleno = cantOpciones >= MAX_OPCIONES_POR_CORTINA
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => abrirNuevaAlternativa(idx)}
+                            disabled={lleno}
+                            title={
+                              lleno
+                                ? `Máximo ${MAX_OPCIONES_POR_CORTINA} opciones por cortina`
+                                : "Presupuestar esta cortina de otra forma (ej: barral en vez de riel)"
+                            }
+                            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-bold text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 disabled:hover:bg-transparent"
+                          >
+                            <Plus className="h-3 w-3" />
+                            Agregar alternativa
+                          </button>
+                        )
+                      })()}
+                    </div>
                   </td>
 
                   {/* Ancho */}
@@ -565,7 +892,8 @@ export function PresupuestoForm({
                     </button>
                   </td>
                 </tr>
-              ))}
+                )
+              )}
             </tbody>
           </table>
         </div>
@@ -684,6 +1012,21 @@ export function PresupuestoForm({
                 {formatearPrecio(totalGeneral)}
               </span>
             </div>
+
+            {items.some((it) => it.esOpcionPrincipal === false) && (
+              <div className="pt-2 border-t border-slate-200 space-y-1">
+                <p className="text-[11px] text-slate-500">
+                  El total guardado suma las opciones principales. Las alternativas se muestran al
+                  cliente para que elija.
+                </p>
+                {totalesPorOpcion?.map((t) => (
+                  <div key={t.nombre} className="flex justify-between font-semibold text-indigo-900">
+                    <span>Total con {t.nombre}:</span>
+                    <span className="font-mono">{formatearPrecio(t.total)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -703,8 +1046,91 @@ export function PresupuestoForm({
           anchoInicial={items[calculadoraIndex].ancho}
           altoInicial={items[calculadoraIndex].alto}
           cantidadInicial={items[calculadoraIndex].cantidad}
-          descripcionInicial={items[calculadoraIndex].descripcion}
+          descripcionInicial={
+            items[calculadoraIndex].grupoAlternativa && items[calculadoraIndex].nombreOpcion
+              ? `${items[calculadoraIndex].descripcion} (${items[calculadoraIndex].nombreOpcion})`
+              : items[calculadoraIndex].descripcion
+          }
         />
+      )}
+
+      {/* ── MODAL ALTERNATIVA: formulario de cortina precargado con la medición ── */}
+      {editorAlternativa && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-xs">
+          <div className="my-6 w-full max-w-4xl space-y-3">
+            <div className="rounded-2xl border border-indigo-200 bg-white p-4 shadow-xl space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <GitBranch className="h-4 w-4 text-indigo-600" />
+                    {editorAlternativa.modo === "nueva" ? "Nueva alternativa" : "Editar alternativa"}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Cambiá solo lo que difiere de la medición (ej: barral en vez de riel). Las
+                    medidas se toman siempre de la medición; la medición no se modifica.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditorAlternativa(null)}
+                  className="rounded-lg p-1 text-slate-400 hover:text-slate-700"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {editorAlternativa.modo === "nueva" &&
+                  !items[editorAlternativa.indexPrincipal]?.nombreOpcion && (
+                    <div>
+                      <label className="text-xs font-bold text-slate-700">
+                        Nombre de la opción actual (principal)
+                      </label>
+                      <input
+                        type="text"
+                        value={nombreOpcionPrincipal}
+                        onChange={(e) => setNombreOpcionPrincipal(e.target.value)}
+                        placeholder="Ej: Riel, Lino"
+                        maxLength={40}
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-900"
+                      />
+                    </div>
+                  )}
+                <div>
+                  <label className="text-xs font-bold text-slate-700">
+                    Nombre de esta alternativa
+                  </label>
+                  <input
+                    type="text"
+                    value={nombreOpcionNueva}
+                    onChange={(e) => setNombreOpcionNueva(e.target.value)}
+                    placeholder="Ej: Barral, Blackout"
+                    maxLength={40}
+                    className="mt-1 w-full rounded-xl border border-indigo-300 bg-white px-3 py-2 text-xs font-bold text-indigo-900"
+                  />
+                </div>
+              </div>
+              {errorAlternativa && (
+                <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-2.5 text-xs font-semibold text-rose-700">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{errorAlternativa}</span>
+                </div>
+              )}
+            </div>
+            <CortinaItemForm
+              key={
+                editorAlternativa.modo === "nueva"
+                  ? `nueva-${editorAlternativa.indexPrincipal}`
+                  : `editar-${editorAlternativa.index}`
+              }
+              itemInicial={itemInicialEditor()}
+              onGuardar={guardarAlternativa}
+              onCancelar={() => setEditorAlternativa(null)}
+              textoGuardar={
+                editorAlternativa.modo === "nueva" ? "Agregar alternativa" : "Guardar alternativa"
+              }
+            />
+          </div>
+        </div>
       )}
 
       {/* ── MODAL SELECCIÓN DE MEDICIÓN PARA IMPORTAR ── */}

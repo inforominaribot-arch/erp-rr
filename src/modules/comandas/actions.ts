@@ -79,10 +79,12 @@ export async function generarComandaDesdePresupuesto(
     }
 
     // Filtrar los ítems presupuestados que fueron aceptados
+    // (en aceptación total sin marcas previas se toman las opciones principales)
+    const marcados = presupuesto.items.filter((it) => it.aceptado)
     const itemsAceptados =
-      presupuesto.estado === "ACEPTADO_TOTAL"
-        ? presupuesto.items
-        : presupuesto.items.filter((it) => it.aceptado)
+      presupuesto.estado === "ACEPTADO_TOTAL" && marcados.length === 0
+        ? presupuesto.items.filter((it) => it.esOpcionPrincipal)
+        : marcados
 
     if (itemsAceptados.length === 0) {
       return {
@@ -111,8 +113,9 @@ export async function generarComandaDesdePresupuesto(
       const customClasif = clasificacionesMap.get(it.id)
       const tipoFinal: TipoItemComanda = customClasif?.tipo || "FABRICAR"
 
-      // Especificaciones técnicas tomadas de itemMedicion si existe
-      const caracteristicasJson = (it.itemMedicion?.caracteristicas as any) || null
+      // Especificaciones técnicas: las de la opción elegida (alternativa) o las de la medición
+      const caracteristicasJson =
+        ((it.caracteristicas ?? it.itemMedicion?.caracteristicas) as any) || null
       const obsMedicion = it.itemMedicion?.observaciones
       const obsCustom = customClasif?.observaciones
 
@@ -128,7 +131,10 @@ export async function generarComandaDesdePresupuesto(
       return {
         productoId: it.itemMedicion?.productoId || null,
         itemMedicionId: it.itemMedicionId || null,
-        descripcion: it.descripcion,
+        descripcion:
+          it.grupoAlternativa && it.nombreOpcion
+            ? `${it.descripcion} (${it.nombreOpcion})`
+            : it.descripcion,
         ambiente: it.ambiente || "General",
         ancho: it.ancho,
         alto: it.alto,

@@ -2,7 +2,7 @@
 // Tipos específicos del módulo de presupuestos
 
 import type { EstadoPresupuesto, EstadoCliente } from "@/types"
-import type { IAvisoMedidaModificada } from "@/modules/mediciones/types"
+import type { IAvisoMedidaModificada, ICaracteristicasItem } from "@/modules/mediciones/types"
 
 // ─── Interfaces de Entidades ──────────────────────────────────────────────────
 
@@ -18,6 +18,12 @@ export interface IItemPresupuesto {
   precioUnitario: number
   subtotal: number
   aceptado: boolean
+  /** Especificación propia de la opción (null = usa la de la medición) */
+  caracteristicas: ICaracteristicasItem | null
+  /** Une las opciones de una misma cortina (null = sin alternativas) */
+  grupoAlternativa: string | null
+  nombreOpcion: string | null
+  esOpcionPrincipal: boolean
   avisoMedida: IAvisoMedidaModificada | null
   creadoEn: Date | string
 }
@@ -85,6 +91,7 @@ export interface IMetricasPresupuestos {
 // ─── Constantes del Módulo ───────────────────────────────────────────────────
 
 export const VALIDEZ_DIAS_DEFAULT = 14
+export const MAX_OPCIONES_POR_CORTINA = 3
 export const CONDICIONES_PAGO_DEFAULT =
   "50% de seña y 50% contra entrega e instalación de la mercadería."
 export const PLAZO_ENTREGA_DEFAULT = "25 días a partir de la aprobación."

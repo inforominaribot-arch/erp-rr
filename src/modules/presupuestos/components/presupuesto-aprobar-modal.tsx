@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import { useState, useTransition, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import {
   X,
@@ -22,6 +22,7 @@ import type { IPresupuestoDetalle } from "../types"
 import { cambiarEstadoPresupuesto, verificarStockPresupuestoAction } from "../actions"
 import type { IReporteDisponibilidadStock } from "../lib/explosion-materiales"
 import { formatearPrecio } from "@/lib/utils"
+import { agruparCortinas, etiquetaOpcion } from "../lib/alternativas"
 
 interface PresupuestoAprobarModalProps {
   abierto: boolean
@@ -44,16 +45,35 @@ export function PresupuestoAprobarModal({
     presupuesto.estado === "BORRADOR" ? "ENVIADO" : "ACEPTADO_TOTAL"
   )
 
-  // Para aceptación parcial: array de IDs de ítems tildados
-  const [itemsAceptados, setItemsAceptados] = useState<string[]>(() => {
-    // Si ya tiene ítems aceptados previamente, conservarlos; si no, todos tildados por defecto
-    const previamentAceptados = presupuesto.items
-      .filter((it) => it.aceptado)
-      .map((it) => it.id)
-    return previamentAceptados.length > 0
-      ? previamentAceptados
-      : presupuesto.items.map((it) => it.id)
+  // Cortinas del presupuesto con sus opciones (alternativas)
+  const cortinas = useMemo(() => agruparCortinas(presupuesto.items), [presupuesto.items])
+  const hayAlternativas = cortinas.some((c) => c.opciones.length > 1)
+
+  // Opción elegida por el cliente en cada cortina (por defecto la ya aceptada o la principal)
+  const [opcionElegida, setOpcionElegida] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      cortinas.map((c) => [c.clave, (c.opciones.find((o) => o.aceptado) ?? c.principal).id])
+    )
+  )
+
+  // Para aceptación parcial: cortinas tildadas
+  const [cortinasAceptadas, setCortinasAceptadas] = useState<string[]>(() => {
+    // Si ya tiene cortinas aceptadas previamente, conservarlas; si no, todas tildadas por defecto
+    const previas = cortinas.filter((c) => c.opciones.some((o) => o.aceptado)).map((c) => c.clave)
+    return previas.length > 0 ? previas : cortinas.map((c) => c.clave)
   })
+
+  // Ítems aprobados = opción elegida de cada cortina aceptada
+  const itemsAceptados = useMemo(() => {
+    const claves =
+      estadoSeleccionado === "ACEPTADO_PARCIAL"
+        ? cortinasAceptadas
+        : cortinas.map((c) => c.clave)
+    return cortinas
+      .filter((c) => claves.includes(c.clave))
+      .map((c) => opcionElegida[c.clave] ?? c.principal.id)
+  }, [cortinas, cortinasAceptadas, opcionElegida, estadoSeleccionado])
+  const claveIdsAceptados = itemsAceptados.join(",")
 
   // Chequear stock cuando se selecciona ACEPTADO_TOTAL o ACEPTADO_PARCIAL
   useEffect(() => {
@@ -69,8 +89,7 @@ export function PresupuestoAprobarModal({
     let activo = true
     setCargandoStock(true)
 
-    const idsAEvaluar =
-      estadoSeleccionado === "ACEPTADO_PARCIAL" ? itemsAceptados : undefined
+    const idsAEvaluar = claveIdsAceptados ? claveIdsAceptados.split(",") : []
 
     verificarStockPresupuestoAction(presupuesto.id, idsAEvaluar)
       .then((res) => {
@@ -88,20 +107,49 @@ export function PresupuestoAprobarModal({
     return () => {
       activo = false
     }
-  }, [abierto, estadoSeleccionado, itemsAceptados, presupuesto.id])
+  }, [abierto, estadoSeleccionado, claveIdsAceptados, presupuesto.id])
 
-  function toggleItem(id: string) {
-    setItemsAceptados((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+  function toggleCortina(clave: string) {
+    setCortinasAceptadas((prev) =>
+      prev.includes(clave) ? prev.filter((c) => c !== clave) : [...prev, clave]
     )
   }
 
   function seleccionarTodos() {
-    setItemsAceptados(presupuesto.items.map((it) => it.id))
+    setCortinasAceptadas(cortinas.map((c) => c.clave))
   }
 
   function deseleccionarTodos() {
-    setItemsAceptados([])
+    setCortinasAceptadas([])
+  }
+
+  /** Botones para elegir la opción del cliente en una cortina con alternativas */
+  function renderSelectorOpcion(c: (typeof cortinas)[number]) {
+    if (c.opciones.length <= 1) return null
+    return (
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {c.opciones.map((o, idx) => {
+          const activa = (opcionElegida[c.clave] ?? c.principal.id) === o.id
+          return (
+            <button
+              key={o.id}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                setOpcionElegida((prev) => ({ ...prev, [c.clave]: o.id }))
+              }}
+              className={`rounded-lg border px-2 py-1 text-[11px] font-bold transition ${
+                activa
+                  ? "border-emerald-500 bg-emerald-600 text-white"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              {etiquetaOpcion(o, idx)} · {formatearPrecio(o.subtotal)}
+            </button>
+          )
+        })}
+      </div>
+    )
   }
 
   // Cálculo en vivo de total parcial
@@ -129,7 +177,9 @@ export function PresupuestoAprobarModal({
         id: presupuesto.id,
         estado: estadoSeleccionado,
         itemsAceptadosIds:
-          estadoSeleccionado === "ACEPTADO_PARCIAL" ? itemsAceptados : undefined,
+          estadoSeleccionado === "ACEPTADO_PARCIAL" || estadoSeleccionado === "ACEPTADO_TOTAL"
+            ? itemsAceptados
+            : undefined,
       })
 
       if (!res.success) {
@@ -274,6 +324,46 @@ export function PresupuestoAprobarModal({
             </div>
           </div>
 
+          {/* Elección de opción en ACEPTACIÓN TOTAL (solo si hay alternativas) */}
+          {estadoSeleccionado === "ACEPTADO_TOTAL" && hayAlternativas && (
+            <div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50/30 p-4">
+              <div>
+                <span className="text-xs font-bold text-emerald-950 block">
+                  Opción elegida por el cliente
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  La comanda y el stock se calculan con la opción elegida en cada cortina
+                </span>
+              </div>
+              <div className="divide-y divide-emerald-100/80 rounded-xl border border-emerald-100 bg-white overflow-hidden max-h-56 overflow-y-auto">
+                {cortinas
+                  .filter((c) => c.opciones.length > 1)
+                  .map((c) => (
+                    <div key={c.clave} className="p-3 text-xs">
+                      <span className="font-bold text-slate-900 block">
+                        {c.principal.ambiente ? `[${c.principal.ambiente}] ` : ""}
+                        {c.principal.descripcion}
+                      </span>
+                      {renderSelectorOpcion(c)}
+                    </div>
+                  ))}
+              </div>
+              <div className="flex items-center justify-between pt-1 text-xs">
+                <span className="text-slate-600 font-medium">Total con las opciones elegidas:</span>
+                <div className="text-right">
+                  <span className="text-sm font-black text-emerald-900 font-mono">
+                    {formatearPrecio(totalParcial)}
+                  </span>
+                  {presupuesto.descuento > 0 && (
+                    <span className="text-[10px] text-slate-400 block">
+                      (Con {presupuesto.descuento}% desc.)
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Selector de Cortinas en ACEPTACIÓN PARCIAL */}
           {estadoSeleccionado === "ACEPTADO_PARCIAL" && (
             <div className="space-y-3 rounded-xl border border-indigo-200 bg-indigo-50/30 p-4">
@@ -306,21 +396,24 @@ export function PresupuestoAprobarModal({
               </div>
 
               <div className="divide-y divide-indigo-100/80 rounded-xl border border-indigo-100 bg-white overflow-hidden max-h-56 overflow-y-auto">
-                {presupuesto.items.map((it) => {
-                  const check = itemsAceptados.includes(it.id)
+                {cortinas.map((c) => {
+                  const it = c.principal
+                  const check = cortinasAceptadas.includes(c.clave)
+                  const elegida =
+                    c.opciones.find((o) => o.id === opcionElegida[c.clave]) ?? c.principal
                   return (
-                    <label
-                      key={it.id}
-                      className={`flex items-center justify-between p-3 cursor-pointer text-xs transition ${
+                    <div
+                      key={c.clave}
+                      className={`flex items-start justify-between p-3 text-xs transition ${
                         check ? "bg-indigo-50/40" : "hover:bg-slate-50"
                       }`}
                     >
-                      <div className="flex items-center gap-3">
+                      <label className="flex items-start gap-3 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={check}
-                          onChange={() => toggleItem(it.id)}
-                          className="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
+                          onChange={() => toggleCortina(c.clave)}
+                          className="mt-0.5 h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
                         />
                         <div>
                           <span className="font-bold text-slate-900 block">
@@ -330,12 +423,13 @@ export function PresupuestoAprobarModal({
                           <span className="text-[11px] text-slate-500 font-mono">
                             {it.ancho}m × {it.alto}m • Cant: {it.cantidad}
                           </span>
+                          {check && renderSelectorOpcion(c)}
                         </div>
-                      </div>
+                      </label>
                       <span className="font-bold font-mono text-slate-800">
-                        {formatearPrecio(it.subtotal)}
+                        {formatearPrecio(elegida.subtotal)}
                       </span>
-                    </label>
+                    </div>
                   )
                 })}
               </div>
@@ -343,7 +437,7 @@ export function PresupuestoAprobarModal({
               {/* Total Parcial Calculado */}
               <div className="flex items-center justify-between pt-1 text-xs">
                 <span className="text-slate-600 font-medium">
-                  {itemsAceptados.length} de {presupuesto.items.length} cortinas aprobadas:
+                  {itemsAceptados.length} de {cortinas.length} cortinas aprobadas:
                 </span>
                 <div className="text-right">
                   <span className="text-sm font-black text-indigo-900 font-mono">

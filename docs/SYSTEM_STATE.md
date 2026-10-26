@@ -9,7 +9,7 @@
 | Core / Base | Chat 0 | ✅ Completo | 2026-09-28 |
 | Clientes & CRM | Chat 1 | ✅ Completo | 2026-09-28 |
 | App Medición (PWA) | Chat 2 | ✅ Completo | 2026-09-29 |
-| Presupuestos | Chat 3 | ✅ Completo | 2026-09-29 |
+| Presupuestos | Chat 3 | ✅ Completo | 2026-10-26 |
 | Comandas & Producción | Chat 4 | ✅ Completo | 2026-09-29 |
 | Stock & Inventario | Chat 5 | ✅ Completo | 2026-09-29 |
 | Proveedores & Compras | Chat 6 | ✅ Completo | 2026-09-29 |
@@ -605,4 +605,18 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 | Taller & Instaladores | Agenda | `BloqueoAgenda` (turnos médicos, trámites) previene asignación de instalaciones |
 | Todos los Módulos | Dashboard & Métricas | Agregación en vivo de visitas, clientes, presupuestos, comandas, stock e instalaciones para KPIs, alertas y analítica con Recharts |
 
+---
+
+## Actualización — Alternativas por cortina en el presupuesto (2026-10-26)
+
+### ✅ Implementado
+- [x] **Modelo:** `ItemPresupuesto` suma `caracteristicas` (especificación propia de la opción; `null` = usa la de la medición), `grupoAlternativa` (une las opciones de una cortina), `nombreOpcion` ("Riel", "Barral"...) y `esOpcionPrincipal`. Cada alternativa es otra fila con el mismo `itemMedicionId`. La opción elegida es la fila con `aceptado = true`.
+- [x] **Formulario** (`presupuesto-form.tsx`): "+ Agregar alternativa" por cortina (máx. 3 opciones, `MAX_OPCIONES_POR_CORTINA`). Abre `CortinaItemForm` precargado con la especificación de la medición; se nombra la opción y se cotiza con la calculadora. Las alternativas comparten ambiente, descripción, medidas y cantidad con la principal. La medición no se modifica. Validación Zod (`superRefine`): una principal por grupo, nombres obligatorios y sin repetir.
+- [x] **Total guardado = suma de las opciones principales.** Helpers en `src/modules/presupuestos/lib/alternativas.ts` (`agruparCortinas`, `subtotalPrincipales`, `calcularTotalesPorOpcion`, `itemsAprobados`, `descripcionConOpcion`).
+- [x] **Ficha A4 y WhatsApp:** cada cortina con sus opciones y precio; si todas las cortinas con alternativas usan los mismos nombres, "Total con Riel / Total con Barral" (las cortinas sin esa opción suman su principal).
+- [x] **Aprobación** (`presupuesto-aprobar-modal.tsx`): en aceptación total y parcial se elige la opción del cliente en cada cortina; el servidor valida como máximo una opción por cortina. Detalle muestra "Elegida" y "Total aprobado".
+- [x] **Comanda y stock** usan la opción elegida: `generarComandaDesdePresupuesto` toma `caracteristicas` de la opción (o de la medición) y agrega el nombre de la opción a la descripción; `verificarStockPresupuestoAction` idem (sin selección evalúa solo las principales).
+- [x] **Cambios de medición** (`aplicar-cambios-medicion.ts`, `fusionarMedidasCaracteristicas`): en opciones con especificación propia, y en el ítem de comanda que salió de una de ellas, solo se trasladan las medidas (ancho/alto, paños/tramos de Gaza y B.O., ancho de confección); se conserva lo que difiere. Limitación: cambios de especificación (ej. color) en la medición no llegan a las alternativas ya creadas.
+- [x] `CortinaItemForm` acepta `textoGuardar` opcional (texto del botón de guardar).
+- [x] Explosión de materiales: si la especificación dice `sistema: "Barral"` no se cuentan rieles aunque la descripción diga "Tradicional" (antes se contaban igual).
 

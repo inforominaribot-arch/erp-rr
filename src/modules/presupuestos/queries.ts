@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import type { Prisma, ItemPresupuesto, Presupuesto, Cliente, Comanda } from "@prisma/client"
 import type { FiltrosPresupuestoInput } from "./schemas"
 import { serializarAvisoMedida } from "@/modules/mediciones/types"
+import type { ICaracteristicasItem } from "@/modules/mediciones/types"
 import type {
   IPresupuesto,
   IItemPresupuesto,
@@ -34,6 +35,10 @@ function serializarItemPresupuesto(item: ItemPresupuesto): IItemPresupuesto {
     precioUnitario: Number(item.precioUnitario),
     subtotal: Number(item.subtotal),
     aceptado: Boolean(item.aceptado),
+    caracteristicas: (item.caracteristicas as unknown as ICaracteristicasItem) || null,
+    grupoAlternativa: item.grupoAlternativa || null,
+    nombreOpcion: item.nombreOpcion || null,
+    esOpcionPrincipal: item.esOpcionPrincipal ?? true,
     avisoMedida: serializarAvisoMedida(item.medidaAnterior, item.medidaModificadaEn),
     creadoEn: item.creadoEn,
   }

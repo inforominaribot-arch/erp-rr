@@ -18,6 +18,7 @@ import {
   PackageCheck,
   Loader2,
   Plus,
+  CornerDownRight,
 } from "lucide-react"
 import type { IPresupuestoDetalle, IAmbientePresupuestoGrupo } from "../types"
 import {
@@ -35,6 +36,12 @@ import type { IReporteDisponibilidadStock } from "../lib/explosion-materiales"
 import { Package, AlertTriangle, Check } from "lucide-react"
 import { formatearPrecio, formatearFecha } from "@/lib/utils"
 import { AvisoMedidaModificada } from "@/components/shared/aviso-medida-modificada"
+import {
+  calcularTotalesPorOpcion,
+  descripcionConOpcion,
+  esPrincipal,
+  itemsAprobados,
+} from "../lib/alternativas"
 
 interface PresupuestoDetalleProps {
   presupuesto: IPresupuestoDetalle
@@ -75,10 +82,7 @@ export function PresupuestoDetalle({
   }, [presupuesto.id, presupuesto.estado])
 
   const presupuestosParaComanda = useMemo<IPresupuestoAceptadoResumen[]>(() => {
-    const itemsFiltrados =
-      presupuesto.estado === "ACEPTADO_TOTAL"
-        ? presupuesto.items
-        : presupuesto.items.filter((it) => it.aceptado)
+    const itemsFiltrados = itemsAprobados(presupuesto.items, presupuesto.estado)
 
     return [
       {
@@ -97,12 +101,12 @@ export function PresupuestoDetalle({
         itemsAceptados: itemsFiltrados.map((it) => ({
           id: it.id,
           itemMedicionId: it.itemMedicionId,
-          descripcion: it.descripcion,
+          descripcion: descripcionConOpcion(it),
           ambiente: it.ambiente || "General",
           ancho: it.ancho,
           alto: it.alto,
           cantidad: it.cantidad,
-          caracteristicas: null,
+          caracteristicas: it.caracteristicas,
         })),
       },
     ]
@@ -127,12 +131,28 @@ export function PresupuestoDetalle({
       }
     }
     acc[amb].items.push(it)
-    acc[amb].subtotalAmbiente += it.subtotal
+    // Las alternativas no suman: solo la opción principal
+    if (esPrincipal(it)) acc[amb].subtotalAmbiente += it.subtotal
     return acc
   }, {})
 
   const listaAmbientes = Object.values(gruposAmbientes)
-  const totalCortinas = presupuesto.items.reduce((acc, it) => acc + it.cantidad, 0)
+  const totalCortinas = presupuesto.items
+    .filter(esPrincipal)
+    .reduce((acc, it) => acc + it.cantidad, 0)
+
+  const hayAlternativas = presupuesto.items.some((it) => !esPrincipal(it))
+  const totalesPorOpcion = calcularTotalesPorOpcion(presupuesto.items, presupuesto.descuento)
+  const estaAceptado =
+    presupuesto.estado === "ACEPTADO_TOTAL" || presupuesto.estado === "ACEPTADO_PARCIAL"
+  const subtotalAprobado = itemsAprobados(presupuesto.items, presupuesto.estado).reduce(
+    (acc, it) => acc + it.subtotal,
+    0
+  )
+  const totalAprobado = Math.max(
+    0,
+    subtotalAprobado - Math.round(subtotalAprobado * (presupuesto.descuento / 100) * 100) / 100
+  )
 
   async function handleConfirmarEliminar() {
     setErrorEliminar(null)
@@ -441,6 +461,24 @@ export function PresupuestoDetalle({
                     {formatearPrecio(presupuesto.total)}
                   </span>
                 </div>
+                {hayAlternativas && (
+                  <p className="text-[10px] text-slate-400">Total con las opciones principales.</p>
+                )}
+                {totalesPorOpcion?.map((t) => (
+                  <div key={t.nombre} className="flex justify-between text-indigo-900">
+                    <span>Total con {t.nombre}:</span>
+                    <span className="font-mono font-bold">{formatearPrecio(t.total)}</span>
+                  </div>
+                ))}
+                {estaAceptado &&
+                  (hayAlternativas || presupuesto.estado === "ACEPTADO_PARCIAL") && (
+                    <div className="flex justify-between items-baseline border-t border-emerald-200 pt-2 mt-2 text-emerald-800">
+                      <span className="font-bold">Total aprobado:</span>
+                      <span className="font-mono font-black text-base">
+                        {formatearPrecio(totalAprobado)}
+                      </span>
+                    </div>
+                  )}
               </div>
             </div>
           </div>
@@ -493,11 +531,38 @@ export function PresupuestoDetalle({
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {grupo.items.map((it) => (
-                        <tr key={it.id} className="hover:bg-slate-50/50">
-                          <td className="py-3 px-4">
-                            <span className="font-bold text-slate-900 block">
-                              {it.descripcion}
-                            </span>
+                        <tr
+                          key={it.id}
+                          className={
+                            esPrincipal(it)
+                              ? "hover:bg-slate-50/50"
+                              : "bg-indigo-50/30 hover:bg-indigo-50/50"
+                          }
+                        >
+                          <td className={`py-3 px-4 ${esPrincipal(it) ? "" : "pl-8"}`}>
+                            {esPrincipal(it) ? (
+                              <span className="font-bold text-slate-900 block">
+                                {it.descripcion}
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-500">
+                                <CornerDownRight className="h-3.5 w-3.5 text-indigo-300" />
+                                Alternativa
+                              </span>
+                            )}
+                            {it.grupoAlternativa && (
+                              <span className="mt-0.5 inline-flex items-center gap-1.5">
+                                <span className="rounded-md bg-indigo-100 px-1.5 py-0.5 text-[10px] font-bold text-indigo-700">
+                                  {it.nombreOpcion || "Opción"}
+                                  {esPrincipal(it) ? " · principal" : ""}
+                                </span>
+                                {estaAceptado && it.aceptado && (
+                                  <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                                    <CheckCircle2 className="h-3 w-3" /> Elegida
+                                  </span>
+                                )}
+                              </span>
+                            )}
                             {puedeEditar && it.avisoMedida && (
                               <AvisoMedidaModificada
                                 aviso={it.avisoMedida}
@@ -519,7 +584,11 @@ export function PresupuestoDetalle({
                           <td className="py-3 px-4 text-right text-slate-700 font-mono">
                             {formatearPrecio(it.precioUnitario)}
                           </td>
-                          <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
+                          <td
+                            className={`py-3 px-4 text-right font-mono font-bold ${
+                              esPrincipal(it) ? "text-slate-900" : "text-slate-500"
+                            }`}
+                          >
                             {formatearPrecio(it.subtotal)}
                           </td>
                           {presupuesto.estado === "ACEPTADO_PARCIAL" && (

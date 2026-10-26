@@ -92,6 +92,40 @@ function firmaMedidas(ancho: unknown, alto: unknown, caracteristicas: unknown): 
 
 const normalizar = (s: string) => s.trim().toLowerCase()
 
+type CapaMedidas = Record<string, unknown> & { activa?: boolean }
+const CAMPOS_MEDIDA_GAZA = ["ancho", "alto", "panos", "anchosPanos"] as const
+const CAMPOS_MEDIDA_BO = ["ancho", "alto", "tramos", "anchosTramos"] as const
+
+/**
+ * Traslada SOLO las medidas de la medición a la especificación propia de una alternativa
+ * de presupuesto (o del ítem de comanda que salió de ella). Conserva todo lo que difiere
+ * (sistema, barral/riel, telas, soportes...).
+ */
+export function fusionarMedidasCaracteristicas(
+  caracOpcion: unknown,
+  caracMedicion: unknown
+): Record<string, unknown> {
+  const opcion = { ...((caracOpcion || {}) as Record<string, unknown>) }
+  const medicion = (caracMedicion || {}) as Record<string, unknown>
+
+  const fusionarCapa = (clave: "gaza" | "bo", campos: readonly string[]) => {
+    const capaOpcion = opcion[clave] as CapaMedidas | undefined
+    const capaMedicion = medicion[clave] as CapaMedidas | undefined
+    if (!capaOpcion?.activa || !capaMedicion?.activa) return
+    const nueva: CapaMedidas = { ...capaOpcion }
+    for (const campo of campos) {
+      if (capaMedicion[campo] !== undefined) nueva[campo] = capaMedicion[campo]
+    }
+    opcion[clave] = nueva
+  }
+  fusionarCapa("gaza", CAMPOS_MEDIDA_GAZA)
+  fusionarCapa("bo", CAMPOS_MEDIDA_BO)
+  if (medicion.anchoConfeccionGaza !== undefined && opcion.anchoConfeccionGaza !== undefined) {
+    opcion.anchoConfeccionGaza = medicion.anchoConfeccionGaza
+  }
+  return opcion
+}
+
 /**
  * Aplica los cambios a una medición existente dentro de una transacción.
  *
@@ -221,17 +255,38 @@ export async function aplicarCambiosMedicion(
       await tx.itemMedicion.update({ where: { id: existente.id }, data: datos })
       resultado.itemsActualizados++
 
-      // Presupuestos vinculados: se actualizan medidas, el precio queda igual
+      // Presupuestos vinculados (incluye todas sus alternativas): se actualizan medidas,
+      // el precio queda igual. En las opciones con especificación propia solo cambian las medidas.
       const itemsPresupuesto = await tx.itemPresupuesto.findMany({
         where: { itemMedicionId: existente.id },
-        select: { id: true, medidaAnterior: true },
+        select: {
+          id: true,
+          medidaAnterior: true,
+          caracteristicas: true,
+          aceptado: true,
+          presupuesto: { select: { comanda: { select: { id: true } } } },
+        },
       })
+      // Comandas cuyo ítem salió de una alternativa con especificación propia
+      const comandasConOpcionPropia = new Set(
+        itemsPresupuesto
+          .filter((ip) => ip.aceptado && ip.caracteristicas != null && ip.presupuesto.comanda)
+          .map((ip) => ip.presupuesto.comanda!.id)
+      )
       for (const ip of itemsPresupuesto) {
         await tx.itemPresupuesto.update({
           where: { id: ip.id },
           data: {
             ancho: item.ancho,
             alto: item.alto,
+            ...(ip.caracteristicas != null
+              ? {
+                  caracteristicas: fusionarMedidasCaracteristicas(
+                    ip.caracteristicas,
+                    item.caracteristicas
+                  ) as Prisma.InputJsonValue,
+                }
+              : {}),
             ...(medidasCambiaron
               ? {
                   // Se conserva la medida ORIGINAL si ya había un aviso pendiente
@@ -247,7 +302,7 @@ export async function aplicarCambiosMedicion(
       // Comandas vinculadas: medidas y especificaciones; "completado" no se toca
       const itemsComanda = await tx.itemComanda.findMany({
         where: { itemMedicionId: existente.id },
-        select: { id: true, medidaAnterior: true },
+        select: { id: true, comandaId: true, medidaAnterior: true, caracteristicas: true },
       })
       for (const ic of itemsComanda) {
         await tx.itemComanda.update({
@@ -255,7 +310,9 @@ export async function aplicarCambiosMedicion(
           data: {
             ancho: item.ancho,
             alto: item.alto,
-            caracteristicas: (item.caracteristicas ?? {}) as Prisma.InputJsonValue,
+            caracteristicas: (comandasConOpcionPropia.has(ic.comandaId)
+              ? fusionarMedidasCaracteristicas(ic.caracteristicas, item.caracteristicas)
+              : (item.caracteristicas ?? {})) as Prisma.InputJsonValue,
             ...(medidasCambiaron
               ? {
                   medidaAnterior: (ic.medidaAnterior ?? anterior) as Prisma.InputJsonValue,

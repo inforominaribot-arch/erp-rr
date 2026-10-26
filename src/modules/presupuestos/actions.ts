@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { tienePermisoModuloPresupuestos } from "./lib/auth"
 import type { ActionResponse, EstadoPresupuesto } from "@/types"
@@ -16,6 +17,37 @@ import {
   type IReporteDisponibilidadStock,
   type INecesidadMaterial,
 } from "./lib/explosion-materiales"
+import { agruparCortinas, esPrincipal, subtotalPrincipales } from "./lib/alternativas"
+
+// ─── Helper: normalizar ítems (incluye alternativas) antes de guardar ─────────
+
+function prepararItemsParaGuardar(items: PresupuestoFormInput["items"]) {
+  // creadoEn escalonado para conservar el orden de las cortinas y sus opciones
+  const base = Date.now()
+  return items.map((it, idx) => {
+    const cant = Math.max(1, it.cantidad || 1)
+    const pUnit = Math.max(0, it.precioUnitario || 0)
+    const conGrupo = Boolean(it.grupoAlternativa)
+    return {
+      itemMedicionId: it.itemMedicionId || null,
+      descripcion: it.descripcion.trim(),
+      ambiente: it.ambiente?.trim() || "General",
+      ancho: it.ancho,
+      alto: it.alto,
+      cantidad: cant,
+      precioUnitario: pUnit,
+      subtotal: Math.round(cant * pUnit * 100) / 100,
+      aceptado: it.aceptado ?? false,
+      caracteristicas: it.caracteristicas
+        ? (it.caracteristicas as Prisma.InputJsonValue)
+        : Prisma.JsonNull,
+      grupoAlternativa: conGrupo ? it.grupoAlternativa! : null,
+      nombreOpcion: conGrupo ? it.nombreOpcion?.trim() || null : null,
+      esOpcionPrincipal: conGrupo ? it.esOpcionPrincipal !== false : true,
+      creadoEn: new Date(base + idx),
+    }
+  })
+}
 
 // ─── 1. Crear Presupuesto ────────────────────────────────────────────────────
 
@@ -48,28 +80,12 @@ export async function crearPresupuesto(
       }
     }
 
-    // Calcular subtotales
-    let subtotalGeneral = 0
-    const itemsParaGuardar = items.map((it) => {
-      const cant = Math.max(1, it.cantidad || 1)
-      const pUnit = Math.max(0, it.precioUnitario || 0)
-      const itemSubtotal = Math.round(cant * pUnit * 100) / 100
-      subtotalGeneral += itemSubtotal
-
-      return {
-        itemMedicionId: it.itemMedicionId || null,
-        descripcion: it.descripcion.trim(),
-        ambiente: it.ambiente?.trim() || "General",
-        ancho: it.ancho,
-        alto: it.alto,
-        cantidad: cant,
-        precioUnitario: pUnit,
-        subtotal: itemSubtotal,
-        aceptado: false,
-      }
-    })
-
-    subtotalGeneral = Math.round(subtotalGeneral * 100) / 100
+    // Calcular subtotales (solo las opciones principales suman al total)
+    const itemsParaGuardar = prepararItemsParaGuardar(items).map((it) => ({
+      ...it,
+      aceptado: false,
+    }))
+    const subtotalGeneral = subtotalPrincipales(itemsParaGuardar)
     const descPorc = Math.min(100, Math.max(0, descuento || 0))
     const montoDescuento =
       Math.round(subtotalGeneral * (descPorc / 100) * 100) / 100
@@ -151,29 +167,12 @@ export async function actualizarPresupuesto(
       return { success: false, error: "El presupuesto no fue encontrado." }
     }
 
-    // Calcular subtotales
-    let subtotalGeneral = 0
-    const itemsParaGuardar = items.map((it) => {
-      const cant = Math.max(1, it.cantidad || 1)
-      const pUnit = Math.max(0, it.precioUnitario || 0)
-      const itemSubtotal = Math.round(cant * pUnit * 100) / 100
-      subtotalGeneral += itemSubtotal
-
-      return {
-        presupuestoId: id,
-        itemMedicionId: it.itemMedicionId || null,
-        descripcion: it.descripcion.trim(),
-        ambiente: it.ambiente?.trim() || "General",
-        ancho: it.ancho,
-        alto: it.alto,
-        cantidad: cant,
-        precioUnitario: pUnit,
-        subtotal: itemSubtotal,
-        aceptado: it.aceptado ?? false,
-      }
-    })
-
-    subtotalGeneral = Math.round(subtotalGeneral * 100) / 100
+    // Calcular subtotales (solo las opciones principales suman al total)
+    const itemsParaGuardar = prepararItemsParaGuardar(items).map((it) => ({
+      ...it,
+      presupuestoId: id,
+    }))
+    const subtotalGeneral = subtotalPrincipales(itemsParaGuardar)
     const descPorc = Math.min(100, Math.max(0, descuento || 0))
     const montoDescuento =
       Math.round(subtotalGeneral * (descPorc / 100) * 100) / 100
@@ -251,6 +250,28 @@ export async function cambiarEstadoPresupuesto(
       return { success: false, error: "El presupuesto no existe." }
     }
 
+    // Opción elegida por cortina: como máximo una por cortina con alternativas.
+    // En la aceptación total, las cortinas sin opción indicada toman su principal.
+    const idsSolicitados = new Set(itemsAceptadosIds || [])
+    const cortinas = agruparCortinas(presupuesto.items.map((it) => ({ ...it, subtotal: Number(it.subtotal) })))
+    const idsAceptados: string[] = []
+    if (estado === "ACEPTADO_TOTAL" || estado === "ACEPTADO_PARCIAL") {
+      for (const c of cortinas) {
+        const elegidas = c.opciones.filter((o) => idsSolicitados.has(o.id))
+        if (elegidas.length > 1) {
+          return {
+            success: false,
+            error: `En "${c.principal.descripcion}" se eligió más de una opción. Elegí solo una.`,
+          }
+        }
+        if (elegidas.length === 1) idsAceptados.push(elegidas[0].id)
+        else if (estado === "ACEPTADO_TOTAL") idsAceptados.push(c.principal.id)
+      }
+      if (estado === "ACEPTADO_PARCIAL" && idsAceptados.length === 0) {
+        return { success: false, error: "Debés aceptar al menos una cortina." }
+      }
+    }
+
     await prisma.$transaction(async (tx) => {
       // Actualizar estado del presupuesto
       await tx.presupuesto.update({
@@ -258,14 +279,8 @@ export async function cambiarEstadoPresupuesto(
         data: { estado },
       })
 
-      // Actualizar aceptación de ítems individuales
-      if (estado === "ACEPTADO_TOTAL") {
-        await tx.itemPresupuesto.updateMany({
-          where: { presupuestoId: id },
-          data: { aceptado: true },
-        })
-      } else if (estado === "ACEPTADO_PARCIAL") {
-        const idsAceptados = itemsAceptadosIds || []
+      // Actualizar aceptación de ítems individuales (opción elegida = aceptado)
+      if (estado === "ACEPTADO_TOTAL" || estado === "ACEPTADO_PARCIAL") {
         // Marcar los aceptados en true
         await tx.itemPresupuesto.updateMany({
           where: {
@@ -467,10 +482,10 @@ export async function verificarStockPresupuestoAction(
       return { success: false, error: "Presupuesto no encontrado" }
     }
 
-    // Filtrar sólo ítems aprobados si se indicó
+    // Filtrar sólo ítems aprobados si se indicó; si no, las opciones principales
     const itemsAEvaluar = itemsIdsAceptados && itemsIdsAceptados.length > 0
       ? presupuesto.items.filter((it) => itemsIdsAceptados.includes(it.id))
-      : presupuesto.items
+      : presupuesto.items.filter(esPrincipal)
 
     // Obtener catálogo de productos activos de stock
     const productosStock = await prisma.producto.findMany({
@@ -485,7 +500,8 @@ export async function verificarStockPresupuestoAction(
       const ancho = Number(it.ancho) || 0
       const alto = Number(it.alto) || 0
       const cantidad = it.cantidad || 1
-      const carac = it.itemMedicion?.caracteristicas as any
+      // Especificación de la opción (alternativa) o, si no tiene, la de la medición
+      const carac = (it.caracteristicas ?? it.itemMedicion?.caracteristicas) as any
 
       // 1. Análisis de Rieles
       const rielesCalculados = analizarRielesItem(it.descripcion, ancho, cantidad, carac)
