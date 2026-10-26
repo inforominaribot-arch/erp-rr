@@ -37,7 +37,28 @@ export const caracteristicasItemSchema = z.object({
     "Roller Noche total",
     "Noche total",
     "Mosquera",
+    "Motorizada",
   ]),
+
+  subtipoMotorizada: z
+    .enum([
+      "Tradicional Mot",
+      "Tradicional Mot y Tradicional",
+      "Tradicional Mot y Roller",
+      "Tradicional Mot y Roller Mot",
+      "Roller Mot",
+      "Roller Mot y Roller",
+      "Roller Mot y Tradicional",
+      "Bandas Verticales y Roller Mot",
+    ])
+    .optional(),
+
+  tipoCapaGaza: z
+    .enum(["Tradicional", "Roller", "Bandas verticales", "Tradicional Mot", "Roller Mot"])
+    .optional(),
+  tipoCapaBO: z
+    .enum(["Tradicional", "Roller", "Bandas verticales", "Tradicional Mot", "Roller Mot"])
+    .optional(),
 
   // Aluminio exclusivo
   aluminio: z
@@ -58,6 +79,7 @@ export const caracteristicasItemSchema = z.object({
 
   // Tradicional: Sistema Riel o Barral con su color
   sistema: z.enum(["Riel", "Barral"]).optional(),
+  tipoRiel: z.enum(["Normal", "Curvo"]).optional(),
   colorBarral: z
     .enum([
       "Negro",
@@ -79,6 +101,9 @@ export const caracteristicasItemSchema = z.object({
     .enum(["Izquierda", "Derecha", "Izquierdo", "Derecho", "Sin mando"])
     .optional(),
   caida: z.enum(["Por delante", "Por detrás"]).optional(),
+  posicionRoller: z.enum(["Adelante", "Atrás"]).optional(),
+  caidaBO: z.enum(["Por delante", "Por detrás"]).optional(),
+  posicionRollerBO: z.enum(["Adelante", "Atrás"]).optional(),
   marca: z.enum(["HD", "RS", "MG"]).optional().nullable(),
 
   // Formato B.O. (Tradicional de taller vs Roller proveedor)
@@ -90,6 +115,39 @@ export const caracteristicasItemSchema = z.object({
   mandosRollerBO: z
     .array(z.enum(["Izquierda", "Derecha", "Izquierdo", "Derecho", "Sin mando"]))
     .optional(),
+  mandosRollerGaza: z
+    .array(z.enum(["Izquierda", "Derecha", "Izquierdo", "Derecho", "Sin mando"]))
+    .optional(),
+
+  // Marcas independientes por capa
+  marcaGaza: z.enum(["HD", "RS", "MG"]).optional().nullable(),
+
+  // Motores
+  motorGaza: z
+    .object({
+      marca: z.enum(["Somfy", "Tube"]),
+      modelo: z.string(),
+      control: z.boolean(),
+      canales: z.union([z.literal(1), z.literal(4), z.literal(15), z.literal(16)]).optional(),
+    })
+    .optional(),
+  motorBO: z
+    .object({
+      marca: z.enum(["Somfy", "Tube"]),
+      modelo: z.string(),
+      control: z.boolean(),
+      canales: z.union([z.literal(1), z.literal(4), z.literal(15), z.literal(16)]).optional(),
+    })
+    .optional(),
+  cantidadCargadores: z.number().optional(),
+
+  // Modo por cortina (Normal / Solo tela / Solo riel)
+  modosPanosGaza: z.array(z.enum(["Normal", "Solo tela", "Solo riel"])).optional(),
+  modosTramosBO: z.array(z.enum(["Normal", "Solo tela", "Solo riel"])).optional(),
+
+  // Roller "Sólo tela" individual (legado)
+  soloTelaPanosGaza: z.array(z.boolean()).optional(),
+  soloTelaTramosBO: z.array(z.boolean()).optional(),
 
   // Capas de tela
   gaza: gazaConfigSchema.optional(),
@@ -222,6 +280,7 @@ export type FiltrosMedicionInput = z.infer<typeof filtrosMedicionSchema>
 // ─── Sincronización Offline (Capacitor / Android / PWA) ───────────────────────
 
 export const itemMedicionOfflineSyncSchema = z.object({
+  id: z.string().optional().nullable(), // ID del servidor (si la cortina ya existe en el ERP)
   idLocal: z.string().optional(),
   descripcion: z
     .string()
@@ -235,6 +294,7 @@ export const itemMedicionOfflineSyncSchema = z.object({
 })
 
 export const ambienteOfflineSyncSchema = z.object({
+  id: z.string().optional().nullable(), // ID del servidor (si el ambiente ya existe en el ERP)
   idLocal: z.string().optional(),
   nombre: z
     .string()

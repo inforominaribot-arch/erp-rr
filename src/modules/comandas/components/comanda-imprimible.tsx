@@ -8,6 +8,7 @@ import {
   calcularArgollasGaza,
   calcularCantidadSoportes,
   determinarVarianteSoporte,
+  describirModosEspeciales,
 } from "@/modules/mediciones/types"
 import { calcularCorteRiel } from "@/modules/presupuestos/lib/explosion-materiales"
 
@@ -447,6 +448,11 @@ export function ComandaImprimible({
                               {c?.perfileria && <span>Perfil: <strong>{c.perfileria}</strong></span>}
                               {c?.caida && <span>Caída: <strong>{c.caida}</strong></span>}
                             </div>
+                            {describirModosEspeciales(c).length > 0 && (
+                              <div className="font-extrabold text-amber-800">
+                                Modo: {describirModosEspeciales(c).join(" • ")}
+                              </div>
+                            )}
                             {it.observaciones && (
                               <div className="text-indigo-700 font-semibold">{it.observaciones}</div>
                             )}

@@ -3,6 +3,10 @@
 import { useState } from "react"
 import {
   TIPOS_CORTINA,
+  SUBTIPOS_MOTORIZADA,
+  MODELOS_MOTOR_ROLLER_SOMFY,
+  MODELOS_MOTOR_ROLLER_TUBE,
+  CANALES_CONTROL,
   SISTEMAS_TRADICIONAL,
   COLORES_BARRAL,
   PERFILERIA_NOCHE_TOTAL,
@@ -19,6 +23,12 @@ import {
   determinarVarianteSoporte,
   calcularAnchoConfeccionGaza,
   type TipoCortina,
+  type SubtipoMotorizada,
+  type MarcaMotor,
+  type CanalesControl,
+  type TipoRiel,
+  type TipoCapaGaza,
+  type TipoCapaBO,
   type IItemMedicion,
   type ICaracteristicasItem,
   type TipoLaminaAluminio,
@@ -29,6 +39,8 @@ import {
   type TipoSujecion,
   type TipoCaida,
   type MarcaCortina,
+  type ModoCortina,
+  obtenerModosCapa,
 } from "../types"
 import { CortinaDibujoDidactico } from "./cortina-dibujo-didactico"
 import {
@@ -38,6 +50,9 @@ import {
   Ruler,
   Info,
   AlertCircle,
+  Zap,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 
 interface CortinaItemFormProps {
@@ -81,6 +96,14 @@ export function CortinaItemForm({
   const [tensorAluminio, setTensorAluminio] = useState<boolean>(
     caracInicial?.aluminio?.tensor !== undefined ? caracInicial.aluminio.tensor : false
   )
+  const [sujecionAluminio, setSujecionAluminio] = useState<TipoSujecion | null>(
+    caracInicial?.sujecion || null
+  )
+  const [cantidadAluminio, setCantidadAluminio] = useState<1 | 2 | 3 | 4 | 5>(1)
+  const [maxAluminioVisibles, setMaxAluminioVisibles] = useState<number>(3)
+  const [anchosAluminio, setAnchosAluminio] = useState<(number | "")[]>([
+    itemInicial?.ancho || ""
+  ])
   const [anchoAluminio, setAnchoAluminio] = useState<number | "">(
     itemInicial?.ancho || ""
   )
@@ -108,7 +131,16 @@ export function CortinaItemForm({
     caracInicial?.mando || null
   )
   const [caida, setCaida] = useState<TipoCaida | null>(
-    caracInicial?.caida || null
+    caracInicial?.caida || "Por delante"
+  )
+  const [posicionRoller, setPosicionRoller] = useState<"Adelante" | "Atrás">(
+    caracInicial?.posicionRoller || "Adelante"
+  )
+  const [caidaBO, setCaidaBO] = useState<TipoCaida | null>(
+    caracInicial?.caidaBO || "Por delante"
+  )
+  const [posicionRollerBO, setPosicionRollerBO] = useState<"Adelante" | "Atrás">(
+    caracInicial?.posicionRollerBO || "Atrás"
   )
   const [marca, setMarca] = useState<MarcaCortina | null>(
     caracInicial?.marca || null
@@ -169,12 +201,104 @@ export function CortinaItemForm({
     caracInicial?.bo?.nombreTela || ""
   )
 
+  // ─── Subtipo de Cortina Motorizada ───
+  const [subtipoMotorizada, setSubtipoMotorizada] = useState<SubtipoMotorizada>(
+    caracInicial?.subtipoMotorizada || "Tradicional Mot"
+  )
+
+  // ─── Riel Normal / Curvo (para Tradicional común y Tradicional Mot) ───
+  const [tipoRiel, setTipoRiel] = useState<TipoRiel>(
+    caracInicial?.tipoRiel || "Normal"
+  )
+
+  // ─── Tipos dinámicos de capa para Gaza y B.O. ───
+  const [tipoCapaGaza, setTipoCapaGaza] = useState<TipoCapaGaza>(
+    caracInicial?.tipoCapaGaza ||
+      (caracInicial?.tipo === "Roller"
+        ? "Roller"
+        : caracInicial?.tipo === "Bandas verticales"
+        ? "Bandas verticales"
+        : "Tradicional")
+  )
+  const [tipoCapaBO, setTipoCapaBO] = useState<TipoCapaBO>(
+    caracInicial?.tipoCapaBO ||
+      (caracInicial?.tipo === "Bandas verticales" ? "Bandas verticales" : "Roller")
+  )
+
+  // ─── Marcas independientes para Gaza y BO (excluye taller) ───
+  const [marcaGaza, setMarcaGaza] = useState<MarcaCortina | null>(
+    caracInicial?.marcaGaza !== undefined ? caracInicial.marcaGaza : (caracInicial?.marca || "RS")
+  )
+  const [marcaBO, setMarcaBO] = useState<MarcaCortina | null>(
+    caracInicial?.marcaBO !== undefined ? caracInicial.marcaBO : (caracInicial?.marca || "HD")
+  )
+
+  // ─── Configuración de Motores ───
+  const [motorGazaMarca, setMotorGazaMarca] = useState<MarcaMotor>(
+    caracInicial?.motorGaza?.marca || "Somfy"
+  )
+  const [motorGazaModelo, setMotorGazaModelo] = useState<string>(
+    caracInicial?.motorGaza?.modelo || "LSN 6/28R"
+  )
+  const [motorGazaControl, setMotorGazaControl] = useState<boolean>(
+    caracInicial?.motorGaza?.control !== undefined ? caracInicial.motorGaza.control : true
+  )
+  const [motorGazaCanales, setMotorGazaCanales] = useState<CanalesControl>(
+    caracInicial?.motorGaza?.canales || 1
+  )
+
+  const [motorBOMarca, setMotorBOMarca] = useState<MarcaMotor>(
+    caracInicial?.motorBO?.marca || "Somfy"
+  )
+  const [motorBOModelo, setMotorBOModelo] = useState<string>(
+    caracInicial?.motorBO?.modelo || "LSN 6/28R"
+  )
+  const [motorBOControl, setMotorBOControl] = useState<boolean>(
+    caracInicial?.motorBO?.control !== undefined ? caracInicial.motorBO.control : true
+  )
+  const [motorBOCanales, setMotorBOCanales] = useState<CanalesControl>(
+    caracInicial?.motorBO?.canales || 1
+  )
+
+  // Cantidad de cargadores para motor Li-ion en la abertura
+  const [cantidadCargadores, setCantidadCargadores] = useState<number | "">(
+    caracInicial?.cantidadCargadores !== undefined ? caracInicial.cantidadCargadores : ""
+  )
+
+  // ─── Roller "Sólo tela" vs "Normal" por cortina individual (por default false = normal) ───
+  const [modosPanosGaza, setModosPanosGaza] = useState<ModoCortina[]>(() => {
+    const m = obtenerModosCapa(caracInicial?.modosPanosGaza, caracInicial?.soloTelaPanosGaza)
+    return Array.from({ length: 5 }, (_, i) => m[i] || "Normal")
+  })
+  const [modosTramosBO, setModosTramosBO] = useState<ModoCortina[]>(() => {
+    const m = obtenerModosCapa(caracInicial?.modosTramosBO, caracInicial?.soloTelaTramosBO)
+    return Array.from({ length: 5 }, (_, i) => m[i] || "Normal")
+  })
+
+  // Opciones de modo: "Solo riel" no aplica a Roller Mot
+  const opcionesModo = (permiteSoloRiel: boolean) => [
+    { label: "Normal", val: "Normal" as ModoCortina },
+    { label: "Sólo tela", val: "Solo tela" as ModoCortina },
+    ...(permiteSoloRiel ? [{ label: "Sólo riel", val: "Solo riel" as ModoCortina }] : []),
+  ]
+
+  // ─── Acordeones / Secciones colapsables en Tablet ───
+  const [seccionMotorAbierta, setSeccionMotorAbierta] = useState<boolean>(true)
+  const [seccionComponentesAbierta, setSeccionComponentesAbierta] = useState<boolean>(false)
+
+  // ─── Gaza en Aluminio ───
+  const [aluminioTieneGaza, setAluminioTieneGaza] = useState<boolean>(
+    caracInicial?.tipo === "Aluminio" && Boolean(caracInicial?.gaza?.activa)
+  )
+
+  // ─── Gaza en Roller Noche Total ───
+  const [nocheTotalTieneGaza, setNocheTotalTieneGaza] = useState<boolean>(
+    (caracInicial?.tipo === "Roller Noche total" || caracInicial?.tipo === "Noche total") && Boolean(caracInicial?.gaza?.activa)
+  )
+
   // Formato B.O. (Tradicional vs Roller) para cuando la cortina es Tradicional
   const [formatoBO, setFormatoBO] = useState<"Tradicional" | "Roller">(
     caracInicial?.formatoBO || "Tradicional"
-  )
-  const [marcaBO, setMarcaBO] = useState<MarcaCortina>(
-    caracInicial?.marcaBO || "HD"
   )
   const [mandosRollerBO, setMandosRollerBO] = useState<(LadoMando | null)[]>(() => {
     if (caracInicial?.mandosRollerBO && caracInicial.mandosRollerBO.length > 0) {
@@ -183,6 +307,16 @@ export function CortinaItemForm({
     const t = caracInicial?.bo?.tramos || 1
     if (t === 1) return ["Derecha"]
     if (t === 2) return ["Izquierda", "Derecha"]
+    return [null, null, null, null, null]
+  })
+
+  const [mandosRollerGaza, setMandosRollerGaza] = useState<(LadoMando | null)[]>(() => {
+    if (caracInicial?.mandosRollerGaza && caracInicial.mandosRollerGaza.length > 0) {
+      return caracInicial.mandosRollerGaza
+    }
+    const p = caracInicial?.gaza?.panos || 1
+    if (p === 1) return ["Derecha"]
+    if (p === 2) return ["Izquierda", "Derecha"]
     return [null, null, null, null, null]
   })
 
@@ -254,6 +388,147 @@ export function CortinaItemForm({
     setAnchosTramos(arr)
   }
 
+  // Determinación de si alguna capa es Tradicional o Motorizada
+  const esMotorizada = tipo === "Motorizada"
+
+  // ¿Qué tipo de cortina es la capa izquierda (Gaza) y la capa derecha (BO)?
+  // Para los 8 subtipos de Motorizada:
+  // 1: Tradicional Mot (Gaza: Tradicional Mot | BO: Tradicional Mot)
+  // 2: Tradicional Mot y Tradicional (Gaza: Tradicional Mot | BO: Tradicional)
+  // 3: Tradicional Mot y Roller (Gaza: Tradicional Mot | BO: Roller)
+  // 4: Tradicional Mot y Roller Mot (Gaza: Tradicional Mot | BO: Roller Mot)
+  // 5: Roller Mot (Gaza: Roller Mot | BO: Roller Mot)
+  // 6: Roller Mot y Roller (Gaza: Roller Mot | BO: Roller)
+  // 7: Roller Mot y Tradicional (Gaza: Roller Mot | BO: Tradicional)
+  // 8: Bandas Verticales y Roller Mot (Gaza: Bandas Verticales | BO: Roller Mot)
+
+  const esNocheTotalConGaza =
+    (tipo === "Roller Noche total" || tipo === "Noche total") && nocheTotalTieneGaza
+
+  const capaGazaEsTradicional =
+    tipo === "Tradicional" ||
+    (esMotorizada &&
+      (subtipoMotorizada === "Tradicional Mot" ||
+        subtipoMotorizada === "Tradicional Mot y Tradicional" ||
+        subtipoMotorizada === "Tradicional Mot y Roller" ||
+        subtipoMotorizada === "Tradicional Mot y Roller Mot")) ||
+    (tipo === "Aluminio" && aluminioTieneGaza && (tipoCapaGaza === "Tradicional" || tipoCapaGaza === "Tradicional Mot")) ||
+    (esNocheTotalConGaza && (tipoCapaGaza === "Tradicional" || tipoCapaGaza === "Tradicional Mot"))
+
+  const capaBOEsTradicional =
+    (tipo === "Tradicional" && formatoBO === "Tradicional") ||
+    (esMotorizada &&
+      (subtipoMotorizada === "Tradicional Mot" ||
+        subtipoMotorizada === "Tradicional Mot y Tradicional" ||
+        subtipoMotorizada === "Roller Mot y Tradicional"))
+
+  const capaGazaEsMotorizada =
+    (esMotorizada &&
+      (subtipoMotorizada === "Tradicional Mot" ||
+        subtipoMotorizada === "Tradicional Mot y Tradicional" ||
+        subtipoMotorizada === "Tradicional Mot y Roller" ||
+        subtipoMotorizada === "Tradicional Mot y Roller Mot" ||
+        subtipoMotorizada === "Roller Mot" ||
+        subtipoMotorizada === "Roller Mot y Roller" ||
+        subtipoMotorizada === "Roller Mot y Tradicional")) ||
+    (tipo === "Aluminio" && aluminioTieneGaza && (tipoCapaGaza === "Tradicional Mot" || tipoCapaGaza === "Roller Mot")) ||
+    (esNocheTotalConGaza && (tipoCapaGaza === "Tradicional Mot" || tipoCapaGaza === "Roller Mot"))
+
+  const capaBOEsMotorizada =
+    esMotorizada &&
+    (subtipoMotorizada === "Tradicional Mot" ||
+      subtipoMotorizada === "Tradicional Mot y Roller Mot" ||
+      subtipoMotorizada === "Roller Mot" ||
+      subtipoMotorizada === "Bandas Verticales y Roller Mot")
+
+  // ¿Hay Tradicional común (no motorizada)?
+  const hayTradicionalComun =
+    (tipo === "Tradicional" && (!boActiva || formatoBO === "Tradicional")) ||
+    (esMotorizada &&
+      (subtipoMotorizada === "Tradicional Mot y Tradicional" ||
+        subtipoMotorizada === "Roller Mot y Tradicional")) ||
+    (tipo === "Aluminio" && aluminioTieneGaza && tipoCapaGaza === "Tradicional") ||
+    (esNocheTotalConGaza && tipoCapaGaza === "Tradicional")
+
+  // ¿Hay Tradicional con Riel? (Si es Riel común o motorizada)
+  const hayTradicionalRiel =
+    (tipo === "Tradicional" && sistemaTradicional === "Riel") ||
+    (esMotorizada && (capaGazaEsTradicional || capaBOEsTradicional)) ||
+    (tipo === "Aluminio" && aluminioTieneGaza && (tipoCapaGaza === "Tradicional Mot" || (tipoCapaGaza === "Tradicional" && sistemaTradicional === "Riel"))) ||
+    (esNocheTotalConGaza && (tipoCapaGaza === "Tradicional Mot" || (tipoCapaGaza === "Tradicional" && sistemaTradicional === "Riel")))
+
+  // ¿Hay alguna Roller o Roller Mot involucrada?
+  const hayAlgunaRoller =
+    tipo === "Roller" ||
+    (tipo === "Tradicional" && boActiva && formatoBO === "Roller") ||
+    (tipo === "Roller Noche total" || tipo === "Noche total") ||
+    (esMotorizada &&
+      (subtipoMotorizada.includes("Roller") || subtipoMotorizada.includes("Roller Mot"))) ||
+    (tipo === "Aluminio" && aluminioTieneGaza && (tipoCapaGaza === "Roller" || tipoCapaGaza === "Roller Mot")) ||
+    (esNocheTotalConGaza && (tipoCapaGaza === "Roller" || tipoCapaGaza === "Roller Mot"))
+
+  // ¿La capa Gaza es Roller o Roller Mot?
+  const capaGazaEsRoller =
+    ((tipo === "Roller" || tipo === "Bandas verticales") && tipoCapaGaza === "Roller") ||
+    (tipo === "Aluminio" && aluminioTieneGaza && (tipoCapaGaza === "Roller" || tipoCapaGaza === "Roller Mot")) ||
+    (esNocheTotalConGaza && (tipoCapaGaza === "Roller" || tipoCapaGaza === "Roller Mot")) ||
+    (esMotorizada &&
+      (subtipoMotorizada === "Roller Mot" ||
+        subtipoMotorizada === "Roller Mot y Roller" ||
+        subtipoMotorizada === "Roller Mot y Tradicional"))
+
+  // ¿La capa B.O. es Roller o Roller Mot?
+  const capaBOEsRoller =
+    (tipo === "Tradicional" && formatoBO === "Roller") ||
+    ((tipo === "Roller" || tipo === "Bandas verticales") && tipoCapaBO === "Roller") ||
+    (tipo === "Roller Noche total" || tipo === "Noche total") ||
+    (esMotorizada &&
+      (subtipoMotorizada === "Tradicional Mot y Roller" ||
+        subtipoMotorizada === "Tradicional Mot y Roller Mot" ||
+        subtipoMotorizada === "Roller Mot" ||
+        subtipoMotorizada === "Roller Mot y Roller" ||
+        subtipoMotorizada === "Bandas Verticales y Roller Mot"))
+
+  // Títulos dinámicos de las dos tarjetas según el tipo y subtipo:
+  const tituloTarjetaGaza = (() => {
+    if (tipo === "Tradicional") return "GAZA (Tradicional)"
+    if (tipo === "Roller" || tipo === "Bandas verticales") {
+      return tipoCapaGaza === "Bandas verticales" ? "GAZA (Bandas Verticales)" : "GAZA (Roller)"
+    }
+    if (tipo === "Aluminio") return `GAZA (${tipoCapaGaza})`
+    if (tipo === "Roller Noche total" || tipo === "Noche total") return `GAZA (${tipoCapaGaza})`
+    if (esMotorizada) {
+      if (subtipoMotorizada === "Tradicional Mot") return "Tradicional Mot"
+      if (subtipoMotorizada === "Tradicional Mot y Tradicional") return "Tradicional Mot"
+      if (subtipoMotorizada === "Tradicional Mot y Roller") return "Tradicional Mot"
+      if (subtipoMotorizada === "Tradicional Mot y Roller Mot") return "Tradicional Mot"
+      if (subtipoMotorizada === "Roller Mot") return "Roller Mot"
+      if (subtipoMotorizada === "Roller Mot y Roller") return "Roller Mot"
+      if (subtipoMotorizada === "Roller Mot y Tradicional") return "Roller Mot"
+      if (subtipoMotorizada === "Bandas Verticales y Roller Mot") return "Bandas Verticales"
+    }
+    return "GAZA"
+  })()
+
+  const tituloTarjetaBO = (() => {
+    if (tipo === "Tradicional") return formatoBO === "Roller" ? "B.O. (Roller)" : "B.O. (Tradicional)"
+    if (tipo === "Roller" || tipo === "Bandas verticales") {
+      return tipoCapaBO === "Bandas verticales" ? "B.O. (Bandas Verticales)" : "B.O. (Roller)"
+    }
+    if (tipo === "Roller Noche total" || tipo === "Noche total") return "Roller Noche Total"
+    if (esMotorizada) {
+      if (subtipoMotorizada === "Tradicional Mot") return "Tradicional Mot 2"
+      if (subtipoMotorizada === "Tradicional Mot y Tradicional") return "Tradicional"
+      if (subtipoMotorizada === "Tradicional Mot y Roller") return "Roller"
+      if (subtipoMotorizada === "Tradicional Mot y Roller Mot") return "Roller Mot"
+      if (subtipoMotorizada === "Roller Mot") return "Roller Mot 2"
+      if (subtipoMotorizada === "Roller Mot y Roller") return "Roller"
+      if (subtipoMotorizada === "Roller Mot y Tradicional") return "Tradicional"
+      if (subtipoMotorizada === "Bandas Verticales y Roller Mot") return "Roller Mot"
+    }
+    return "B.O. (Black Out)"
+  })()
+
   // Ancho y alto efectivos calculados para la abertura
   const esTipoDirecto = tipo === "Mosquera" || tipo === "Roller Noche total" || tipo === "Noche total"
 
@@ -264,12 +539,16 @@ export function CortinaItemForm({
       ? anchosTramos.length > 0
         ? Number(anchosTramos.slice(0, tramosBO).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(2))
         : 0
-      : tipo === "Tradicional"
+      : (tipo === "Tradicional" || esMotorizada)
       ? (gazaActiva
-          ? (typeof anchoGaza === "number" ? anchoGaza : 0)
-          : formatoBO === "Roller"
-          ? Number(anchosTramos.slice(0, tramosBO).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(2))
-          : (typeof anchoBO === "number" ? anchoBO : 0))
+          ? (typeof anchoGaza === "number"
+              ? anchoGaza
+              : anchosPanos.length > 0
+              ? Number(anchosPanos.slice(0, panosGaza).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(2))
+              : 0)
+          : capaBOEsTradicional
+          ? (typeof anchoBO === "number" ? anchoBO : 0)
+          : Number(anchosTramos.slice(0, tramosBO).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(2)))
       : (gazaActiva && anchosPanos.length > 0
           ? Number(anchosPanos.slice(0, panosGaza).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(2))
           : boActiva && anchosTramos.length > 0
@@ -289,18 +568,25 @@ export function CortinaItemForm({
 
   // Cálculo automático de la cantidad de cortinas para el presupuesto
   const cantidadCortinasCalculada = (() => {
-    if (tipo === "Aluminio") return 1
-    if (esTipoDirecto) return Number(tramosBO) || 1
-    if (tipo === "Tradicional") {
+    if (tipo === "Aluminio") return aluminioTieneGaza ? 2 : 1
+    if (esTipoDirecto) {
+      const cantBO = Number(tramosBO) || 1
+      if (esNocheTotalConGaza) {
+        const cantGaza = capaGazaEsTradicional ? 1 : (Number(panosGaza) || 1)
+        return cantBO + cantGaza
+      }
+      return cantBO
+    }
+    if (tipo === "Tradicional" || esMotorizada) {
       if (gazaActiva && boActiva) {
-        if (formatoBO === "Roller") {
+        if (formatoBO === "Roller" || tipoCapaBO === "Roller" || tipoCapaBO === "Roller Mot") {
           return 1 + (Number(tramosBO) || 1)
         }
         return 2
       }
       if (gazaActiva) return 1
       if (boActiva) {
-        if (formatoBO === "Roller") return Number(tramosBO) || 1
+        if (formatoBO === "Roller" || tipoCapaBO === "Roller" || tipoCapaBO === "Roller Mot") return Number(tramosBO) || 1
         return 1
       }
       return 1
@@ -316,6 +602,7 @@ export function CortinaItemForm({
   const caracteristicasActuales: ICaracteristicasItem | null = tipo
     ? {
         tipo,
+        subtipoMotorizada: esMotorizada ? subtipoMotorizada : undefined,
         aluminio:
           tipo === "Aluminio" && tipoLaminaAluminio && colorAluminio && mandoAluminio
             ? {
@@ -325,54 +612,136 @@ export function CortinaItemForm({
                 tensor: tensorAluminio !== null ? tensorAluminio : undefined,
               }
             : undefined,
-        sistema: tipo === "Tradicional" ? sistemaTradicional || undefined : undefined,
+        tipoCapaGaza:
+          (tipo === "Aluminio" && aluminioTieneGaza) ||
+          esNocheTotalConGaza ||
+          ((tipo === "Roller" || tipo === "Bandas verticales") && gazaActiva)
+            ? tipoCapaGaza
+            : undefined,
+        tipoCapaBO: (tipo === "Roller" || tipo === "Bandas verticales") ? tipoCapaBO : undefined,
+        // Tradicional: si hay tradicional común, puede ser Riel o Barral
+        sistema:
+          tipo === "Tradicional"
+            ? (sistemaTradicional || undefined)
+            : hayTradicionalComun
+            ? (sistemaTradicional || "Riel")
+            : (esMotorizada && (capaGazaEsTradicional || capaBOEsTradicional))
+            ? "Riel"
+            : undefined,
+        tipoRiel:
+          (tipo === "Tradicional" && sistemaTradicional === "Riel") ||
+          (hayTradicionalComun && sistemaTradicional === "Riel") ||
+          (esMotorizada && (capaGazaEsTradicional || capaBOEsTradicional))
+            ? tipoRiel
+            : undefined,
         colorBarral:
-          tipo === "Tradicional" && sistemaTradicional === "Barral"
+          (tipo === "Tradicional" || hayTradicionalComun) && sistemaTradicional === "Barral"
             ? colorBarral || undefined
             : undefined,
         perfileria:
-          (tipo !== "Tradicional" && tipo !== "Aluminio") ||
-          (tipo === "Tradicional" && boActiva && formatoBO === "Roller")
+          hayAlgunaRoller || tipo === "Bandas verticales" || tipo === "Mosquera"
             ? perfileria || undefined
             : undefined,
-        sujecion: tipo !== "Aluminio" ? sujecion || undefined : undefined,
+        sujecion:
+          tipo === "Aluminio"
+            ? sujecionAluminio || undefined
+            : sujecion || undefined,
         // Tradicional: si el B.O. es Roller, lleva mando y marca para ese B.O.
         formatoBO: tipo === "Tradicional" && boActiva ? formatoBO : undefined,
-        marcaBO: tipo === "Tradicional" && boActiva && formatoBO === "Roller" ? (marcaBO || undefined) : undefined,
+        // Marcas: Tradicional común nunca lleva marca (taller propio)
+        marcaBO:
+          (tipo === "Tradicional" && boActiva && formatoBO === "Tradicional") ||
+          (esMotorizada && (subtipoMotorizada === "Tradicional Mot y Tradicional" || subtipoMotorizada === "Roller Mot y Tradicional"))
+            ? null
+            : boActiva || esMotorizada
+            ? (marcaBO || undefined)
+            : undefined,
+        marcaGaza:
+          (tipo === "Tradicional") ||
+          (esMotorizada && subtipoMotorizada === "Tradicional Mot y Tradicional") // si fuera común
+            ? null
+            : gazaActiva
+            ? (marcaGaza || undefined)
+            : undefined,
         mandoBO: tipo === "Tradicional" && boActiva && formatoBO === "Roller" ? (mandosRollerBO[0] || undefined) : undefined,
         mandosRollerBO:
-          tipo === "Tradicional" && boActiva && formatoBO === "Roller"
-            ? (mandosRollerBO.slice(0, tramosBO).filter(Boolean) as LadoMando[])
-            : undefined,
+          mandosRollerBO.slice(0, tramosBO).map((m) => m || "Derecha") as LadoMando[],
+        mandosRollerGaza:
+          mandosRollerGaza.slice(0, panosGaza).map((m) => m || "Derecha") as LadoMando[],
         mando:
           tipo === "Tradicional"
             ? (boActiva && formatoBO === "Roller" ? (mandosRollerBO[0] || undefined) : undefined)
             : tipo === "Aluminio"
             ? mandoAluminio || undefined
             : mando || undefined,
-        caida: tipo !== "Aluminio" && tipo !== "Mosquera" && (boActiva || esTipoDirecto) ? caida || undefined : undefined,
-        marca:
-          tipo === "Tradicional"
-            ? (boActiva && formatoBO === "Roller" ? (marcaBO || undefined) : undefined)
-            : tipo === "Mosquera"
-            ? "MG"
-            : tipo !== "Aluminio"
-            ? marca || undefined
+        caida: capaGazaEsRoller ? caida || undefined : undefined,
+        posicionRoller: capaGazaEsRoller ? posicionRoller : undefined,
+        caidaBO: capaBOEsRoller ? caidaBO || undefined : undefined,
+        posicionRollerBO:
+          capaBOEsRoller || (tipo === "Tradicional" && formatoBO === "Tradicional")
+            ? posicionRollerBO
             : undefined,
-        // Soportes Kent / Grampa: SOLO EN TRADICIONAL
-        tipoSoporte: tipo === "Tradicional" ? tipoSoporte || undefined : undefined,
-        varianteSoporte: tipo === "Tradicional" ? determinarVarianteSoporte(gazaActiva, boActiva, formatoBO) : undefined,
-        cantidadSoportes: tipo === "Tradicional" ? calcularCantidadSoportes(anchoEfectivo) : undefined,
-        // Soporte Roller: Común / Extendido
+        marca:
+          tipo === "Mosquera"
+            ? "MG"
+            : tipo === "Tradicional"
+            ? undefined
+            : marca || marcaBO || undefined,
+
+        // Configuración de Motorización
+        motorGaza:
+          capaGazaEsMotorizada && gazaActiva
+            ? {
+                marca: motorGazaMarca,
+                modelo: motorGazaModelo,
+                control: motorGazaControl,
+                canales: motorGazaControl ? motorGazaCanales : undefined,
+              }
+            : undefined,
+        motorBO:
+          capaBOEsMotorizada && boActiva
+            ? {
+                marca: motorBOMarca,
+                modelo: motorBOModelo,
+                control: motorBOControl,
+                canales: motorBOControl ? motorBOCanales : undefined,
+              }
+            : undefined,
+        cantidadCargadores:
+          (motorGazaModelo.toLowerCase().includes("li-ion") || motorBOModelo.toLowerCase().includes("li-ion")) &&
+          typeof cantidadCargadores === "number"
+            ? cantidadCargadores
+            : undefined,
+
+        // Sólo tela para Roller
+        modosPanosGaza: gazaActiva ? modosPanosGaza.slice(0, panosGaza) : undefined,
+        modosTramosBO: boActiva ? modosTramosBO.slice(0, tramosBO) : undefined,
+        soloTelaPanosGaza: gazaActiva ? modosPanosGaza.slice(0, panosGaza).map((m) => m === "Solo tela") : undefined,
+        soloTelaTramosBO: boActiva ? modosTramosBO.slice(0, tramosBO).map((m) => m === "Solo tela") : undefined,
+
+        // Soportes Kent / Grampa: SOLO EN TRADICIONAL CON BARRAL (si es riel no lleva soportes kent/grampa)
+        tipoSoporte:
+          ((tipo === "Tradicional" || hayTradicionalComun) && sistemaTradicional === "Barral")
+            ? tipoSoporte || undefined
+            : undefined,
+        varianteSoporte:
+          ((tipo === "Tradicional" || hayTradicionalComun) && sistemaTradicional === "Barral")
+            ? determinarVarianteSoporte(gazaActiva, boActiva, formatoBO)
+            : undefined,
+        cantidadSoportes:
+          ((tipo === "Tradicional" || hayTradicionalComun) && sistemaTradicional === "Barral")
+            ? calcularCantidadSoportes(capaGazaEsTradicional && typeof anchoGaza === "number" ? anchoGaza : anchoEfectivo)
+            : undefined,
+        // Soporte Roller: Común / Extendido para todo lo que tenga Roller
         tipoSoporteRoller:
-          tipo === "Roller" || (tipo === "Tradicional" && boActiva && formatoBO === "Roller")
-            ? tipoSoporteRoller || undefined
+          hayAlgunaRoller
+            ? tipoSoporteRoller || "Común"
             : undefined,
         gaza:
-          tipo !== "Aluminio" && !esTipoDirecto && gazaActiva
+          (tipo !== "Aluminio" || aluminioTieneGaza) && (!esTipoDirecto || esNocheTotalConGaza) && gazaActiva
             ? {
                 activa: true,
-                ancho: tipo === "Tradicional"
+                ancho: capaGazaEsTradicional
                   ? (typeof anchoGaza === "number" ? anchoGaza : 0)
                   : Number(anchosPanos.slice(0, panosGaza).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(2)),
                 alto: typeof altoGaza === "number" ? altoGaza : 0,
@@ -385,28 +754,27 @@ export function CortinaItemForm({
           tipo !== "Aluminio" && (boActiva || esTipoDirecto)
             ? {
                 activa: true,
-                ancho: esTipoDirecto || (tipo === "Tradicional" && formatoBO === "Roller")
+                ancho: esTipoDirecto || !capaBOEsTradicional
                   ? Number(anchosTramos.slice(0, tramosBO).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(2))
-                  : tipo === "Tradicional"
-                  ? (typeof anchoBO === "number" ? anchoBO : 0)
-                  : Number(anchosTramos.slice(0, tramosBO).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(2)),
+                  : (typeof anchoBO === "number" ? anchoBO : 0),
                 alto: typeof altoBO === "number" ? altoBO : 0,
                 tramos: tramosBO,
                 anchosTramos: anchosTramos.slice(0, tramosBO).map((v) => (typeof v === "number" ? v : 0)),
                 nombreTela: tipo === "Mosquera" ? "Tela Mosquera" : nombreTelaBO,
                 mandosRoller:
-                  tipo === "Tradicional" && formatoBO === "Roller"
+                  capaBOEsRoller
                     ? (mandosRollerBO.slice(0, tramosBO).filter(Boolean) as LadoMando[])
                     : undefined,
               }
             : undefined,
         cantidadArgollas:
-          gazaActiva && tipo === "Tradicional"
+          gazaActiva && tipo === "Tradicional" && sistemaTradicional === "Barral"
             ? calcularArgollasGaza(typeof anchoGaza === "number" ? anchoGaza : 0)
             : undefined,
-        anchoConfeccionGaza: gazaActiva && tipo === "Tradicional"
-          ? calcularAnchoConfeccionGaza(typeof anchoGaza === "number" ? anchoGaza : 0)
-          : undefined,
+        anchoConfeccionGaza:
+          gazaActiva && (tipo === "Tradicional" || (esMotorizada && capaGazaEsTradicional) || ((tipo === "Aluminio" || esNocheTotalConGaza) && capaGazaEsTradicional))
+            ? calcularAnchoConfeccionGaza(typeof anchoGaza === "number" ? anchoGaza : 0)
+            : undefined,
       }
     : null
 
@@ -429,6 +797,46 @@ export function CortinaItemForm({
         setErrorValidacion("Ingresá el Ancho y Alto de la cortina de aluminio.")
         return
       }
+      if (aluminioTieneGaza && gazaActiva) {
+        if (!altoGaza || altoGaza <= 0) {
+          setErrorValidacion("Ingresá el Alto para la GAZA delantera.")
+          return
+        }
+        if (capaGazaEsTradicional) {
+          if (!anchoGaza || anchoGaza <= 0) {
+            setErrorValidacion("Ingresá el Ancho Total para la GAZA.")
+            return
+          }
+          if (panosGaza > 1) {
+            const suma = Number(
+              anchosPanos
+                .slice(0, panosGaza)
+                .reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0)
+                .toFixed(2)
+            )
+            const numAnchoGaza = typeof anchoGaza === "number" ? anchoGaza : parseFloat(String(anchoGaza)) || 0
+            if (Math.abs(suma - numAnchoGaza) > 0.02) {
+              setErrorValidacion(
+                `La suma de los paños de Gaza (${suma.toFixed(2)} m) debe ser exactamente igual al Ancho Total (${numAnchoGaza.toFixed(2)} m). Podés tocar "Centrar" para ajustarlos.`
+              )
+              return
+            }
+          }
+        } else {
+          for (let i = 0; i < panosGaza; i++) {
+            if (!anchosPanos[i] || (anchosPanos[i] as number) <= 0) {
+              setErrorValidacion(`Ingresá el Ancho de la Cortina ${i + 1} de Gaza.`)
+              return
+            }
+            if ((capaGazaEsRoller || tipoCapaGaza === "Bandas verticales") && !mandosRollerGaza[i]) {
+              setErrorValidacion(
+                `Tenés que seleccionar el lado del mando para la Cortina ${i + 1} de Gaza.`
+              )
+              return
+            }
+          }
+        }
+      }
     } else if (esTipoDirecto) {
       // Validaciones para Mosquera y Roller Noche Total
       if (!altoBO || altoBO <= 0) {
@@ -445,6 +853,46 @@ export function CortinaItemForm({
           return
         }
       }
+      if (esNocheTotalConGaza) {
+        if (!altoGaza || altoGaza <= 0) {
+          setErrorValidacion("Ingresá el Alto para la GAZA delantera.")
+          return
+        }
+        if (capaGazaEsTradicional) {
+          if (!anchoGaza || anchoGaza <= 0) {
+            setErrorValidacion("Ingresá el Ancho Total para la GAZA.")
+            return
+          }
+          if (panosGaza > 1) {
+            const suma = Number(
+              anchosPanos
+                .slice(0, panosGaza)
+                .reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0)
+                .toFixed(2)
+            )
+            const numAnchoGaza = typeof anchoGaza === "number" ? anchoGaza : parseFloat(String(anchoGaza)) || 0
+            if (Math.abs(suma - numAnchoGaza) > 0.02) {
+              setErrorValidacion(
+                `La suma de los paños de Gaza (${suma.toFixed(2)} m) debe ser exactamente igual al Ancho Total (${numAnchoGaza.toFixed(2)} m). Podés tocar "Centrar" para ajustarlos.`
+              )
+              return
+            }
+          }
+        } else {
+          for (let i = 0; i < panosGaza; i++) {
+            if (!anchosPanos[i] || (anchosPanos[i] as number) <= 0) {
+              setErrorValidacion(`Ingresá el Ancho de la Cortina ${i + 1} de Gaza.`)
+              return
+            }
+            if ((capaGazaEsRoller || tipoCapaGaza === "Bandas verticales") && !mandosRollerGaza[i]) {
+              setErrorValidacion(
+                `Tenés que seleccionar el lado del mando para la Cortina ${i + 1} de Gaza.`
+              )
+              return
+            }
+          }
+        }
+      }
     } else {
       if (!gazaActiva && !boActiva) {
         setErrorValidacion("Tenés que activar al menos una tela (GAZA o B.O.).")
@@ -457,7 +905,7 @@ export function CortinaItemForm({
           setErrorValidacion("Ingresá el Alto para la GAZA.")
           return
         }
-        if (tipo === "Tradicional") {
+        if (capaGazaEsTradicional) {
           if (!anchoGaza || anchoGaza <= 0) {
             setErrorValidacion("Ingresá el Ancho Total para la GAZA.")
             return
@@ -494,48 +942,38 @@ export function CortinaItemForm({
           setErrorValidacion("Ingresá el Alto para el B.O.")
           return
         }
-        if (tipo === "Tradicional") {
-          if (formatoBO === "Roller") {
-            // Cada cortina Roller de BO tiene su ancho individual (sin ancho total)
-            for (let i = 0; i < tramosBO; i++) {
-              if (!anchosTramos[i] || (anchosTramos[i] as number) <= 0) {
-                setErrorValidacion(`Ingresá el Ancho de la Cortina ${i + 1} de B.O. Roller.`)
-                return
-              }
-              if (!mandosRollerBO[i]) {
-                setErrorValidacion(
-                  `Tenés que seleccionar el lado del mando (Izquierda o Derecha) para la Cortina ${i + 1} de B.O. Roller.`
-                )
-                return
-              }
-            }
-          } else {
-            // Tradicional Taller: Ancho Total + tramos
-            if (!anchoBO || anchoBO <= 0) {
-              setErrorValidacion("Ingresá el Ancho Total para el B.O.")
-              return
-            }
-            if (tramosBO > 1) {
-              const suma = Number(
-                anchosTramos
-                  .slice(0, tramosBO)
-                  .reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0)
-                  .toFixed(2)
+        if (capaBOEsTradicional) {
+          // Tradicional Taller / común / mot tradicional: Ancho Total + tramos
+          if (!anchoBO || anchoBO <= 0) {
+            setErrorValidacion(`Ingresá el Ancho Total para ${tituloTarjetaBO}.`)
+            return
+          }
+          if (tramosBO > 1) {
+            const suma = Number(
+              anchosTramos
+                .slice(0, tramosBO)
+                .reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0)
+                .toFixed(2)
+            )
+            const numAnchoBO = typeof anchoBO === "number" ? anchoBO : parseFloat(String(anchoBO)) || 0
+            if (Math.abs(suma - numAnchoBO) > 0.02) {
+              setErrorValidacion(
+                `La suma de los tramos de ${tituloTarjetaBO} (${suma.toFixed(2)} m) debe ser exactamente igual al Ancho Total (${numAnchoBO.toFixed(2)} m). Podés tocar "Centrar" para ajustarlos.`
               )
-              const numAnchoBO = typeof anchoBO === "number" ? anchoBO : parseFloat(String(anchoBO)) || 0
-              if (Math.abs(suma - numAnchoBO) > 0.02) {
-                setErrorValidacion(
-                  `La suma de los tramos de B.O. (${suma.toFixed(2)} m) debe ser exactamente igual al Ancho Total (${numAnchoBO.toFixed(2)} m). Podés tocar "Centrar" para ajustarlos.`
-                )
-                return
-              }
+              return
             }
           }
         } else {
           // En Roller / Bandas: cada cortina tiene su ancho individual
           for (let i = 0; i < tramosBO; i++) {
             if (!anchosTramos[i] || (anchosTramos[i] as number) <= 0) {
-              setErrorValidacion(`Ingresá el Ancho de la Cortina ${i + 1} de B.O.`)
+              setErrorValidacion(`Ingresá el Ancho de la Cortina ${i + 1} de ${tituloTarjetaBO}.`)
+              return
+            }
+            if (capaBOEsRoller && !mandosRollerBO[i]) {
+              setErrorValidacion(
+                `Tenés que seleccionar el lado del mando (Izquierda o Derecha) para la Cortina ${i + 1} de ${tituloTarjetaBO}.`
+              )
               return
             }
           }
@@ -600,6 +1038,15 @@ export function CortinaItemForm({
                 type="button"
                 onClick={() => {
                   setTipo(t)
+                  if (t === "Roller") {
+                    setTipoCapaGaza("Roller")
+                    setTipoCapaBO("Roller")
+                  } else if (t === "Bandas verticales") {
+                    setTipoCapaGaza("Bandas verticales")
+                    setTipoCapaBO("Bandas verticales")
+                  } else if (t === "Tradicional") {
+                    setTipoCapaGaza("Tradicional")
+                  }
                   setErrorValidacion(null)
                 }}
                 className={`min-h-[48px] flex items-center justify-center rounded-xl border px-3 py-3 text-xs font-bold transition text-center ${
@@ -672,7 +1119,33 @@ export function CortinaItemForm({
             </div>
           )}
 
-          {/* Mando */}
+
+          {/* Sujeción de Aluminio */}
+          {colorAluminio && (
+            <div className="animate-in fade-in duration-100">
+              <label className="block text-xs font-bold text-slate-700">
+                Sujeción de Aluminio:
+              </label>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {TIPOS_SUJECION.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setSujecionAluminio(s)}
+                    className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
+                      sujecionAluminio === s
+                        ? "border-indigo-600 bg-indigo-50 text-indigo-700 font-bold"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Mando de Aluminio */}
           {colorAluminio && (
             <div className="animate-in fade-in duration-100">
               <label className="block text-xs font-bold text-slate-700">
@@ -728,125 +1201,1296 @@ export function CortinaItemForm({
             </div>
           )}
 
-          {/* Medidas de la persiana de aluminio */}
-          {mandoAluminio && (
-            <div className="grid grid-cols-2 gap-3 max-w-sm pt-2 border-t border-indigo-100 animate-in fade-in duration-100">
+          {/* ── MEDIDAS DE ALUMINIO: SIEMPRE VISIBLES (1, 2, 3 hasta 5 cortinas con anchos independientes y alto compartido) ── */}
+          <div className="pt-3 border-t border-indigo-100 space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
-                <label className="block text-xs font-bold text-sky-900">
-                  Ancho (m)
+                <label className="block text-xs font-bold uppercase tracking-wider text-indigo-950">
+                  Medidas de Cortina Aluminio
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.1"
-                  value={anchoAluminio}
-                  onChange={(e) =>
-                    setAnchoAluminio(e.target.value === "" ? "" : parseFloat(e.target.value) || "")
-                  }
-                  placeholder="0.00"
-                  required
-                  className="mt-1 block w-full rounded-lg border border-sky-300 bg-sky-50/70 p-2.5 text-sm font-bold text-sky-950 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-200"
-                />
+                <p className="text-xs text-slate-500">
+                  {cantidadAluminio === 1
+                    ? "1 cortina en esta abertura."
+                    : `${cantidadAluminio} cortinas independientes con anchos propios y alto compartido.`}
+                </p>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-amber-900">
-                  Alto (m)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.1"
-                  value={altoAluminio}
-                  onChange={(e) =>
-                    setAltoAluminio(e.target.value === "" ? "" : parseFloat(e.target.value) || "")
-                  }
-                  placeholder="0.00"
-                  required
-                  className="mt-1 block w-full rounded-lg border border-amber-300 bg-amber-50/70 p-2.5 text-sm font-bold text-amber-950 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-200"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ────────────────────────────────────────────────────────────────────────── */}
-      {/* FLUJO PROGRESIVO: SI SELECCIONÓ TRADICIONAL O ROLLER / BANDAS / NOCHE TOTAL / MOSQUERA */}
-      {/* ────────────────────────────────────────────────────────────────────────── */}
-      {tipo && tipo !== "Aluminio" && (
-        <div className="space-y-6 animate-in fade-in duration-150">
-          {/* ── PASO 2: Marca (para Roller, Bandas, Noche total) antes de perfilería ── */}
-          {tipo !== "Tradicional" && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                2 • Marca de Proveedor
-              </label>
-              {tipo === "Mosquera" ? (
-                <div className="flex items-center gap-2">
-                  <span className="rounded-lg border border-indigo-600 bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-xs">
-                    MG
-                  </span>
-                  <span className="text-xs text-slate-500 font-medium">
-                    (Marca predeterminada para Mosquera)
-                  </span>
-                </div>
-              ) : (
-                <div className="flex gap-2 max-w-sm">
-                  {MARCAS_CORTINA.map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => {
-                        setMarca(m)
-                        // Si cambia de RS a otra marca y tenía seleccionado Gris o Beige, reajustar
-                        if (m !== "RS" && (perfileria === "Gris" || perfileria === "Beige")) {
-                          setPerfileria("Blanco")
-                        }
-                      }}
-                      className={`flex-1 rounded-xl border py-2.5 text-xs font-bold transition ${
-                        marca === m
-                          ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
-                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                      }`}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── PASO 3: Sistema (si es Tradicional) o Perfilería (si es otro) ── */}
-          {tipo === "Tradicional" ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                2 • Sistema Tradicional (Riel o Barral)
-              </label>
-
-              <div className="flex gap-2 max-w-sm">
-                {SISTEMAS_TRADICIONAL.map((sis) => (
+              {/* Selector de cantidad de cortinas de aluminio */}
+              <div className="flex items-center gap-2">
+                {maxAluminioVisibles < 5 && (
                   <button
-                    key={sis}
                     type="button"
                     onClick={() => {
-                      setSistemaTradicional(sis)
-                      if (sis === "Riel") setColorBarral(null)
+                      const prox = Math.min(5, cantidadAluminio + 1) as 1 | 2 | 3 | 4 | 5
+                      setMaxAluminioVisibles((p) => Math.min(5, Math.max(prox, p + 1)))
+                      setCantidadAluminio(prox)
+                      const arr = [...anchosAluminio]
+                      while (arr.length < prox) arr.push("")
+                      setAnchosAluminio(arr)
                     }}
-                    className={`flex-1 rounded-xl border py-2.5 text-xs font-bold transition ${
-                      sistemaTradicional === sis
+                    className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-50 transition shadow-2xs"
+                  >
+                    + Agregar opción ({cantidadAluminio < 5 ? cantidadAluminio + 1 : 5})
+                  </button>
+                )}
+                {cantidadAluminio > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const prev = Math.max(1, cantidadAluminio - 1) as 1 | 2 | 3 | 4 | 5
+                      setCantidadAluminio(prev)
+                    }}
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition shadow-2xs"
+                  >
+                    Quitar
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Botones de cantidad de cortinas */}
+            <div className="flex gap-2 max-w-xs">
+              {([1, 2, 3, 4, 5] as const)
+                .filter((c) => c <= maxAluminioVisibles)
+                .map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => {
+                      setCantidadAluminio(c)
+                      const arr = [...anchosAluminio]
+                      while (arr.length < c) arr.push("")
+                      setAnchosAluminio(arr)
+                    }}
+                    className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${
+                      cantidadAluminio === c
                         ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
                         : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                     }`}
                   >
-                    {sis}
+                    {c} {c > 1 ? "cortinas" : "cortina"}
                   </button>
                 ))}
+            </div>
+
+            {/* Inputs de anchos y alto */}
+            {cantidadAluminio === 1 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-sky-950">
+                    Ancho Aluminio (m)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.1"
+                    value={anchoAluminio}
+                    onChange={(e) => {
+                      const val = e.target.value === "" ? "" : parseFloat(e.target.value) || ""
+                      setAnchoAluminio(val)
+                      setAnchosAluminio([val])
+                    }}
+                    placeholder="0.00"
+                    required
+                    className="mt-1 block w-full rounded-xl border border-sky-300 bg-sky-50/70 p-2.5 text-sm font-bold text-sky-950 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-amber-950">
+                    Alto Aluminio (m)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.1"
+                    value={altoAluminio}
+                    onChange={(e) =>
+                      setAltoAluminio(e.target.value === "" ? "" : parseFloat(e.target.value) || "")
+                    }
+                    placeholder="0.00"
+                    required
+                    className="mt-1 block w-full rounded-xl border border-amber-300 bg-amber-50/70 p-2.5 text-sm font-bold text-amber-950 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-200"
+                  />
+                </div>
               </div>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-sky-950 mb-1.5">
+                    Ancho de cada Cortina de Aluminio (m):
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                    {Array.from({ length: cantidadAluminio }).map((_, idx) => (
+                      <div key={idx} className="space-y-1">
+                        <span className="text-[10px] text-sky-900 font-bold block">
+                          Cortina {idx + 1}
+                        </span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={anchosAluminio[idx] ?? ""}
+                          onChange={(e) => {
+                            const arr = [...anchosAluminio]
+                            arr[idx] = e.target.value === "" ? "" : parseFloat(e.target.value) || ""
+                            setAnchosAluminio(arr)
+                            const total = arr.reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0)
+                            setAnchoAluminio(Number(total.toFixed(2)))
+                          }}
+                          placeholder="0.00"
+                          required
+                          className="block w-full rounded-lg border border-sky-300 bg-sky-50/70 p-2 text-xs font-bold text-sky-950 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-200"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-amber-950">
+                    Alto compartido para todas (m)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.1"
+                    value={altoAluminio}
+                    onChange={(e) =>
+                      setAltoAluminio(e.target.value === "" ? "" : parseFloat(e.target.value) || "")
+                    }
+                    placeholder="0.00"
+                    required
+                    className="mt-1 block w-full max-w-xs rounded-xl border border-amber-300 bg-amber-50/70 p-2.5 text-sm font-bold text-amber-950 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-200"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Opción de Gaza delantera en Aluminio */}
+          <div className="pt-3 border-t border-indigo-100 space-y-3 animate-in fade-in duration-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-xs font-bold text-slate-800">
+                  ¿Sumar Gaza por delante?
+                </label>
+                <p className="text-[11px] text-slate-500">
+                  La persiana actúa como B.O. y por delante se coloca una Gaza (Tradicional, Roller o Motorizada)
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const nuevo = !aluminioTieneGaza
+                  setAluminioTieneGaza(nuevo)
+                  setGazaActiva(nuevo)
+                }}
+                className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-bold transition ${
+                  aluminioTieneGaza
+                    ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                <span
+                  className={`flex h-4 w-4 items-center justify-center rounded-sm border text-[10px] ${
+                    aluminioTieneGaza ? "border-white bg-white text-indigo-700" : "border-slate-300 bg-white"
+                  }`}
+                >
+                  {aluminioTieneGaza && <Check className="h-3 w-3" />}
+                </span>
+                <span>{aluminioTieneGaza ? "Gaza Activada" : "+ Sumar Gaza"}</span>
+              </button>
+            </div>
+
+            {aluminioTieneGaza && (
+              <div className="rounded-xl border border-indigo-200 bg-white p-4 space-y-4 animate-in fade-in duration-100">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Tipo de Sistema en Gaza Delantera:
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
+                    {(["Tradicional", "Roller", "Bandas verticales", "Tradicional Mot", "Roller Mot"] as const).map((tg) => (
+                      <button
+                        key={tg}
+                        type="button"
+                        onClick={() => {
+                          setTipoCapaGaza(tg)
+                          if (tg === "Tradicional") {
+                            // default riel si no estaba
+                            if (!sistemaTradicional) setSistemaTradicional("Riel")
+                          } else if (tg === "Tradicional Mot") {
+                            setSistemaTradicional("Riel")
+                          }
+                        }}
+                        className={`rounded-lg border py-2 px-1 text-xs font-bold transition text-center ${
+                          tipoCapaGaza === tg
+                            ? "border-indigo-600 bg-indigo-50 text-indigo-700 font-bold"
+                            : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        {tg}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── 1) TRADICIONAL (Común) ── */}
+                {tipoCapaGaza === "Tradicional" && (
+                  <div className="space-y-3.5 pt-2 border-t border-indigo-100">
+                    {/* Selector de Sistema: Riel o Barral */}
+                    <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-3 space-y-2">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Sistema Tradicional Gaza:
+                      </label>
+                      <div className="flex gap-2 max-w-xs">
+                        {SISTEMAS_TRADICIONAL.map((sis) => (
+                          <button
+                            key={sis}
+                            type="button"
+                            onClick={() => {
+                              setSistemaTradicional(sis)
+                              if (sis === "Riel") setColorBarral(null)
+                            }}
+                            className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${
+                              sistemaTradicional === sis
+                                ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            }`}
+                          >
+                            {sis}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Si es Riel: Normal o Curvo */}
+                      {sistemaTradicional === "Riel" && (
+                        <div className="pt-2 border-t border-slate-200/80 animate-in fade-in duration-100">
+                          <label className="block text-xs font-bold text-slate-700">
+                            Tipo de Riel:
+                          </label>
+                          <div className="mt-1 flex gap-2 max-w-xs">
+                            {(["Normal", "Curvo"] as const).map((r) => (
+                              <button
+                                key={r}
+                                type="button"
+                                onClick={() => setTipoRiel(r)}
+                                className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                                  tipoRiel === r
+                                    ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                }`}
+                              >
+                                {r}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Si es Barral: Color + Modelo Kent/Grampa con cálculo */}
+                      {sistemaTradicional === "Barral" && (
+                        <div className="pt-2 border-t border-slate-200/80 space-y-3 animate-in fade-in duration-100">
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700">
+                              Acabado / Color del Barral:
+                            </label>
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              {COLORES_BARRAL.map((cb) => (
+                                <button
+                                  key={cb}
+                                  type="button"
+                                  onClick={() => setColorBarral(cb)}
+                                  className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+                                    colorBarral === cb
+                                      ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                  }`}
+                                >
+                                  {cb}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700">
+                              Modelo de Soporte Barral:
+                            </label>
+                            <div className="mt-1 flex gap-2 max-w-xs">
+                              {(["Kent", "Grampa"] as const).map((sop) => (
+                                <button
+                                  key={sop}
+                                  type="button"
+                                  onClick={() => setTipoSoporte(sop)}
+                                  className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                                    tipoSoporte === sop
+                                      ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                  }`}
+                                >
+                                  {sop}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {tipoSoporte && (
+                            <div className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-2 text-xs">
+                              <Info className="h-4 w-4 text-indigo-600 shrink-0" />
+                              <span className="text-slate-600">
+                                Cálculo:{" "}
+                                <strong className="text-slate-900">
+                                  {calcularCantidadSoportes(typeof anchoGaza === "number" ? anchoGaza : (typeof anchoAluminio === "number" ? anchoAluminio : 0))} Soportes {tipoSoporte} Simple
+                                </strong>
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Paños Tradicional (como Imagen 2) */}
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-bold text-slate-700">
+                          Cantidad de Paños:
+                        </label>
+                        {maxPanosGazaVisibles < 5 && (
+                          <button
+                            type="button"
+                            onClick={() => setMaxPanosGazaVisibles((prev) => Math.min(5, prev + 1))}
+                            className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition"
+                          >
+                            + Agregar opción ({maxPanosGazaVisibles + 1})
+                          </button>
+                        )}
+                      </div>
+                      <div className="mt-1.5 flex gap-1.5">
+                        {([1, 2, 3, 4, 5] as const)
+                          .filter((p) => p <= maxPanosGazaVisibles)
+                          .map((p) => (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => handleCambioPanosGaza(p)}
+                              className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${
+                                panosGaza === p
+                                  ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                              }`}
+                            >
+                              {p} {p > 1 ? "paños" : "paño"}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* Inputs de Ancho Total + Centrar si > 1 */}
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-bold text-sky-950">
+                          Ancho Total Gaza (m)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.1"
+                          value={anchoGaza}
+                          onChange={(e) => {
+                            const val = e.target.value === "" ? "" : parseFloat(e.target.value) || ""
+                            setAnchoGaza(val)
+                            handleCambioPanosGaza(panosGaza, val)
+                          }}
+                          placeholder="0.00"
+                          required
+                          className="mt-1 block w-full rounded-xl border border-sky-300 bg-sky-50/70 p-2.5 text-sm font-bold text-sky-950 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-200"
+                        />
+                      </div>
+
+                      {panosGaza > 1 && (
+                        <div className="rounded-xl bg-slate-50 p-3 border border-indigo-100">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="block text-[11px] font-bold text-slate-600">
+                              Medida de cada paño:
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => handleCambioPanosGaza(panosGaza, anchoGaza)}
+                              className="rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 transition shadow-2xs"
+                            >
+                              Centrar
+                            </button>
+                          </div>
+                          <div className="flex gap-2">
+                            {Array.from({ length: panosGaza }).map((_, pIdx) => (
+                              <div key={pIdx} className="flex-1">
+                                <span className="text-[10px] text-sky-900 font-bold block">
+                                  Paño {pIdx + 1} (m)
+                                </span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0.01"
+                                  value={anchosPanos[pIdx] ?? ""}
+                                  onChange={(e) =>
+                                    handleActualizarAnchoPanoGaza(
+                                      pIdx,
+                                      e.target.value === "" ? "" : parseFloat(e.target.value) || ""
+                                    )
+                                  }
+                                  className="mt-0.5 block w-full rounded-lg border border-sky-300 bg-sky-50/70 p-1.5 text-xs font-bold text-sky-950 focus:border-sky-500 focus:outline-none"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Alto Gaza */}
+                    <div>
+                      <label className="block text-xs font-bold text-amber-950">
+                        Alto Gaza (m)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.1"
+                        value={altoGaza}
+                        onChange={(e) =>
+                          setAltoGaza(e.target.value === "" ? "" : parseFloat(e.target.value) || "")
+                        }
+                        placeholder="0.00"
+                        required
+                        className="mt-1 block w-full rounded-xl border border-amber-300 bg-amber-50/70 p-2.5 text-sm font-bold text-amber-950 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-200"
+                      />
+                    </div>
+
+                    {/* Tela */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700">
+                        Nombre de la Tela (Gaza)
+                      </label>
+                      <input
+                        type="text"
+                        value={nombreTelaGaza}
+                        onChange={(e) => setNombreTelaGaza(e.target.value)}
+                        placeholder="Ej: Gasa de Lino Blanco, Gasa Pañalera"
+                        className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* ── 2) ROLLER & 4) ROLLER MOT ── */}
+                {(tipoCapaGaza === "Roller" || tipoCapaGaza === "Roller Mot") && (
+                  <div className="space-y-3.5 pt-2 border-t border-indigo-100">
+                    {/* Marca Gaza (RS / HD) */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Marca de Proveedor para GAZA ({tipoCapaGaza}):
+                      </label>
+                      <div className="flex gap-2 max-w-xs">
+                        {(["RS", "HD"] as const).map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => {
+                              setMarcaGaza(m)
+                              if (m === "HD" && (perfileria === "Gris" || perfileria === "Beige")) {
+                                setPerfileria("Blanco")
+                              }
+                            }}
+                            className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                              marcaGaza === m
+                                ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            }`}
+                          >
+                            {m}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Perfilería dependiente de marca */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Perfilería ({tipoCapaGaza}):
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {(marcaGaza === "RS"
+                          ? (["Blanco", "Negro", "Gris", "Beige"] as const)
+                          : (["Blanco", "Negro"] as const)
+                        ).map((perf) => (
+                          <button
+                            key={perf}
+                            type="button"
+                            onClick={() => setPerfileria(perf)}
+                            className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+                              perfileria === perf
+                                ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            }`}
+                          >
+                            {perf}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Soportes Roller (Común default / Extendido) */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Modelo de Soporte Roller:
+                      </label>
+                      <div className="flex gap-2 max-w-xs">
+                        {(["Común", "Extendido"] as const).map((sr) => (
+                          <button
+                            key={sr}
+                            type="button"
+                            onClick={() => setTipoSoporteRoller(sr)}
+                            className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                              (tipoSoporteRoller || "Común") === sr
+                                ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            }`}
+                          >
+                            {sr}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Cantidad de Cortinas (como Imagen 3) */}
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-bold text-slate-700">
+                          Cantidad de Cortinas:
+                        </label>
+                        {maxPanosGazaVisibles < 5 && (
+                          <button
+                            type="button"
+                            onClick={() => setMaxPanosGazaVisibles((prev) => Math.min(5, prev + 1))}
+                            className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition"
+                          >
+                            + Agregar opción ({maxPanosGazaVisibles + 1})
+                          </button>
+                        )}
+                      </div>
+                      <div className="mt-1.5 flex gap-1.5">
+                        {([1, 2, 3, 4, 5] as const)
+                          .filter((p) => p <= maxPanosGazaVisibles)
+                          .map((p) => (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => handleCambioPanosGaza(p)}
+                              className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${
+                                panosGaza === p
+                                  ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                              }`}
+                            >
+                              {p} {p > 1 ? "cortinas" : "cortina"}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* Caída Roller (Por delante | Por detrás). Posición NO VA porque siempre va adelante del aluminio */}
+                    <div className="rounded-xl border border-indigo-100 bg-slate-50/50 p-3 space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Caída Roller (GAZA ({tipoCapaGaza})):
+                      </label>
+                      <div className="flex gap-2 max-w-xs">
+                        {TIPOS_CAIDA.map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => setCaida(c)}
+                            className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                              caida === c
+                                ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            }`}
+                          >
+                            {c}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Medida, modo y mando de cada cortina (como Imagen 3) */}
+                    <div className="rounded-xl bg-white p-3 border border-indigo-100 space-y-3">
+                      <label className="block text-[11px] font-bold text-slate-700">
+                        Medida, modo y mando de cada cortina (GAZA ({tipoCapaGaza})):
+                      </label>
+                      <div className="space-y-2">
+                        {Array.from({ length: panosGaza }).map((_, pIdx) => (
+                          <div
+                            key={pIdx}
+                            className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5 flex flex-wrap items-end justify-between gap-x-3 gap-y-2"
+                          >
+                            <div className="flex-1 min-w-[110px]">
+                              <span className="text-[10px] text-sky-900 font-bold block">
+                                Cortina {pIdx + 1} - Ancho (m)
+                              </span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                value={anchosPanos[pIdx] ?? ""}
+                                onChange={(e) =>
+                                  handleActualizarAnchoPanoGaza(
+                                    pIdx,
+                                    e.target.value === "" ? "" : parseFloat(e.target.value) || ""
+                                  )
+                                }
+                                placeholder="0.00"
+                                required
+                                className="mt-0.5 block w-full rounded-lg border border-sky-300 bg-sky-50/70 p-1.5 text-xs font-bold text-sky-950 focus:border-sky-500 focus:outline-none"
+                              />
+                            </div>
+
+                            {/* Mando individual por cortina (en Roller Mot indica lado de salida motor/cable) */}
+                            <div className="shrink-0">
+                              <span className="text-[10px] text-slate-500 font-bold block mb-1">
+                                {tipoCapaGaza === "Roller Mot" ? "Motor / Cable:" : "Mando:"}
+                              </span>
+                              <div className="flex gap-1">
+                                {(["Izquierda", "Derecha"] as const).map((m) => {
+                                  const activo = mandosRollerGaza[pIdx] === m
+                                  return (
+                                    <button
+                                      key={m}
+                                      type="button"
+                                      onClick={() => {
+                                        const arr = [...mandosRollerGaza]
+                                        arr[pIdx] = m
+                                        setMandosRollerGaza(arr)
+                                      }}
+                                      className={`rounded-md px-2 py-1 text-[11px] font-bold border transition ${
+                                        activo
+                                          ? "border-indigo-600 bg-indigo-600 text-white"
+                                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                      }`}
+                                    >
+                                      {m === "Izquierda" ? "Izq" : "Der"}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Modo: Normal / Sólo tela / Sólo riel */}
+                            <div className="shrink-0">
+                              <span className="text-[10px] text-slate-500 font-bold block mb-1">
+                                Modo:
+                              </span>
+                              <div className="flex gap-1">
+                                {opcionesModo(tipoCapaGaza !== "Roller Mot").map((m) => {
+                                  const activo = (modosPanosGaza[pIdx] || "Normal") === m.val
+                                  return (
+                                    <button
+                                      key={m.label}
+                                      type="button"
+                                      onClick={() => {
+                                        const arr = [...modosPanosGaza]
+                                        arr[pIdx] = m.val
+                                        setModosPanosGaza(arr)
+                                      }}
+                                      className={`rounded-md px-2 py-1 text-[11px] font-bold border transition ${
+                                        activo
+                                          ? "border-indigo-600 bg-indigo-600 text-white"
+                                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                      }`}
+                                    >
+                                      {m.label}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Alto Gaza */}
+                    <div>
+                      <label className="block text-xs font-bold text-amber-950">
+                        Alto Gaza (m)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.1"
+                        value={altoGaza}
+                        onChange={(e) =>
+                          setAltoGaza(e.target.value === "" ? "" : parseFloat(e.target.value) || "")
+                        }
+                        placeholder="0.00"
+                        required
+                        className="mt-1 block w-full rounded-xl border border-amber-300 bg-amber-50/70 p-2.5 text-sm font-bold text-amber-950 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-200"
+                      />
+                    </div>
+
+                    {/* Nombre de la Tela */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700">
+                        Nombre de la Tela (Gaza)
+                      </label>
+                      <input
+                        type="text"
+                        value={nombreTelaGaza}
+                        onChange={(e) => setNombreTelaGaza(e.target.value)}
+                        placeholder="Ej: Gasa de Lino Blanco, Screen 5%"
+                        className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* ── BANDAS VERTICALES ── */}
+                {tipoCapaGaza === "Bandas verticales" && (
+                  <div className="space-y-3.5 pt-2 border-t border-indigo-100">
+                    {/* Marca Gaza (RS / HD) */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Marca de Proveedor para GAZA (Bandas Verticales):
+                      </label>
+                      <div className="flex gap-2 max-w-xs">
+                        {(["RS", "HD"] as const).map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => {
+                              setMarcaGaza(m)
+                              if (m === "HD" && (perfileria === "Gris" || perfileria === "Beige")) {
+                                setPerfileria("Blanco")
+                              }
+                            }}
+                            className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                              marcaGaza === m
+                                ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            }`}
+                          >
+                            {m}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Perfilería dependiente de marca */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Perfilería (Bandas Verticales):
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {(marcaGaza === "RS"
+                          ? (["Blanco", "Negro", "Gris", "Beige"] as const)
+                          : (["Blanco", "Negro"] as const)
+                        ).map((perf) => (
+                          <button
+                            key={perf}
+                            type="button"
+                            onClick={() => setPerfileria(perf)}
+                            className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+                              perfileria === perf
+                                ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            }`}
+                          >
+                            {perf}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Cantidad de Cortinas */}
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-bold text-slate-700">
+                          Cantidad de Cortinas:
+                        </label>
+                        {maxPanosGazaVisibles < 5 && (
+                          <button
+                            type="button"
+                            onClick={() => setMaxPanosGazaVisibles((prev) => Math.min(5, prev + 1))}
+                            className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition"
+                          >
+                            + Agregar opción ({maxPanosGazaVisibles + 1})
+                          </button>
+                        )}
+                      </div>
+                      <div className="mt-1.5 flex gap-1.5">
+                        {([1, 2, 3, 4, 5] as const)
+                          .filter((p) => p <= maxPanosGazaVisibles)
+                          .map((p) => (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => handleCambioPanosGaza(p)}
+                              className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${
+                                panosGaza === p
+                                  ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                              }`}
+                            >
+                              {p} {p > 1 ? "cortinas" : "cortina"}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* Medida, modo y mando de cada cortina */}
+                    <div className="rounded-xl bg-white p-3 border border-indigo-100 space-y-3">
+                      <label className="block text-[11px] font-bold text-slate-700">
+                        Medida, modo y mando de cada cortina (GAZA (Bandas Verticales)):
+                      </label>
+                      <div className="space-y-2">
+                        {Array.from({ length: panosGaza }).map((_, pIdx) => (
+                          <div
+                            key={pIdx}
+                            className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5 flex flex-wrap items-end justify-between gap-x-3 gap-y-2"
+                          >
+                            <div className="flex-1 min-w-[110px]">
+                              <span className="text-[10px] text-sky-900 font-bold block">
+                                Cortina {pIdx + 1} - Ancho (m)
+                              </span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                value={anchosPanos[pIdx] ?? ""}
+                                onChange={(e) =>
+                                  handleActualizarAnchoPanoGaza(
+                                    pIdx,
+                                    e.target.value === "" ? "" : parseFloat(e.target.value) || ""
+                                  )
+                                }
+                                placeholder="0.00"
+                                required
+                                className="mt-0.5 block w-full rounded-lg border border-sky-300 bg-sky-50/70 p-1.5 text-xs font-bold text-sky-950 focus:border-sky-500 focus:outline-none"
+                              />
+                            </div>
+
+                            {/* Mando individual por cortina */}
+                            <div className="shrink-0">
+                              <span className="text-[10px] text-slate-500 font-bold block mb-1">
+                                Mando:
+                              </span>
+                              <div className="flex gap-1">
+                                {(["Izquierda", "Derecha"] as const).map((m) => {
+                                  const activo = mandosRollerGaza[pIdx] === m
+                                  return (
+                                    <button
+                                      key={m}
+                                      type="button"
+                                      onClick={() => {
+                                        const arr = [...mandosRollerGaza]
+                                        arr[pIdx] = m
+                                        setMandosRollerGaza(arr)
+                                      }}
+                                      className={`rounded-md px-2 py-1 text-[11px] font-bold border transition ${
+                                        activo
+                                          ? "border-indigo-600 bg-indigo-600 text-white"
+                                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                      }`}
+                                    >
+                                      {m === "Izquierda" ? "Izq" : "Der"}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Modo: Normal / Sólo tela / Sólo riel */}
+                            <div className="shrink-0">
+                              <span className="text-[10px] text-slate-500 font-bold block mb-1">
+                                Modo:
+                              </span>
+                              <div className="flex gap-1">
+                                {opcionesModo(true).map((m) => {
+                                  const activo = (modosPanosGaza[pIdx] || "Normal") === m.val
+                                  return (
+                                    <button
+                                      key={m.label}
+                                      type="button"
+                                      onClick={() => {
+                                        const arr = [...modosPanosGaza]
+                                        arr[pIdx] = m.val
+                                        setModosPanosGaza(arr)
+                                      }}
+                                      className={`rounded-md px-2 py-1 text-[11px] font-bold border transition ${
+                                        activo
+                                          ? "border-indigo-600 bg-indigo-600 text-white"
+                                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                      }`}
+                                    >
+                                      {m.label}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Alto Gaza */}
+                    <div>
+                      <label className="block text-xs font-bold text-amber-950">
+                        Alto Gaza (m)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.1"
+                        value={altoGaza}
+                        onChange={(e) =>
+                          setAltoGaza(e.target.value === "" ? "" : parseFloat(e.target.value) || "")
+                        }
+                        placeholder="0.00"
+                        required
+                        className="mt-1 block w-full rounded-xl border border-amber-300 bg-amber-50/70 p-2.5 text-sm font-bold text-amber-950 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-200"
+                      />
+                    </div>
+
+                    {/* Nombre de la Tela */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700">
+                        Nombre de la Tela (Gaza)
+                      </label>
+                      <input
+                        type="text"
+                        value={nombreTelaGaza}
+                        onChange={(e) => setNombreTelaGaza(e.target.value)}
+                        placeholder="Ej: Screen 5%, Sunscreen Blanco"
+                        className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+                {tipoCapaGaza === "Tradicional Mot" && (
+                  <div className="space-y-3.5 pt-2 border-t border-indigo-100">
+                    {/* Sistema Riel fijo + selector Normal o Curvo */}
+                    <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-lg border border-indigo-600 bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs">
+                          Riel
+                        </span>
+                        <span className="text-xs text-slate-500 font-medium">
+                          (Tradicional motorizada utiliza Riel)
+                        </span>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-200/80">
+                        <label className="block text-xs font-bold text-slate-700">
+                          Tipo de Riel:
+                        </label>
+                        <div className="mt-1 flex gap-2 max-w-xs">
+                          {(["Normal", "Curvo"] as const).map((r) => (
+                            <button
+                              key={r}
+                              type="button"
+                              onClick={() => setTipoRiel(r)}
+                              className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                                tipoRiel === r
+                                  ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                              }`}
+                            >
+                              {r}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Paños Tradicional Mot (como Imagen 4 pero con título Tradicional Mot) */}
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-bold text-slate-700">
+                          Cantidad de Paños:
+                        </label>
+                        {maxPanosGazaVisibles < 5 && (
+                          <button
+                            type="button"
+                            onClick={() => setMaxPanosGazaVisibles((prev) => Math.min(5, prev + 1))}
+                            className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition"
+                          >
+                            + Agregar opción ({maxPanosGazaVisibles + 1})
+                          </button>
+                        )}
+                      </div>
+                      <div className="mt-1.5 flex gap-1.5">
+                        {([1, 2, 3, 4, 5] as const)
+                          .filter((p) => p <= maxPanosGazaVisibles)
+                          .map((p) => (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => handleCambioPanosGaza(p)}
+                              className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${
+                                panosGaza === p
+                                  ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                              }`}
+                            >
+                              {p} {p > 1 ? "paños" : "paño"}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* Inputs de Ancho Total + Centrar si > 1 */}
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-bold text-sky-950">
+                          Ancho Total Gaza (m)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.1"
+                          value={anchoGaza}
+                          onChange={(e) => {
+                            const val = e.target.value === "" ? "" : parseFloat(e.target.value) || ""
+                            setAnchoGaza(val)
+                            handleCambioPanosGaza(panosGaza, val)
+                          }}
+                          placeholder="0.00"
+                          required
+                          className="mt-1 block w-full rounded-xl border border-sky-300 bg-sky-50/70 p-2.5 text-sm font-bold text-sky-950 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-200"
+                        />
+                      </div>
+
+                      {panosGaza > 1 && (
+                        <div className="rounded-xl bg-slate-50 p-3 border border-indigo-100">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="block text-[11px] font-bold text-slate-600">
+                              Medida de cada paño:
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => handleCambioPanosGaza(panosGaza, anchoGaza)}
+                              className="rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 transition shadow-2xs"
+                            >
+                              Centrar
+                            </button>
+                          </div>
+                          <div className="flex gap-2">
+                            {Array.from({ length: panosGaza }).map((_, pIdx) => (
+                              <div key={pIdx} className="flex-1">
+                                <span className="text-[10px] text-sky-900 font-bold block">
+                                  Paño {pIdx + 1} (m)
+                                </span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0.01"
+                                  value={anchosPanos[pIdx] ?? ""}
+                                  onChange={(e) =>
+                                    handleActualizarAnchoPanoGaza(
+                                      pIdx,
+                                      e.target.value === "" ? "" : parseFloat(e.target.value) || ""
+                                    )
+                                  }
+                                  className="mt-0.5 block w-full rounded-lg border border-sky-300 bg-sky-50/70 p-1.5 text-xs font-bold text-sky-950 focus:border-sky-500 focus:outline-none"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Alto Gaza */}
+                    <div>
+                      <label className="block text-xs font-bold text-amber-950">
+                        Alto Gaza (m)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.1"
+                        value={altoGaza}
+                        onChange={(e) =>
+                          setAltoGaza(e.target.value === "" ? "" : parseFloat(e.target.value) || "")
+                        }
+                        placeholder="0.00"
+                        required
+                        className="mt-1 block w-full rounded-xl border border-amber-300 bg-amber-50/70 p-2.5 text-sm font-bold text-amber-950 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-200"
+                      />
+                    </div>
+
+                    {/* Tela */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700">
+                        Nombre de la Tela (Gaza)
+                      </label>
+                      <input
+                        type="text"
+                        value={nombreTelaGaza}
+                        onChange={(e) => setNombreTelaGaza(e.target.value)}
+                        placeholder="Ej: Gasa de Lino Blanco, Gasa Pañalera"
+                        className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────────────────────────────────────────────────────────────── */}
+      {/* FLUJO PROGRESIVO: SI SELECCIONÓ TRADICIONAL O ROLLER / BANDAS / NOCHE TOTAL / MOSQUERA / MOTORIZADA */}
+      {/* ────────────────────────────────────────────────────────────────────────── */}
+      {tipo && tipo !== "Aluminio" && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          {/* ── PASO ESPECIAL: Subtipo si es Motorizada ── */}
+          {tipo === "Motorizada" && (
+            <div className="rounded-2xl border border-amber-300 bg-amber-50/40 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-amber-600" />
+                <label className="block text-xs font-bold uppercase tracking-wider text-amber-950">
+                  Subcategoría Motorizada
+                </label>
+              </div>
+              <p className="text-xs text-amber-800/80">
+                Elegí la combinación de cortinas motorizadas o combinadas para esta abertura:
+              </p>
+              {/* Grilla 2 columnas exactas ordenadas de izq a der */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Columna 1 */}
+                <div className="space-y-2">
+                  {SUBTIPOS_MOTORIZADA.slice(0, 4).map((sub, idx) => {
+                    const sel = subtipoMotorizada === sub
+                    return (
+                      <button
+                        key={sub}
+                        type="button"
+                        onClick={() => setSubtipoMotorizada(sub)}
+                        className={`w-full flex items-center justify-between rounded-xl border p-2.5 text-xs font-bold transition text-left ${
+                          sel
+                            ? "border-amber-600 bg-amber-600 text-white shadow-xs"
+                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${sel ? "bg-amber-700 text-white" : "bg-slate-100 text-slate-500"}`}>
+                            {idx + 1}
+                          </span>
+                          {sub}
+                        </span>
+                        {sel && <Check className="h-3.5 w-3.5 shrink-0" />}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Columna 2 */}
+                <div className="space-y-2">
+                  {SUBTIPOS_MOTORIZADA.slice(4, 8).map((sub, idx) => {
+                    const sel = subtipoMotorizada === sub
+                    return (
+                      <button
+                        key={sub}
+                        type="button"
+                        onClick={() => setSubtipoMotorizada(sub)}
+                        className={`w-full flex items-center justify-between rounded-xl border p-2.5 text-xs font-bold transition text-left ${
+                          sel
+                            ? "border-amber-600 bg-amber-600 text-white shadow-xs"
+                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${sel ? "bg-amber-700 text-white" : "bg-slate-100 text-slate-500"}`}>
+                            {idx + 5}
+                          </span>
+                          {sub}
+                        </span>
+                        {sel && <Check className="h-3.5 w-3.5 shrink-0" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── PASO: Sistema Tradicional (Riel Normal/Curvo o Barral) ── */}
+          {(tipo === "Tradicional" || hayTradicionalComun || (esMotorizada && (capaGazaEsTradicional || capaBOEsTradicional))) && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                Sistema Tradicional {hayTradicionalComun || tipo === "Tradicional" ? "(Riel o Barral)" : "(Motorizada usa Riel)"}
+              </label>
+
+              {/* Si hay tradicional común, puede elegir Riel o Barral */}
+              {(tipo === "Tradicional" || hayTradicionalComun) ? (
+                <div className="flex gap-2 max-w-sm">
+                  {SISTEMAS_TRADICIONAL.map((sis) => (
+                    <button
+                      key={sis}
+                      type="button"
+                      onClick={() => {
+                        setSistemaTradicional(sis)
+                        if (sis === "Riel") setColorBarral(null)
+                      }}
+                      className={`flex-1 rounded-xl border py-2.5 text-xs font-bold transition ${
+                        sistemaTradicional === sis
+                          ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      {sis}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="rounded-lg border border-indigo-600 bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs">
+                    Riel
+                  </span>
+                  <span className="text-xs text-slate-500 font-medium">
+                    (Las cortinas tradicionales motorizadas utilizan riel)
+                  </span>
+                </div>
+              )}
+
+              {/* Si es Riel (común o motorizada): Selector Normal o Curvo */}
+              {(sistemaTradicional === "Riel" || (esMotorizada && !hayTradicionalComun)) && (
+                <div className="pt-2 border-t border-slate-200/80 animate-in fade-in duration-100">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Tipo de Riel:
+                  </label>
+                  <div className="mt-1.5 flex gap-2 max-w-xs">
+                    {(["Normal", "Curvo"] as const).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setTipoRiel(r)}
+                        className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${
+                          tipoRiel === r
+                            ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Si eligió Barral: color del barral */}
-              {sistemaTradicional === "Barral" && (
+              {(tipo === "Tradicional" || hayTradicionalComun) && sistemaTradicional === "Barral" && (
                 <div className="pt-2 border-t border-slate-200/80 animate-in fade-in duration-100">
                   <label className="block text-xs font-bold text-slate-700">
                     Acabado / Color del Barral:
@@ -870,16 +2514,21 @@ export function CortinaItemForm({
                 </div>
               )}
             </div>
-          ) : (
-            /* Perfilería para Roller, Bandas, Roller Noche total, Mosquera */
+          )}
+
+          {/* ── PASO: Perfilería General si hay Roller o Roller Mot ── */}
+          {(hayAlgunaRoller || tipo === "Bandas verticales" || tipo === "Mosquera") && (
             <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                3 • Perfilería ({tipo === "Roller Noche total" ? "Roller Noche Total" : tipo})
+                Perfilería de Cortina {tipo === "Roller Noche total" ? "(Noche Total)" : "(Roller / Bandas)"}
               </label>
+              <p className="text-[11px] text-slate-500">
+                Aplica a todas las capas roller de la abertura
+              </p>
               <div className="flex flex-wrap gap-2">
                 {(tipo === "Roller Noche total" || tipo === "Noche total" || tipo === "Mosquera"
                   ? PERFILERIA_NOCHE_TOTAL
-                  : marca === "RS"
+                  : (marca === "RS" || marcaBO === "RS" || marcaGaza === "RS")
                   ? (["Blanco", "Negro", "Gris", "Beige"] as const)
                   : (["Blanco", "Negro"] as const)
                 ).map((perf) => (
@@ -900,95 +2549,36 @@ export function CortinaItemForm({
             </div>
           )}
 
-          {/* ── PASOS: Sujeción, Mando, Caída B.O. ── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Sujeción */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700">
-                {tipo === "Tradicional" ? "3 • Sujeción" : "4 • Sujeción"}
-              </label>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {TIPOS_SUJECION.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setSujecion(s)}
-                    className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
-                      sujecion === s
-                        ? "border-indigo-600 bg-indigo-50 text-indigo-700 font-bold"
-                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
+          {/* ── PASO: Sujeción de la Cortina ── */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+              Sujeción de la Cortina:
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {TIPOS_SUJECION.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSujecion(s)}
+                  className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${
+                    sujecion === s
+                      ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
             </div>
-
-            {/* Mando: NO APARECE SI ES TRADICIONAL. Para Mosquera incluye Sin mando por default */}
-            {tipo !== "Tradicional" && (
-              <div>
-                <label className="block text-xs font-bold text-slate-700">
-                  5 • Mando
-                </label>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {(tipo === "Mosquera"
-                    ? (["Izquierda", "Derecha", "Sin mando"] as const)
-                    : LADOS_MANDO.filter((m) => m === "Izquierda" || m === "Derecha")
-                  ).map((m) => {
-                    const activo = (mando || (tipo === "Mosquera" ? "Sin mando" : null)) === m
-                    return (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => setMando(m as LadoMando)}
-                        className={`flex-1 rounded-lg border py-1.5 px-2 text-xs font-medium transition text-center ${
-                          activo
-                            ? "border-indigo-600 bg-indigo-600 text-white font-bold"
-                            : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                        }`}
-                      >
-                        {m}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Caída B.O. - Solo si Black Out está activo y no es Mosquera */}
-            {boActiva && tipo !== "Mosquera" && (
-              <div>
-                <label className="block text-xs font-bold text-slate-700">
-                  {tipo === "Tradicional" ? "4 • Caída B.O." : "6 • Caída B.O."}
-                </label>
-                <div className="mt-1.5 flex gap-1.5">
-                  {TIPOS_CAIDA.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setCaida(c)}
-                      className={`flex-1 rounded-lg border py-1.5 text-xs font-medium transition ${
-                        caida === c
-                          ? "border-indigo-600 bg-indigo-600 text-white font-bold"
-                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                      }`}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* ── Soportes: Grampa o Kent (Tradicional) / Común o Extendido (Roller o Tradicional Roller BO) ── */}
-          {tipo === "Tradicional" && (
+          {/* ── Soportes: Grampa o Kent SOLO SI HAY BARRAL (En Riel no llevan soportes) ── */}
+          {((tipo === "Tradicional" || hayTradicionalComun) && sistemaTradicional === "Barral") && (
             <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700">
-                    Modelo de Soporte (Tradicional Taller):
+                    Modelo de Soporte Barral (Tradicional Taller):
                   </label>
                   <div className="mt-1.5 flex gap-2">
                     {(["Kent", "Grampa"] as const).map((sop) => (
@@ -1021,39 +2611,11 @@ export function CortinaItemForm({
                   </div>
                 )}
               </div>
-
-              {/* Si dentro de Tradicional el BO es Roller: Soporte Roller Común o Extendido */}
-              {boActiva && formatoBO === "Roller" && (
-                <div className="pt-3 border-t border-slate-200 animate-in fade-in duration-100">
-                  <label className="block text-xs font-bold text-slate-700">
-                    Modelo de Soporte para B.O. Roller:
-                  </label>
-                  <p className="text-[11px] text-slate-500">
-                    Soporte para el mecanismo Roller en obra
-                  </p>
-                  <div className="mt-1.5 flex gap-2 max-w-xs">
-                    {(["Común", "Extendido"] as const).map((sr) => (
-                      <button
-                        key={sr}
-                        type="button"
-                        onClick={() => setTipoSoporteRoller(sr)}
-                        className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${
-                          tipoSoporteRoller === sr
-                            ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
-                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                        }`}
-                      >
-                        {sr}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
-          {/* Soportes Común / Extendido para Tipo Roller directo */}
-          {tipo === "Roller" && (
+          {/* Soporte Roller: Común / Extendido para todo lo que tenga Roller */}
+          {hayAlgunaRoller && (
             <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
               <label className="block text-xs font-bold text-slate-700">
                 Modelo de Soporte Roller:
@@ -1248,21 +2810,986 @@ export function CortinaItemForm({
                   </div>
                 )}
 
-                {/* Si es Roller Noche Total: Campo para ingresar nombre de tela BO */}
-                {(tipo === "Roller Noche total" || tipo === "Noche total") && (
-                  <div className="pt-2 border-t border-indigo-100">
-                    <label className="block text-xs font-bold text-slate-700">
-                      Tela B.O.:
-                    </label>
-                    <input
-                      type="text"
-                      value={nombreTelaBO}
-                      onChange={(e) => setNombreTelaBO(e.target.value)}
-                      placeholder="Ej: Black Out Blanco, Texturado Beige"
-                      className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
-                    />
+                {/* Opción de Gaza delantera en Roller Noche Total */}
+                <div className="pt-3 border-t border-indigo-100 space-y-3 animate-in fade-in duration-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800">
+                        ¿Sumar Gaza por delante?
+                      </label>
+                      <p className="text-[11px] text-slate-500">
+                        La noche total actúa como B.O. y por delante se coloca una Gaza (Tradicional, Roller o Motorizada)
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nuevo = !nocheTotalTieneGaza
+                        setNocheTotalTieneGaza(nuevo)
+                        setGazaActiva(nuevo)
+                      }}
+                      className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-bold transition ${
+                        nocheTotalTieneGaza
+                          ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                          : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span
+                        className={`flex h-4 w-4 items-center justify-center rounded-sm border text-[10px] ${
+                          nocheTotalTieneGaza ? "border-white bg-white text-indigo-700" : "border-slate-300 bg-white"
+                        }`}
+                      >
+                        {nocheTotalTieneGaza && <Check className="h-3 w-3" />}
+                      </span>
+                      <span>{nocheTotalTieneGaza ? "Gaza Activada" : "+ Sumar Gaza"}</span>
+                    </button>
                   </div>
-                )}
+
+                  {nocheTotalTieneGaza && (
+                    <div className="rounded-xl border border-indigo-200 bg-white p-4 space-y-4 animate-in fade-in duration-100">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Tipo de Sistema en Gaza Delantera:
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
+                          {(["Tradicional", "Roller", "Bandas verticales", "Tradicional Mot", "Roller Mot"] as const).map((tg) => (
+                            <button
+                              key={tg}
+                              type="button"
+                              onClick={() => {
+                                setTipoCapaGaza(tg)
+                                if (tg === "Tradicional") {
+                                  if (!sistemaTradicional) setSistemaTradicional("Riel")
+                                } else if (tg === "Tradicional Mot") {
+                                  setSistemaTradicional("Riel")
+                                }
+                              }}
+                              className={`rounded-lg border py-2 px-1 text-xs font-bold transition text-center ${
+                                tipoCapaGaza === tg
+                                  ? "border-indigo-600 bg-indigo-50 text-indigo-700 font-bold"
+                                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                              }`}
+                            >
+                              {tg}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* ── 1) TRADICIONAL (Común) ── */}
+                      {tipoCapaGaza === "Tradicional" && (
+                        <div className="space-y-3.5 pt-2 border-t border-indigo-100">
+                          {/* Selector de Sistema: Riel o Barral */}
+                          <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-3 space-y-2">
+                            <label className="block text-xs font-bold text-slate-700">
+                              Sistema Tradicional Gaza:
+                            </label>
+                            <div className="flex gap-2 max-w-xs">
+                              {SISTEMAS_TRADICIONAL.map((sis) => (
+                                <button
+                                  key={sis}
+                                  type="button"
+                                  onClick={() => {
+                                    setSistemaTradicional(sis)
+                                    if (sis === "Riel") setColorBarral(null)
+                                  }}
+                                  className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${
+                                    sistemaTradicional === sis
+                                      ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                  }`}
+                                >
+                                  {sis}
+                                </button>
+                              ))}
+                            </div>
+
+                            {/* Si es Riel: Normal o Curvo */}
+                            {sistemaTradicional === "Riel" && (
+                              <div className="pt-2 border-t border-slate-200/80 animate-in fade-in duration-100">
+                                <label className="block text-xs font-bold text-slate-700">
+                                  Tipo de Riel:
+                                </label>
+                                <div className="mt-1 flex gap-2 max-w-xs">
+                                  {(["Normal", "Curvo"] as const).map((r) => (
+                                    <button
+                                      key={r}
+                                      type="button"
+                                      onClick={() => setTipoRiel(r)}
+                                      className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                                        tipoRiel === r
+                                          ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                      }`}
+                                    >
+                                      {r}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Si es Barral: Color + Modelo Kent/Grampa con cálculo */}
+                            {sistemaTradicional === "Barral" && (
+                              <div className="pt-2 border-t border-slate-200/80 space-y-3 animate-in fade-in duration-100">
+                                <div>
+                                  <label className="block text-xs font-bold text-slate-700">
+                                    Acabado / Color del Barral:
+                                  </label>
+                                  <div className="mt-1 flex flex-wrap gap-1.5">
+                                    {COLORES_BARRAL.map((cb) => (
+                                      <button
+                                        key={cb}
+                                        type="button"
+                                        onClick={() => setColorBarral(cb)}
+                                        className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+                                          colorBarral === cb
+                                            ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                        }`}
+                                      >
+                                        {cb}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-bold text-slate-700">
+                                    Modelo de Soporte Barral:
+                                  </label>
+                                  <div className="mt-1 flex gap-2 max-w-xs">
+                                    {(["Kent", "Grampa"] as const).map((sop) => (
+                                      <button
+                                        key={sop}
+                                        type="button"
+                                        onClick={() => setTipoSoporte(sop)}
+                                        className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                                          tipoSoporte === sop
+                                            ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                        }`}
+                                      >
+                                        {sop}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {tipoSoporte && (
+                                  <div className="flex items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 py-2 text-xs">
+                                    <Info className="h-4 w-4 text-indigo-600 shrink-0" />
+                                    <span className="text-slate-600">
+                                      Cálculo:{" "}
+                                      <strong className="text-slate-900">
+                                        {calcularCantidadSoportes(typeof anchoGaza === "number" ? anchoGaza : 0)} Soportes {tipoSoporte} Simple
+                                      </strong>
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Paños Tradicional */}
+                          <div>
+                            <div className="flex items-center justify-between">
+                              <label className="block text-xs font-bold text-slate-700">
+                                Cantidad de Paños:
+                              </label>
+                              {maxPanosGazaVisibles < 5 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setMaxPanosGazaVisibles((prev) => Math.min(5, prev + 1))}
+                                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition"
+                                >
+                                  + Agregar opción ({maxPanosGazaVisibles + 1})
+                                </button>
+                              )}
+                            </div>
+                            <div className="mt-1.5 flex gap-1.5">
+                              {([1, 2, 3, 4, 5] as const)
+                                .filter((p) => p <= maxPanosGazaVisibles)
+                                .map((p) => (
+                                  <button
+                                    key={p}
+                                    type="button"
+                                    onClick={() => handleCambioPanosGaza(p)}
+                                    className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${
+                                      panosGaza === p
+                                        ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                    }`}
+                                  >
+                                    {p} {p > 1 ? "paños" : "paño"}
+                                  </button>
+                                ))}
+                            </div>
+                          </div>
+
+                          {/* Inputs de Ancho Total + Centrar si > 1 */}
+                          <div className="space-y-3">
+                            <div>
+                              <label className="block text-xs font-bold text-sky-950">
+                                Ancho Total Gaza (m)
+                              </label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0.1"
+                                value={anchoGaza}
+                                onChange={(e) => {
+                                  const val = e.target.value === "" ? "" : parseFloat(e.target.value) || ""
+                                  setAnchoGaza(val)
+                                  handleCambioPanosGaza(panosGaza, val)
+                                }}
+                                placeholder="0.00"
+                                required
+                                className="mt-1 block w-full rounded-xl border border-sky-300 bg-sky-50/70 p-2.5 text-sm font-bold text-sky-950 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-200"
+                              />
+                            </div>
+
+                            {panosGaza > 1 && (
+                              <div className="rounded-xl bg-slate-50 p-3 border border-indigo-100">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <label className="block text-[11px] font-bold text-slate-600">
+                                    Medida de cada paño:
+                                  </label>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCambioPanosGaza(panosGaza, anchoGaza)}
+                                    className="rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 transition shadow-2xs"
+                                  >
+                                    Centrar
+                                  </button>
+                                </div>
+                                <div className="flex gap-2">
+                                  {Array.from({ length: panosGaza }).map((_, pIdx) => (
+                                    <div key={pIdx} className="flex-1">
+                                      <span className="text-[10px] text-sky-900 font-bold block">
+                                        Paño {pIdx + 1} (m)
+                                      </span>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0.01"
+                                        value={anchosPanos[pIdx] ?? ""}
+                                        onChange={(e) =>
+                                          handleActualizarAnchoPanoGaza(
+                                            pIdx,
+                                            e.target.value === "" ? "" : parseFloat(e.target.value) || ""
+                                          )
+                                        }
+                                        className="mt-0.5 block w-full rounded-lg border border-sky-300 bg-sky-50/70 p-1.5 text-xs font-bold text-sky-950 focus:border-sky-500 focus:outline-none"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Alto Gaza */}
+                          <div>
+                            <label className="block text-xs font-bold text-amber-950">
+                              Alto Gaza (m)
+                            </label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0.1"
+                              value={altoGaza}
+                              onChange={(e) =>
+                                setAltoGaza(e.target.value === "" ? "" : parseFloat(e.target.value) || "")
+                              }
+                              placeholder="0.00"
+                              required
+                              className="mt-1 block w-full rounded-xl border border-amber-300 bg-amber-50/70 p-2.5 text-sm font-bold text-amber-950 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-200"
+                            />
+                          </div>
+
+                          {/* Tela */}
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700">
+                              Nombre de la Tela (Gaza)
+                            </label>
+                            <input
+                              type="text"
+                              value={nombreTelaGaza}
+                              onChange={(e) => setNombreTelaGaza(e.target.value)}
+                              placeholder="Ej: Gasa de Lino Blanco, Gasa Pañalera"
+                              className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── 2) ROLLER & 4) ROLLER MOT ── */}
+                      {(tipoCapaGaza === "Roller" || tipoCapaGaza === "Roller Mot") && (
+                        <div className="space-y-3.5 pt-2 border-t border-indigo-100">
+                          {/* Marca Gaza (RS / HD) */}
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 mb-1">
+                              Marca de Proveedor para GAZA ({tipoCapaGaza}):
+                            </label>
+                            <div className="flex gap-2 max-w-xs">
+                              {(["RS", "HD"] as const).map((m) => (
+                                <button
+                                  key={m}
+                                  type="button"
+                                  onClick={() => {
+                                    setMarcaGaza(m)
+                                    if (m === "HD" && (perfileria === "Gris" || perfileria === "Beige")) {
+                                      setPerfileria("Blanco")
+                                    }
+                                  }}
+                                  className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                                    marcaGaza === m
+                                      ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                  }`}
+                                >
+                                  {m}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Perfilería dependiente de marca */}
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 mb-1">
+                              Perfilería ({tipoCapaGaza}):
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                              {(marcaGaza === "RS"
+                                ? (["Blanco", "Negro", "Gris", "Beige"] as const)
+                                : (["Blanco", "Negro"] as const)
+                              ).map((perf) => (
+                                <button
+                                  key={perf}
+                                  type="button"
+                                  onClick={() => setPerfileria(perf)}
+                                  className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+                                    perfileria === perf
+                                      ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                  }`}
+                                >
+                                  {perf}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Soportes Roller (Común default / Extendido) */}
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 mb-1">
+                              Modelo de Soporte Roller:
+                            </label>
+                            <div className="flex gap-2 max-w-xs">
+                              {(["Común", "Extendido"] as const).map((sr) => (
+                                <button
+                                  key={sr}
+                                  type="button"
+                                  onClick={() => setTipoSoporteRoller(sr)}
+                                  className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                                    (tipoSoporteRoller || "Común") === sr
+                                      ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                  }`}
+                                >
+                                  {sr}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Cantidad de Cortinas */}
+                          <div>
+                            <div className="flex items-center justify-between">
+                              <label className="block text-xs font-bold text-slate-700">
+                                Cantidad de Cortinas:
+                              </label>
+                              {maxPanosGazaVisibles < 5 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setMaxPanosGazaVisibles((prev) => Math.min(5, prev + 1))}
+                                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition"
+                                >
+                                  + Agregar opción ({maxPanosGazaVisibles + 1})
+                                </button>
+                              )}
+                            </div>
+                            <div className="mt-1.5 flex gap-1.5">
+                              {([1, 2, 3, 4, 5] as const)
+                                .filter((p) => p <= maxPanosGazaVisibles)
+                                .map((p) => (
+                                  <button
+                                    key={p}
+                                    type="button"
+                                    onClick={() => handleCambioPanosGaza(p)}
+                                    className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${
+                                      panosGaza === p
+                                        ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                    }`}
+                                  >
+                                    {p} {p > 1 ? "cortinas" : "cortina"}
+                                  </button>
+                                ))}
+                            </div>
+                          </div>
+
+                          {/* Caída Roller (Por delante | Por detrás). Posición NO VA porque siempre va adelante del Noche Total */}
+                          <div className="rounded-xl border border-indigo-100 bg-slate-50/50 p-3 space-y-1.5">
+                            <label className="block text-xs font-bold text-slate-700">
+                              Caída Roller (GAZA ({tipoCapaGaza})):
+                            </label>
+                            <div className="flex gap-2 max-w-xs">
+                              {TIPOS_CAIDA.map((c) => (
+                                <button
+                                  key={c}
+                                  type="button"
+                                  onClick={() => setCaida(c)}
+                                  className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                                    caida === c
+                                      ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                  }`}
+                                >
+                                  {c}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Medida, modo y mando de cada cortina */}
+                          <div className="rounded-xl bg-white p-3 border border-indigo-100 space-y-3">
+                            <label className="block text-[11px] font-bold text-slate-700">
+                              Medida, modo y mando de cada cortina (GAZA ({tipoCapaGaza})):
+                            </label>
+                            <div className="space-y-2">
+                              {Array.from({ length: panosGaza }).map((_, pIdx) => (
+                                <div
+                                  key={pIdx}
+                                  className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5 flex flex-wrap items-end justify-between gap-x-3 gap-y-2"
+                                >
+                                  <div className="flex-1 min-w-[110px]">
+                                    <span className="text-[10px] text-sky-900 font-bold block">
+                                      Cortina {pIdx + 1} - Ancho (m)
+                                    </span>
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      min="0.01"
+                                      value={anchosPanos[pIdx] ?? ""}
+                                      onChange={(e) =>
+                                        handleActualizarAnchoPanoGaza(
+                                          pIdx,
+                                          e.target.value === "" ? "" : parseFloat(e.target.value) || ""
+                                        )
+                                      }
+                                      placeholder="0.00"
+                                      required
+                                      className="mt-0.5 block w-full rounded-lg border border-sky-300 bg-sky-50/70 p-1.5 text-xs font-bold text-sky-950 focus:border-sky-500 focus:outline-none"
+                                    />
+                                  </div>
+
+                                  {/* Mando individual por cortina (en Roller Mot indica salida cable/motor) */}
+                                  <div className="shrink-0">
+                                    <span className="text-[10px] text-slate-500 font-bold block mb-1">
+                                      {tipoCapaGaza === "Roller Mot" ? "Motor / Cable:" : "Mando:"}
+                                    </span>
+                                    <div className="flex gap-1">
+                                      {(["Izquierda", "Derecha"] as const).map((m) => {
+                                        const activo = mandosRollerGaza[pIdx] === m
+                                        return (
+                                          <button
+                                            key={m}
+                                            type="button"
+                                            onClick={() => {
+                                              const arr = [...mandosRollerGaza]
+                                              arr[pIdx] = m
+                                              setMandosRollerGaza(arr)
+                                            }}
+                                            className={`rounded-md px-2 py-1 text-[11px] font-bold border transition ${
+                                              activo
+                                                ? "border-indigo-600 bg-indigo-600 text-white"
+                                                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                            }`}
+                                          >
+                                            {m === "Izquierda" ? "Izq" : "Der"}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+
+                                  {/* Modo: Normal / Sólo tela / Sólo riel */}
+                                  <div className="shrink-0">
+                                    <span className="text-[10px] text-slate-500 font-bold block mb-1">
+                                      Modo:
+                                    </span>
+                                    <div className="flex gap-1">
+                                      {opcionesModo(tipoCapaGaza !== "Roller Mot").map((m) => {
+                                  const activo = (modosPanosGaza[pIdx] || "Normal") === m.val
+                                        return (
+                                          <button
+                                            key={m.label}
+                                            type="button"
+                                            onClick={() => {
+                                              const arr = [...modosPanosGaza]
+                                              arr[pIdx] = m.val
+                                              setModosPanosGaza(arr)
+                                            }}
+                                            className={`rounded-md px-2 py-1 text-[11px] font-bold border transition ${
+                                              activo
+                                                ? "border-indigo-600 bg-indigo-600 text-white"
+                                                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                            }`}
+                                          >
+                                            {m.label}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Alto Gaza */}
+                          <div>
+                            <label className="block text-xs font-bold text-amber-950">
+                              Alto Gaza (m)
+                            </label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0.1"
+                              value={altoGaza}
+                              onChange={(e) =>
+                                setAltoGaza(e.target.value === "" ? "" : parseFloat(e.target.value) || "")
+                              }
+                              placeholder="0.00"
+                              required
+                              className="mt-1 block w-full rounded-xl border border-amber-300 bg-amber-50/70 p-2.5 text-sm font-bold text-amber-950 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-200"
+                            />
+                          </div>
+
+                          {/* Nombre de la Tela */}
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700">
+                              Nombre de la Tela (Gaza)
+                            </label>
+                            <input
+                              type="text"
+                              value={nombreTelaGaza}
+                              onChange={(e) => setNombreTelaGaza(e.target.value)}
+                              placeholder="Ej: Gasa de Lino Blanco, Screen 5%"
+                              className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── 3) BANDAS VERTICALES ── */}
+                      {tipoCapaGaza === "Bandas verticales" && (
+                        <div className="space-y-3.5 pt-2 border-t border-indigo-100">
+                          {/* Marca Gaza (RS / HD) */}
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 mb-1">
+                              Marca de Proveedor para GAZA (Bandas Verticales):
+                            </label>
+                            <div className="flex gap-2 max-w-xs">
+                              {(["RS", "HD"] as const).map((m) => (
+                                <button
+                                  key={m}
+                                  type="button"
+                                  onClick={() => {
+                                    setMarcaGaza(m)
+                                    if (m === "HD" && (perfileria === "Gris" || perfileria === "Beige")) {
+                                      setPerfileria("Blanco")
+                                    }
+                                  }}
+                                  className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                                    marcaGaza === m
+                                      ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                  }`}
+                                >
+                                  {m}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Perfilería dependiente de marca */}
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 mb-1">
+                              Perfilería (Bandas Verticales):
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                              {(marcaGaza === "RS"
+                                ? (["Blanco", "Negro", "Gris", "Beige"] as const)
+                                : (["Blanco", "Negro"] as const)
+                              ).map((perf) => (
+                                <button
+                                  key={perf}
+                                  type="button"
+                                  onClick={() => setPerfileria(perf)}
+                                  className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+                                    perfileria === perf
+                                      ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                  }`}
+                                >
+                                  {perf}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Cantidad de Cortinas */}
+                          <div>
+                            <div className="flex items-center justify-between">
+                              <label className="block text-xs font-bold text-slate-700">
+                                Cantidad de Cortinas:
+                              </label>
+                              {maxPanosGazaVisibles < 5 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setMaxPanosGazaVisibles((prev) => Math.min(5, prev + 1))}
+                                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition"
+                                >
+                                  + Agregar opción ({maxPanosGazaVisibles + 1})
+                                </button>
+                              )}
+                            </div>
+                            <div className="mt-1.5 flex gap-1.5">
+                              {([1, 2, 3, 4, 5] as const)
+                                .filter((p) => p <= maxPanosGazaVisibles)
+                                .map((p) => (
+                                  <button
+                                    key={p}
+                                    type="button"
+                                    onClick={() => handleCambioPanosGaza(p)}
+                                    className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${
+                                      panosGaza === p
+                                        ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                    }`}
+                                  >
+                                    {p} {p > 1 ? "cortinas" : "cortina"}
+                                  </button>
+                                ))}
+                            </div>
+                          </div>
+
+                          {/* Medida, modo y mando de cada cortina */}
+                          <div className="rounded-xl bg-white p-3 border border-indigo-100 space-y-3">
+                            <label className="block text-[11px] font-bold text-slate-700">
+                              Medida, modo y mando de cada cortina (GAZA (Bandas Verticales)):
+                            </label>
+                            <div className="space-y-2">
+                              {Array.from({ length: panosGaza }).map((_, pIdx) => (
+                                <div
+                                  key={pIdx}
+                                  className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5 flex flex-wrap items-end justify-between gap-x-3 gap-y-2"
+                                >
+                                  <div className="flex-1 min-w-[110px]">
+                                    <span className="text-[10px] text-sky-900 font-bold block">
+                                      Cortina {pIdx + 1} - Ancho (m)
+                                    </span>
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      min="0.01"
+                                      value={anchosPanos[pIdx] ?? ""}
+                                      onChange={(e) =>
+                                        handleActualizarAnchoPanoGaza(
+                                          pIdx,
+                                          e.target.value === "" ? "" : parseFloat(e.target.value) || ""
+                                        )
+                                      }
+                                      placeholder="0.00"
+                                      required
+                                      className="mt-0.5 block w-full rounded-lg border border-sky-300 bg-sky-50/70 p-1.5 text-xs font-bold text-sky-950 focus:border-sky-500 focus:outline-none"
+                                    />
+                                  </div>
+
+                                  {/* Mando individual por cortina */}
+                                  <div className="shrink-0">
+                                    <span className="text-[10px] text-slate-500 font-bold block mb-1">
+                                      Mando:
+                                    </span>
+                                    <div className="flex gap-1">
+                                      {(["Izquierda", "Derecha"] as const).map((m) => {
+                                        const activo = mandosRollerGaza[pIdx] === m
+                                        return (
+                                          <button
+                                            key={m}
+                                            type="button"
+                                            onClick={() => {
+                                              const arr = [...mandosRollerGaza]
+                                              arr[pIdx] = m
+                                              setMandosRollerGaza(arr)
+                                            }}
+                                            className={`rounded-md px-2 py-1 text-[11px] font-bold border transition ${
+                                              activo
+                                                ? "border-indigo-600 bg-indigo-600 text-white"
+                                                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                            }`}
+                                          >
+                                            {m === "Izquierda" ? "Izq" : "Der"}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+
+                                  {/* Modo: Normal / Sólo tela / Sólo riel */}
+                                  <div className="shrink-0">
+                                    <span className="text-[10px] text-slate-500 font-bold block mb-1">
+                                      Modo:
+                                    </span>
+                                    <div className="flex gap-1">
+                                      {opcionesModo(true).map((m) => {
+                                  const activo = (modosPanosGaza[pIdx] || "Normal") === m.val
+                                        return (
+                                          <button
+                                            key={m.label}
+                                            type="button"
+                                            onClick={() => {
+                                              const arr = [...modosPanosGaza]
+                                              arr[pIdx] = m.val
+                                              setModosPanosGaza(arr)
+                                            }}
+                                            className={`rounded-md px-2 py-1 text-[11px] font-bold border transition ${
+                                              activo
+                                                ? "border-indigo-600 bg-indigo-600 text-white"
+                                                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                            }`}
+                                          >
+                                            {m.label}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Alto Gaza */}
+                          <div>
+                            <label className="block text-xs font-bold text-amber-950">
+                              Alto Gaza (m)
+                            </label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0.1"
+                              value={altoGaza}
+                              onChange={(e) =>
+                                setAltoGaza(e.target.value === "" ? "" : parseFloat(e.target.value) || "")
+                              }
+                              placeholder="0.00"
+                              required
+                              className="mt-1 block w-full rounded-xl border border-amber-300 bg-amber-50/70 p-2.5 text-sm font-bold text-amber-950 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-200"
+                            />
+                          </div>
+
+                          {/* Nombre de la Tela */}
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700">
+                              Nombre de la Tela (Gaza)
+                            </label>
+                            <input
+                              type="text"
+                              value={nombreTelaGaza}
+                              onChange={(e) => setNombreTelaGaza(e.target.value)}
+                              placeholder="Ej: Screen 5%, Sunscreen Blanco"
+                              className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── 4) TRADICIONAL MOT ── */}
+                      {tipoCapaGaza === "Tradicional Mot" && (
+                        <div className="space-y-3.5 pt-2 border-t border-indigo-100">
+                          {/* Sistema Riel fijo + selector Normal o Curvo */}
+                          <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-3 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="rounded-lg border border-indigo-600 bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs">
+                                Riel
+                              </span>
+                              <span className="text-xs text-slate-500 font-medium">
+                                (Tradicional motorizada utiliza Riel)
+                              </span>
+                            </div>
+
+                            <div className="pt-2 border-t border-slate-200/80">
+                              <label className="block text-xs font-bold text-slate-700">
+                                Tipo de Riel:
+                              </label>
+                              <div className="mt-1 flex gap-2 max-w-xs">
+                                {(["Normal", "Curvo"] as const).map((r) => (
+                                  <button
+                                    key={r}
+                                    type="button"
+                                    onClick={() => setTipoRiel(r)}
+                                    className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                                      tipoRiel === r
+                                        ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                    }`}
+                                  >
+                                    {r}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Paños Tradicional Mot */}
+                          <div>
+                            <div className="flex items-center justify-between">
+                              <label className="block text-xs font-bold text-slate-700">
+                                Cantidad de Paños:
+                              </label>
+                              {maxPanosGazaVisibles < 5 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setMaxPanosGazaVisibles((prev) => Math.min(5, prev + 1))}
+                                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition"
+                                >
+                                  + Agregar opción ({maxPanosGazaVisibles + 1})
+                                </button>
+                              )}
+                            </div>
+                            <div className="mt-1.5 flex gap-1.5">
+                              {([1, 2, 3, 4, 5] as const)
+                                .filter((p) => p <= maxPanosGazaVisibles)
+                                .map((p) => (
+                                  <button
+                                    key={p}
+                                    type="button"
+                                    onClick={() => handleCambioPanosGaza(p)}
+                                    className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${
+                                      panosGaza === p
+                                        ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                    }`}
+                                  >
+                                    {p} {p > 1 ? "paños" : "paño"}
+                                  </button>
+                                ))}
+                            </div>
+                          </div>
+
+                          {/* Inputs de Ancho Total + Centrar si > 1 */}
+                          <div className="space-y-3">
+                            <div>
+                              <label className="block text-xs font-bold text-sky-950">
+                                Ancho Total Gaza (m)
+                              </label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0.1"
+                                value={anchoGaza}
+                                onChange={(e) => {
+                                  const val = e.target.value === "" ? "" : parseFloat(e.target.value) || ""
+                                  setAnchoGaza(val)
+                                  handleCambioPanosGaza(panosGaza, val)
+                                }}
+                                placeholder="0.00"
+                                required
+                                className="mt-1 block w-full rounded-xl border border-sky-300 bg-sky-50/70 p-2.5 text-sm font-bold text-sky-950 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-200"
+                              />
+                            </div>
+
+                            {panosGaza > 1 && (
+                              <div className="rounded-xl bg-slate-50 p-3 border border-indigo-100">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <label className="block text-[11px] font-bold text-slate-600">
+                                    Medida de cada paño:
+                                  </label>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCambioPanosGaza(panosGaza, anchoGaza)}
+                                    className="rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 transition shadow-2xs"
+                                  >
+                                    Centrar
+                                  </button>
+                                </div>
+                                <div className="flex gap-2">
+                                  {Array.from({ length: panosGaza }).map((_, pIdx) => (
+                                    <div key={pIdx} className="flex-1">
+                                      <span className="text-[10px] text-sky-900 font-bold block">
+                                        Paño {pIdx + 1} (m)
+                                      </span>
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0.01"
+                                        value={anchosPanos[pIdx] ?? ""}
+                                        onChange={(e) =>
+                                          handleActualizarAnchoPanoGaza(
+                                            pIdx,
+                                            e.target.value === "" ? "" : parseFloat(e.target.value) || ""
+                                          )
+                                        }
+                                        className="mt-0.5 block w-full rounded-lg border border-sky-300 bg-sky-50/70 p-1.5 text-xs font-bold text-sky-950 focus:border-sky-500 focus:outline-none"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Alto Gaza */}
+                          <div>
+                            <label className="block text-xs font-bold text-amber-950">
+                              Alto Gaza (m)
+                            </label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0.1"
+                              value={altoGaza}
+                              onChange={(e) =>
+                                setAltoGaza(e.target.value === "" ? "" : parseFloat(e.target.value) || "")
+                              }
+                              placeholder="0.00"
+                              required
+                              className="mt-1 block w-full rounded-xl border border-amber-300 bg-amber-50/70 p-2.5 text-sm font-bold text-amber-950 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-200"
+                            />
+                          </div>
+
+                          {/* Tela */}
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700">
+                              Nombre de la Tela (Gaza)
+                            </label>
+                            <input
+                              type="text"
+                              value={nombreTelaGaza}
+                              onChange={(e) => setNombreTelaGaza(e.target.value)}
+                              placeholder="Ej: Gasa de Lino Blanco, Gasa Pañalera"
+                              className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ) : (
@@ -1305,7 +3832,7 @@ export function CortinaItemForm({
                       >
                         {gazaActiva && <Check className="h-3.5 w-3.5" />}
                       </span>
-                      <span>GAZA</span>
+                      <span>{tituloTarjetaGaza}</span>
                     </button>
 
                     {gazaActiva && (
@@ -1322,9 +3849,9 @@ export function CortinaItemForm({
                       <div>
                         <div className="flex items-center justify-between">
                           <label className="block text-xs font-bold text-slate-700">
-                            {tipo === "Tradicional"
+                            {capaGazaEsTradicional
                               ? "Cantidad de Paños:"
-                              : "Cantidad de Cortinas Gaza:"}
+                              : "Cantidad de Cortinas:"}
                           </label>
                           {maxPanosGazaVisibles < 5 && (
                             <button
@@ -1352,16 +3879,115 @@ export function CortinaItemForm({
                                     : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                                 }`}
                               >
-                                {p} {tipo === "Tradicional" ? `paño${p > 1 ? "s" : ""}` : `cortina${p > 1 ? "s" : ""}`}
+                                {p} {capaGazaEsTradicional ? `paño${p > 1 ? "s" : ""}` : `cortina${p > 1 ? "s" : ""}`}
                               </button>
                             ))}
                         </div>
                       </div>
 
+                      {/* Si es Roller o Bandas o Motorizada combinada: permite alternar si la Gaza es Roller o Bandas */}
+                      {(tipo === "Roller" || tipo === "Bandas verticales" || (esMotorizada && !capaGazaEsTradicional)) && (
+                        <div className="rounded-xl border border-indigo-100 bg-white p-3 space-y-2">
+                          <label className="block text-xs font-bold text-slate-700">
+                            Tipo de Sistema en Gaza:
+                          </label>
+                          <div className="flex gap-2">
+                            {(["Roller", "Bandas verticales"] as const).map((t) => (
+                              <button
+                                key={t}
+                                type="button"
+                                onClick={() => setTipoCapaGaza(t)}
+                                className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                                  tipoCapaGaza === t
+                                    ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                }`}
+                              >
+                                {t}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Marca Gaza (RS o HD) si no es tradicional taller */}
+                      {!capaGazaEsTradicional && (
+                        <div className="rounded-xl border border-indigo-100 bg-white p-3 space-y-1.5">
+                          <label className="block text-xs font-bold text-slate-700">
+                            Marca de Proveedor para {tituloTarjetaGaza}:
+                          </label>
+                          <div className="flex gap-2 max-w-xs">
+                            {(["RS", "HD"] as const).map((m) => (
+                              <button
+                                key={m}
+                                type="button"
+                                onClick={() => setMarcaGaza(m)}
+                                className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                                  marcaGaza === m
+                                    ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                }`}
+                              >
+                                {m}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* CAÍDA Y POSICIÓN ROLLER EN TARJETA GAZA (SOLO SI ES ROLLER O ROLLER MOT) */}
+                      {capaGazaEsRoller && (
+                        <div className="rounded-xl border border-indigo-100 bg-white p-3 space-y-2.5">
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700">
+                              Caída Roller ({tituloTarjetaGaza}):
+                            </label>
+                            <div className="mt-1 flex gap-1.5">
+                              {TIPOS_CAIDA.map((c) => (
+                                <button
+                                  key={c}
+                                  type="button"
+                                  onClick={() => setCaida(c)}
+                                  className={`flex-1 rounded-lg border py-1.5 text-xs font-medium transition ${
+                                    caida === c
+                                      ? "border-indigo-600 bg-indigo-600 text-white font-bold"
+                                      : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                                  }`}
+                                >
+                                  {c}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700">
+                              Posición Roller ({tituloTarjetaGaza}):
+                            </label>
+                            <div className="mt-1 flex gap-1.5">
+                              {(["Adelante", "Atrás"] as const).map((pos) => (
+                                <button
+                                  key={pos}
+                                  type="button"
+                                  onClick={() => setPosicionRoller(pos)}
+                                  className={`flex-1 rounded-lg border py-1.5 text-xs font-medium transition ${
+                                    posicionRoller === pos
+                                      ? "border-indigo-600 bg-indigo-50 text-indigo-700 font-bold"
+                                      : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                                  }`}
+                                >
+                                  {pos}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Ingreso de Anchos (SIEMPRE PRIMERO ANCHO):
                           - Tradicional: Ancho Total + paños si > 1
                           - Roller / Bandas: Ancho individual para cada cortina */}
-                      {tipo === "Tradicional" ? (
+                      {capaGazaEsTradicional ? (
                         <div className="space-y-3">
                           <div>
                             <label className="block text-xs font-bold text-sky-950">
@@ -1387,7 +4013,7 @@ export function CortinaItemForm({
                             <div className="rounded-xl bg-white p-3 border border-indigo-100">
                               <div className="flex items-center justify-between mb-1.5">
                                 <label className="block text-[11px] font-bold text-slate-600">
-                                  Medida de cada paño:
+                                   Medida de cada paño:
                                 </label>
                                 <button
                                   type="button"
@@ -1423,32 +4049,94 @@ export function CortinaItemForm({
                           )}
                         </div>
                       ) : (
-                        /* En Roller / Bandas: anchos individuales directos */
-                        <div className="rounded-xl bg-white p-3 border border-indigo-100 space-y-2">
+                        /* En Roller / Bandas: anchos individuales directos + Opción Sólo Tela por cortina + Mando por cortina */
+                        <div className="rounded-xl bg-white p-3 border border-indigo-100 space-y-3">
                           <label className="block text-[11px] font-bold text-slate-700">
-                            Medida de cada cortina Gaza:
+                            Medida, modo y mando de cada cortina ({tituloTarjetaGaza}):
                           </label>
-                          <div className="flex gap-2">
+                          <div className="space-y-2">
                             {Array.from({ length: panosGaza }).map((_, pIdx) => (
-                              <div key={pIdx} className="flex-1">
-                                <span className="text-[10px] text-sky-900 font-bold block">
-                                  Cortina {pIdx + 1} - Ancho (m)
-                                </span>
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  min="0.01"
-                                  value={anchosPanos[pIdx] ?? ""}
-                                  onChange={(e) =>
-                                    handleActualizarAnchoPanoGaza(
-                                      pIdx,
-                                      e.target.value === "" ? "" : parseFloat(e.target.value) || ""
-                                    )
-                                  }
-                                  placeholder="0.00"
-                                  required
-                                  className="mt-0.5 block w-full rounded-lg border border-sky-300 bg-sky-50/70 p-1.5 text-xs font-bold text-sky-950 focus:border-sky-500 focus:outline-none"
-                                />
+                              <div key={pIdx} className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5 flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
+                                <div className="flex-1 min-w-[110px]">
+                                  <span className="text-[10px] text-sky-900 font-bold block">
+                                    Cortina {pIdx + 1} - Ancho (m)
+                                  </span>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0.01"
+                                    value={anchosPanos[pIdx] ?? ""}
+                                    onChange={(e) =>
+                                      handleActualizarAnchoPanoGaza(
+                                        pIdx,
+                                        e.target.value === "" ? "" : parseFloat(e.target.value) || ""
+                                      )
+                                    }
+                                    placeholder="0.00"
+                                    required
+                                    className="mt-0.5 block w-full rounded-lg border border-sky-300 bg-sky-50/70 p-1.5 text-xs font-bold text-sky-950 focus:border-sky-500 focus:outline-none"
+                                  />
+                                </div>
+
+                                {/* Mando individual por cortina */}
+                                <div className="shrink-0">
+                                  <span className="text-[10px] text-slate-500 font-bold block mb-1">
+                                    Mando:
+                                  </span>
+                                  <div className="flex gap-1">
+                                    {(["Izquierda", "Derecha"] as const).map((m) => {
+                                      const activo = mandosRollerGaza[pIdx] === m
+                                      return (
+                                        <button
+                                          key={m}
+                                          type="button"
+                                          onClick={() => {
+                                            const arr = [...mandosRollerGaza]
+                                            arr[pIdx] = m
+                                            setMandosRollerGaza(arr)
+                                          }}
+                                          className={`rounded-md px-2 py-1 text-[11px] font-bold border transition ${
+                                            activo
+                                              ? "border-indigo-600 bg-indigo-600 text-white"
+                                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                          }`}
+                                        >
+                                          {m === "Izquierda" ? "Izq" : "Der"}
+                                        </button>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* Modo: Normal / Sólo tela / Sólo riel */}
+                                <div className="shrink-0">
+                                  <span className="text-[10px] text-slate-500 font-bold block mb-1">
+                                    Modo:
+                                  </span>
+                                  <div className="flex gap-1">
+                                    {opcionesModo(!capaGazaEsMotorizada).map((m) => {
+                                  const activo = (modosPanosGaza[pIdx] || "Normal") === m.val
+                                      return (
+                                        <button
+                                          key={m.label}
+                                          type="button"
+                                          onClick={() => {
+                                            const arr = [...modosPanosGaza]
+                                            arr[pIdx] = m.val
+                                            setModosPanosGaza(arr)
+                                          }}
+                                          className={`rounded-md px-2 py-1 text-[11px] font-bold border transition ${
+                                            activo
+                                              ? "border-indigo-600 bg-indigo-600 text-white"
+                                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                          }`}
+                                        >
+                                          {m.label}
+                                        </button>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -1522,7 +4210,7 @@ export function CortinaItemForm({
                       >
                         {boActiva && <Check className="h-3.5 w-3.5" />}
                       </span>
-                      <span>B.O. (Black Out)</span>
+                      <span>{tituloTarjetaBO}</span>
                     </button>
 
                     {boActiva && (
@@ -1535,7 +4223,7 @@ export function CortinaItemForm({
                   {/* Formulario de BO (aparece solo al tocarla) */}
                   {boActiva && (
                     <div className="mt-4 space-y-3.5 pt-3 border-t border-slate-200 animate-in fade-in duration-100">
-                      {/* Formato de Fabricación del B.O. si es Tradicional */}
+                      {/* Formato de Fabricación del B.O. si es Tradicional puro */}
                       {tipo === "Tradicional" && (
                         <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
                           <label className="block text-xs font-bold text-slate-700">
@@ -1566,60 +4254,32 @@ export function CortinaItemForm({
                             </button>
                           </div>
 
-                          {/* Si el B.O. es Roller: Selección de Marca ANTES de Perfilería */}
+                          {/* Si el B.O. es Roller: Selección de Marca */}
                           {formatoBO === "Roller" && (
-                            <div className="pt-2 mt-2 border-t border-slate-100 space-y-3 animate-in fade-in duration-100">
-                              <div>
-                                <span className="block text-[11px] font-bold text-slate-600">
-                                  Marca de Proveedor B.O. Roller:
-                                </span>
-                                <div className="mt-1 flex gap-1.5 max-w-xs">
-                                  {MARCAS_CORTINA.map((m) => (
-                                    <button
-                                      key={m}
-                                      type="button"
-                                      onClick={() => {
-                                        setMarcaBO(m)
-                                        if (m !== "RS" && (perfileria === "Gris" || perfileria === "Beige")) {
-                                          setPerfileria("Blanco")
-                                        }
-                                      }}
-                                      className={`flex-1 rounded-md border py-1.5 text-xs font-bold transition ${
-                                        marcaBO === m
-                                          ? "border-indigo-600 bg-indigo-50 text-indigo-700"
-                                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                                      }`}
-                                    >
-                                      {m}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-
-                              {/* Perfilería para B.O. Roller */}
-                              <div>
-                                <span className="block text-[11px] font-bold text-slate-600">
-                                  Perfilería B.O. Roller:
-                                </span>
-                                <div className="mt-1 flex flex-wrap gap-1.5">
-                                  {(marcaBO === "RS"
-                                    ? (["Blanco", "Negro", "Gris", "Beige"] as const)
-                                    : (["Blanco", "Negro"] as const)
-                                  ).map((perf) => (
-                                    <button
-                                      key={perf}
-                                      type="button"
-                                      onClick={() => setPerfileria(perf)}
-                                      className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
-                                        perfileria === perf
-                                          ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
-                                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                                      }`}
-                                    >
-                                      {perf}
-                                    </button>
-                                  ))}
-                                </div>
+                            <div className="pt-2 mt-2 border-t border-slate-100 space-y-2 animate-in fade-in duration-100">
+                              <span className="block text-[11px] font-bold text-slate-600">
+                                Marca de Proveedor B.O. Roller:
+                              </span>
+                              <div className="flex gap-1.5 max-w-xs">
+                                {MARCAS_CORTINA.map((m) => (
+                                  <button
+                                    key={m}
+                                    type="button"
+                                    onClick={() => {
+                                      setMarcaBO(m)
+                                      if (m !== "RS" && (perfileria === "Gris" || perfileria === "Beige")) {
+                                        setPerfileria("Blanco")
+                                      }
+                                    }}
+                                    className={`flex-1 rounded-md border py-1.5 text-xs font-bold transition ${
+                                      marcaBO === m
+                                        ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                    }`}
+                                  >
+                                    {m}
+                                  </button>
+                                ))}
                               </div>
                             </div>
                           )}
@@ -1630,11 +4290,9 @@ export function CortinaItemForm({
                       <div>
                         <div className="flex items-center justify-between">
                           <label className="block text-xs font-bold text-slate-700">
-                            {tipo === "Tradicional" && formatoBO === "Roller"
-                              ? "Cantidad de Cortinas B.O. Roller:"
-                              : tipo === "Tradicional"
-                              ? "Cantidad de Tramos B.O.:"
-                              : "Cantidad de Cortinas B.O.:"}
+                            {capaBOEsTradicional
+                              ? "Cantidad de Paños / Tramos:"
+                              : "Cantidad de Cortinas:"}
                           </label>
                           {maxTramosBOVisibles < 5 && (
                             <button
@@ -1662,21 +4320,144 @@ export function CortinaItemForm({
                                     : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                                 }`}
                               >
-                                {t} {tipo === "Tradicional" && formatoBO !== "Roller" ? `tramo${t > 1 ? "s" : ""}` : `cortina${t > 1 ? "s" : ""}`}
+                                {t} {capaBOEsTradicional ? `tramo${t > 1 ? "s" : ""}` : `cortina${t > 1 ? "s" : ""}`}
                               </button>
                             ))}
                         </div>
                       </div>
 
+                      {/* Si es Roller o Bandas o Motorizada combinada: permite alternar si el B.O. es Roller o Bandas */}
+                      {(tipo === "Roller" || tipo === "Bandas verticales" || (esMotorizada && !capaBOEsTradicional)) && (
+                        <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
+                          <label className="block text-xs font-bold text-slate-700">
+                            Tipo de Sistema en B.O.:
+                          </label>
+                          <div className="flex gap-2">
+                            {(["Roller", "Bandas verticales"] as const).map((t) => (
+                              <button
+                                key={t}
+                                type="button"
+                                onClick={() => setTipoCapaBO(t)}
+                                className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                                  tipoCapaBO === t
+                                    ? "border-slate-800 bg-slate-800 text-white shadow-xs"
+                                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                }`}
+                              >
+                                {t}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Marca B.O. independiente (RS o HD): SOLO SI NO ES TRADICIONAL COMÚN */}
+                      {(!capaBOEsTradicional && (tipo !== "Tradicional" || formatoBO === "Roller")) && (
+                        <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-1.5">
+                          <label className="block text-xs font-bold text-slate-700">
+                            Marca de Proveedor para {tituloTarjetaBO}:
+                          </label>
+                          <div className="flex gap-2 max-w-xs">
+                            {(["RS", "HD"] as const).map((m) => (
+                              <button
+                                key={m}
+                                type="button"
+                                onClick={() => setMarcaBO(m)}
+                                className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${
+                                  marcaBO === m
+                                    ? "border-slate-800 bg-slate-800 text-white shadow-xs"
+                                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                }`}
+                              >
+                                {m}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* CAÍDA Y POSICIÓN ROLLER EN TARJETA B.O. (SOLO SI ES ROLLER O ROLLER MOT) */}
+                      {capaBOEsRoller && (
+                        <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2.5">
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700">
+                              Caída Roller ({tituloTarjetaBO}):
+                            </label>
+                            <div className="mt-1 flex gap-1.5">
+                              {TIPOS_CAIDA.map((c) => (
+                                <button
+                                  key={c}
+                                  type="button"
+                                  onClick={() => setCaidaBO(c)}
+                                  className={`flex-1 rounded-lg border py-1.5 text-xs font-medium transition ${
+                                    caidaBO === c
+                                      ? "border-slate-800 bg-slate-800 text-white font-bold"
+                                      : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                                  }`}
+                                >
+                                  {c}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700">
+                              Posición Roller ({tituloTarjetaBO}):
+                            </label>
+                            <div className="mt-1 flex gap-1.5">
+                              {(["Adelante", "Atrás"] as const).map((pos) => (
+                                <button
+                                  key={pos}
+                                  type="button"
+                                  onClick={() => setPosicionRollerBO(pos)}
+                                  className={`flex-1 rounded-lg border py-1.5 text-xs font-medium transition ${
+                                    posicionRollerBO === pos
+                                      ? "border-slate-800 bg-slate-100 text-slate-900 font-bold"
+                                      : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                                  }`}
+                                >
+                                  {pos}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* EXCEPCIÓN NO ROLLER: B.O. Tradicional puro lleva Posición (Adelante / Atrás) pero NO caída */}
+                      {tipo === "Tradicional" && formatoBO === "Tradicional" && (
+                        <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
+                          <label className="block text-xs font-bold text-slate-700">
+                            Posición B.O. (Tradicional):
+                          </label>
+                          <div className="mt-1 flex gap-1.5">
+                            {(["Adelante", "Atrás"] as const).map((pos) => (
+                              <button
+                                key={pos}
+                                type="button"
+                                onClick={() => setPosicionRollerBO(pos)}
+                                className={`flex-1 rounded-lg border py-1.5 text-xs font-medium transition ${
+                                  posicionRollerBO === pos
+                                    ? "border-slate-800 bg-slate-100 text-slate-900 font-bold"
+                                    : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                                }`}
+                              >
+                                {pos}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Ingreso de Anchos (SIEMPRE PRIMERO ANCHO):
-                          - Tradicional Taller: Ancho Total + tramos si > 1
-                          - Tradicional con Roller BO: SOLO cortinas individuales (NO ancho total)
-                          - Roller / Bandas: SOLO cortinas individuales */}
-                      {tipo === "Tradicional" && formatoBO !== "Roller" ? (
+                          - Si capaBOEsTradicional: Ancho Total + tramos si > 1 (SIN modo y SIN mando)
+                          - Si NO es tradicional (Roller / Bandas / Motorizada): SOLO cortinas individuales con mando y modo */}
+                      {capaBOEsTradicional ? (
                         <div className="space-y-3">
                           <div>
                             <label className="block text-xs font-bold text-sky-950">
-                              Ancho Total B.O. (m)
+                              Ancho Total {tituloTarjetaBO} (m)
                             </label>
                             <input
                               type="number"
@@ -1734,38 +4515,40 @@ export function CortinaItemForm({
                             </div>
                           )}
                         </div>
-                      ) : tipo === "Tradicional" && formatoBO === "Roller" ? (
-                        /* Tradicional con Roller BO: cada cortina individual con su ancho y mando */
+                      ) : (
+                        /* Si es Roller, Bandas o Motorizada con Roller: anchos individuales directos con opción Sólo Tela y Mando individual */
                         <div className="rounded-xl bg-white p-3 border border-slate-200 space-y-3">
                           <label className="block text-[11px] font-bold text-slate-700">
-                            Medida y Mando de cada cortina Roller:
+                            Medida, modo y mando de cada cortina ({tituloTarjetaBO}):
                           </label>
-                          <div className="flex gap-2">
+                          <div className="space-y-2">
                             {Array.from({ length: tramosBO }).map((_, tIdx) => (
-                              <div key={tIdx} className="flex-1 space-y-1.5">
-                                <span className="text-[10px] text-sky-900 font-bold block">
-                                  Cortina {tIdx + 1} - Ancho (m)
-                                </span>
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  min="0.01"
-                                  value={anchosTramos[tIdx] ?? ""}
-                                  onChange={(e) =>
-                                    handleActualizarAnchoTramoBO(
-                                      tIdx,
-                                      e.target.value === "" ? "" : parseFloat(e.target.value) || ""
-                                    )
-                                  }
-                                  placeholder="0.00"
-                                  required
-                                  className="mt-0.5 block w-full rounded-lg border border-sky-300 bg-sky-50/70 p-1.5 text-xs font-bold text-sky-950 focus:border-sky-500 focus:outline-none"
-                                />
+                              <div key={tIdx} className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5 flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
+                                <div className="flex-1 min-w-[110px]">
+                                  <span className="text-[10px] text-sky-900 font-bold block">
+                                    Cortina {tIdx + 1} - Ancho (m)
+                                  </span>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0.01"
+                                    value={anchosTramos[tIdx] ?? ""}
+                                    onChange={(e) =>
+                                      handleActualizarAnchoTramoBO(
+                                        tIdx,
+                                        e.target.value === "" ? "" : parseFloat(e.target.value) || ""
+                                      )
+                                    }
+                                    placeholder="0.00"
+                                    required
+                                    className="mt-0.5 block w-full rounded-lg border border-sky-300 bg-sky-50/70 p-1.5 text-xs font-bold text-sky-950 focus:border-sky-500 focus:outline-none"
+                                  />
+                                </div>
 
-                                {/* Mando individual */}
-                                <div className="pt-1 border-t border-slate-100">
-                                  <span className="text-[9px] font-bold text-slate-500 block mb-1">
-                                    Mando C{tIdx + 1}:
+                                {/* Mando individual por cortina */}
+                                <div className="shrink-0">
+                                  <span className="text-[10px] text-slate-500 font-bold block mb-1">
+                                    Mando:
                                   </span>
                                   <div className="flex gap-1">
                                     {(["Izquierda", "Derecha"] as const).map((m) => {
@@ -1775,9 +4558,9 @@ export function CortinaItemForm({
                                           key={m}
                                           type="button"
                                           onClick={() => handleActualizarMandoRollerBO(tIdx, m)}
-                                          className={`flex-1 rounded border py-1 text-[10px] font-extrabold transition ${
+                                          className={`rounded-md px-2 py-1 text-[11px] font-bold border transition ${
                                             activo
-                                              ? "border-indigo-600 bg-indigo-600 text-white shadow-2xs"
+                                              ? "border-slate-800 bg-slate-800 text-white"
                                               : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                                           }`}
                                         >
@@ -1786,43 +4569,37 @@ export function CortinaItemForm({
                                       )
                                     })}
                                   </div>
-                                  {!mandosRollerBO[tIdx] && (
-                                    <span className="text-[9px] font-bold text-amber-600 block mt-0.5">
-                                      * Elegir mando
-                                    </span>
-                                  )}
                                 </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        /* En Roller / Bandas: anchos individuales directos */
-                        <div className="rounded-xl bg-white p-3 border border-slate-200 space-y-2">
-                          <label className="block text-[11px] font-bold text-slate-700">
-                            Medida de cada cortina B.O.:
-                          </label>
-                          <div className="flex gap-2">
-                            {Array.from({ length: tramosBO }).map((_, tIdx) => (
-                              <div key={tIdx} className="flex-1">
-                                <span className="text-[10px] text-sky-900 font-bold block">
-                                  Cortina {tIdx + 1} - Ancho (m)
-                                </span>
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  min="0.01"
-                                  value={anchosTramos[tIdx] ?? ""}
-                                  onChange={(e) =>
-                                    handleActualizarAnchoTramoBO(
-                                      tIdx,
-                                      e.target.value === "" ? "" : parseFloat(e.target.value) || ""
-                                    )
-                                  }
-                                  placeholder="0.00"
-                                  required
-                                  className="mt-0.5 block w-full rounded-lg border border-sky-300 bg-sky-50/70 p-1.5 text-xs font-bold text-sky-950 focus:border-sky-500 focus:outline-none"
-                                />
+
+                                {/* Modo: Normal / Sólo tela / Sólo riel */}
+                                <div className="shrink-0">
+                                  <span className="text-[10px] text-slate-500 font-bold block mb-1">
+                                    Modo:
+                                  </span>
+                                  <div className="flex gap-1">
+                                    {opcionesModo(!capaBOEsMotorizada).map((m) => {
+                                  const activo = (modosTramosBO[tIdx] || "Normal") === m.val
+                                      return (
+                                        <button
+                                          key={m.label}
+                                          type="button"
+                                          onClick={() => {
+                                            const arr = [...modosTramosBO]
+                                            arr[tIdx] = m.val
+                                            setModosTramosBO(arr)
+                                          }}
+                                          className={`rounded-md px-2 py-1 text-[11px] font-bold border transition ${
+                                            activo
+                                              ? "border-slate-800 bg-slate-800 text-white"
+                                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                          }`}
+                                        >
+                                          {m.label}
+                                        </button>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -1867,6 +4644,329 @@ export function CortinaItemForm({
                   )}
                 </div>
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── ACORDEÓN DE MOTORIZACIÓN (Si alguna capa es motorizada) ── */}
+      {(capaGazaEsMotorizada || capaBOEsMotorizada) && (
+        <div className="rounded-2xl border border-amber-300 bg-amber-50/30 overflow-hidden shadow-xs animate-in fade-in duration-150">
+          <button
+            type="button"
+            onClick={() => setSeccionMotorAbierta(!seccionMotorAbierta)}
+            className="flex w-full items-center justify-between p-4 bg-amber-100/50 hover:bg-amber-100/70 transition text-left"
+          >
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-amber-600" />
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-950">
+                  Configuración de Motorización & Controles
+                </h4>
+                <p className="text-[11px] text-amber-800/80">
+                  Motores Somfy / Tube, modelos, receptores y canales
+                </p>
+              </div>
+            </div>
+            {seccionMotorAbierta ? (
+              <ChevronUp className="h-4 w-4 text-amber-800" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-amber-800" />
+            )}
+          </button>
+
+          {seccionMotorAbierta && (
+            <div className="p-4 space-y-4 border-t border-amber-200/60 bg-white">
+              {/* Motor para Gaza si es motorizada */}
+              {capaGazaEsMotorizada && gazaActiva && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/20 p-3.5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-950">
+                      ⚡ Motor Capa Gaza ({capaGazaEsTradicional ? "Tradicional Mot" : "Roller Mot"})
+                    </span>
+                    <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded">
+                      Gaza
+                    </span>
+                  </div>
+
+                  {/* Marca del Motor: Somfy o Tube */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Marca del Motor:
+                    </label>
+                    <div className="flex gap-2 max-w-xs">
+                      {(["Somfy", "Tube"] as const).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => {
+                            setMotorGazaMarca(m)
+                            if (capaGazaEsTradicional) {
+                              setMotorGazaModelo(m === "Somfy" ? "Somfy Tradicional" : "Tube Tradicional")
+                            } else {
+                              setMotorGazaModelo(m === "Somfy" ? "LSN 6/28R" : "6/28R 40mm")
+                            }
+                          }}
+                          className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${
+                            motorGazaMarca === m
+                              ? "border-amber-600 bg-amber-600 text-white shadow-xs"
+                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          {m}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Modelo de motor: si es Roller Mot tiene opciones específicas, si es Tradicional Mot es único */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Modelo de Motor:
+                    </label>
+                    {capaGazaEsTradicional ? (
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800">
+                          {motorGazaMarca} Motor Estándar Tradicional
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {(motorGazaMarca === "Somfy"
+                          ? MODELOS_MOTOR_ROLLER_SOMFY
+                          : MODELOS_MOTOR_ROLLER_TUBE
+                        ).map((mod) => (
+                          <button
+                            key={mod}
+                            type="button"
+                            onClick={() => setMotorGazaModelo(mod)}
+                            className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+                              motorGazaModelo === mod
+                                ? "border-amber-600 bg-amber-600 text-white shadow-xs"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            }`}
+                          >
+                            {mod}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Control Remoto: Sí / No y Canales */}
+                  <div className="pt-2 border-t border-amber-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Control Remoto Gaza:
+                      </label>
+                      <div className="flex gap-2">
+                        {[
+                          { label: "SÍ", val: true },
+                          { label: "NO", val: false },
+                        ].map((c) => (
+                          <button
+                            key={c.label}
+                            type="button"
+                            onClick={() => setMotorGazaControl(c.val)}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-bold border transition ${
+                              motorGazaControl === c.val
+                                ? "border-amber-600 bg-amber-600 text-white"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            }`}
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {motorGazaControl && (
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Canales del Control:
+                        </label>
+                        <div className="flex gap-1.5">
+                          {CANALES_CONTROL.map((can) => (
+                            <button
+                              key={can}
+                              type="button"
+                              onClick={() => setMotorGazaCanales(can)}
+                              className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold transition ${
+                                motorGazaCanales === can
+                                  ? "border-amber-600 bg-amber-600 text-white shadow-xs"
+                                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                              }`}
+                            >
+                              {can} {can === 1 ? "canal" : "canales"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Motor para Black Out si es motorizada */}
+              {capaBOEsMotorizada && boActiva && (
+                <div className="rounded-xl border border-slate-300 bg-slate-50/50 p-3.5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900">
+                      ⚡ Motor Capa Black Out ({tipoCapaBO === "Tradicional" ? "Tradicional Mot" : "Roller Mot"})
+                    </span>
+                    <span className="text-[10px] font-bold bg-slate-200 text-slate-800 px-2 py-0.5 rounded">
+                      B.O.
+                    </span>
+                  </div>
+
+                  {/* Marca del Motor: Somfy o Tube */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Marca del Motor:
+                    </label>
+                    <div className="flex gap-2 max-w-xs">
+                      {(["Somfy", "Tube"] as const).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => {
+                            setMotorBOMarca(m)
+                            if (tipoCapaBO === "Tradicional") {
+                              setMotorBOModelo(m === "Somfy" ? "Somfy Tradicional" : "Tube Tradicional")
+                            } else {
+                              setMotorBOModelo(m === "Somfy" ? "LSN 6/28R" : "6/28R 40mm")
+                            }
+                          }}
+                          className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${
+                            motorBOMarca === m
+                              ? "border-slate-800 bg-slate-800 text-white shadow-xs"
+                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          {m}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Modelo de motor */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Modelo de Motor:
+                    </label>
+                    {tipoCapaBO === "Tradicional" ? (
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800">
+                          {motorBOMarca} Motor Estándar Tradicional
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {(motorBOMarca === "Somfy"
+                          ? MODELOS_MOTOR_ROLLER_SOMFY
+                          : MODELOS_MOTOR_ROLLER_TUBE
+                        ).map((mod) => (
+                          <button
+                            key={mod}
+                            type="button"
+                            onClick={() => setMotorBOModelo(mod)}
+                            className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+                              motorBOModelo === mod
+                                ? "border-slate-800 bg-slate-800 text-white shadow-xs"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            }`}
+                          >
+                            {mod}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Control Remoto: Sí / No y Canales */}
+                  <div className="pt-2 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Control Remoto B.O.:
+                      </label>
+                      <div className="flex gap-2">
+                        {[
+                          { label: "SÍ", val: true },
+                          { label: "NO", val: false },
+                        ].map((c) => (
+                          <button
+                            key={c.label}
+                            type="button"
+                            onClick={() => setMotorBOControl(c.val)}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-bold border transition ${
+                              motorBOControl === c.val
+                                ? "border-slate-800 bg-slate-800 text-white"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            }`}
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {motorBOControl && (
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Canales del Control:
+                        </label>
+                        <div className="flex gap-1.5">
+                          {CANALES_CONTROL.map((can) => (
+                            <button
+                              key={can}
+                              type="button"
+                              onClick={() => setMotorBOCanales(can)}
+                              className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold transition ${
+                                motorBOCanales === can
+                                  ? "border-slate-800 bg-slate-800 text-white shadow-xs"
+                                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                              }`}
+                            >
+                              {can} {can === 1 ? "canal" : "canales"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Recuadro Cantidad de Cargadores si algún motor es Li-ion ── */}
+              {(motorGazaModelo.toLowerCase().includes("li-ion") || motorBOModelo.toLowerCase().includes("li-ion")) && (
+                <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 space-y-2 animate-in fade-in duration-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block text-xs font-bold text-indigo-950">
+                        Cantidad de Cargadores (Li-ion):
+                      </label>
+                      <p className="text-[11px] text-indigo-800/80">
+                        Total para la abertura completa (dejar vacío si no lleva)
+                      </p>
+                    </div>
+                  </div>
+                  <div className="max-w-xs">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={cantidadCargadores}
+                      onChange={(e) =>
+                        setCantidadCargadores(
+                          e.target.value === "" ? "" : parseInt(e.target.value, 10) || ""
+                        )
+                      }
+                      placeholder="0 (o vacío)"
+                      className="mt-1 block w-full rounded-xl border border-indigo-300 bg-white p-2.5 text-sm font-bold text-indigo-950 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-300"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

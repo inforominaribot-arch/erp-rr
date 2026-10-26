@@ -4,6 +4,7 @@
 import { prisma } from "@/lib/prisma"
 import type { Prisma, ItemPresupuesto, Presupuesto, Cliente, Comanda } from "@prisma/client"
 import type { FiltrosPresupuestoInput } from "./schemas"
+import { serializarAvisoMedida } from "@/modules/mediciones/types"
 import type {
   IPresupuesto,
   IItemPresupuesto,
@@ -33,6 +34,7 @@ function serializarItemPresupuesto(item: ItemPresupuesto): IItemPresupuesto {
     precioUnitario: Number(item.precioUnitario),
     subtotal: Number(item.subtotal),
     aceptado: Boolean(item.aceptado),
+    avisoMedida: serializarAvisoMedida(item.medidaAnterior, item.medidaModificadaEn),
     creadoEn: item.creadoEn,
   }
 }

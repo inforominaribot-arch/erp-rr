@@ -2,6 +2,7 @@
 // Tipos específicos del módulo de presupuestos
 
 import type { EstadoPresupuesto, EstadoCliente } from "@/types"
+import type { IAvisoMedidaModificada } from "@/modules/mediciones/types"
 
 // ─── Interfaces de Entidades ──────────────────────────────────────────────────
 
@@ -17,6 +18,7 @@ export interface IItemPresupuesto {
   precioUnitario: number
   subtotal: number
   aceptado: boolean
+  avisoMedida: IAvisoMedidaModificada | null
   creadoEn: Date | string
 }
 

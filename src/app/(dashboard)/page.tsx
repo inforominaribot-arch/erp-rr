@@ -5,7 +5,8 @@ import { Metadata } from "next"
 import { Users, ClipboardList, Package, Calendar, FileText, ArrowRight, CalendarCheck } from "lucide-react"
 import Link from "next/link"
 import { tienePermisoModuloMetricas } from "@/modules/metricas/lib/auth"
-import { obtenerDashboardOperativo } from "@/modules/metricas/queries"
+import { obtenerDashboardOperativo, obtenerAvisosMedidaModificada } from "@/modules/metricas/queries"
+import { DashboardAvisosMedida } from "@/modules/metricas/components/dashboard-avisos-medida"
 import { DashboardKpiCard } from "@/modules/metricas/components/dashboard-kpi-card"
 import { DashboardVisitasHoy } from "@/modules/metricas/components/dashboard-visitas-hoy"
 import { DashboardInstalacionesProximas } from "@/modules/metricas/components/dashboard-instalaciones-proximas"
@@ -89,6 +90,8 @@ export default async function DashboardPage() {
   }
 
   // Vista completa para ADMIN_GENERAL y ADMINISTRACION
+  const avisosMedida = await obtenerAvisosMedidaModificada()
+
   return (
     <div className="space-y-6">
       {/* Encabezado de bienvenida con saludo personalizado */}
@@ -112,6 +115,9 @@ export default async function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Alerta: medidas modificadas después de presupuestar */}
+      <DashboardAvisosMedida avisos={avisosMedida} />
 
       {/* Tarjetas de KPIs principales en vivo */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">

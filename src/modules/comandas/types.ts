@@ -2,7 +2,7 @@
 // Tipos de TypeScript específicos del módulo
 
 import type { EstadoComanda, TipoItemComanda, EstadoCliente, EstadoPresupuesto } from "@/types"
-import type { ICaracteristicasItem } from "@/modules/mediciones/types"
+import type { ICaracteristicasItem, IAvisoMedidaModificada } from "@/modules/mediciones/types"
 
 export type { EstadoComanda, TipoItemComanda }
 
@@ -21,6 +21,7 @@ export interface IItemComanda {
   caracteristicas: ICaracteristicasItem | null
   observaciones: string | null
   completado: boolean
+  avisoMedida: IAvisoMedidaModificada | null
   creadoEn: Date
 }
 

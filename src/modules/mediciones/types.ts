@@ -9,6 +9,34 @@ export type TipoCortina =
   | "Roller Noche total"
   | "Noche total" // compatibilidad con registros previos
   | "Mosquera"
+  | "Motorizada"
+
+export type SubtipoMotorizada =
+  | "Tradicional Mot"
+  | "Tradicional Mot y Tradicional"
+  | "Tradicional Mot y Roller"
+  | "Tradicional Mot y Roller Mot"
+  | "Roller Mot"
+  | "Roller Mot y Roller"
+  | "Roller Mot y Tradicional"
+  | "Bandas Verticales y Roller Mot"
+
+export type MarcaMotor = "Somfy" | "Tube"
+export type ModeloMotorRollerSomfy = "LSN 6/28R" | "LTN 10/28R" | "Li-ion"
+export type ModeloMotorRollerTube = "6/28R 40mm" | "5/28R 50mm" | "li-ion"
+export type CanalesControl = 1 | 4 | 15 | 16
+
+export type TipoRiel = "Normal" | "Curvo"
+
+export type TipoCapaGaza = "Tradicional" | "Roller" | "Bandas verticales" | "Tradicional Mot" | "Roller Mot"
+export type TipoCapaBO = "Tradicional" | "Roller" | "Bandas verticales" | "Tradicional Mot" | "Roller Mot"
+
+export interface IConfigMotor {
+  marca: MarcaMotor
+  modelo: string
+  control: boolean
+  canales?: CanalesControl
+}
 
 export type SistemaTradicional = "Riel" | "Barral"
 
@@ -47,6 +75,63 @@ export type TipoSujecion =
   | "Aire"
   | "Abertura"
 
+/** Aviso para administración: la medición cambió después de presupuestar / generar comanda */
+export interface IAvisoMedidaModificada {
+  anterior: { ancho: number; alto: number }
+  modificadaEn: string // ISO
+}
+
+export function serializarAvisoMedida(
+  medidaAnterior: unknown,
+  medidaModificadaEn: Date | null | undefined
+): IAvisoMedidaModificada | null {
+  if (!medidaModificadaEn) return null
+  const a = (medidaAnterior || {}) as { ancho?: number; alto?: number }
+  return {
+    anterior: { ancho: Number(a.ancho || 0), alto: Number(a.alto || 0) },
+    modificadaEn: medidaModificadaEn.toISOString(),
+  }
+}
+
+export type ModoCortina = "Normal" | "Solo tela" | "Solo riel"
+
+export const MODOS_CORTINA: ModoCortina[] = ["Normal", "Solo tela", "Solo riel"]
+
+/** Devuelve el modo de cada cortina de una capa, leyendo el formato nuevo o el booleano legado. */
+export function obtenerModosCapa(
+  modos: ModoCortina[] | undefined | null,
+  soloTela: boolean[] | undefined | null
+): ModoCortina[] {
+  if (modos && modos.length > 0) return modos
+  return (soloTela || []).map((v) => (v ? "Solo tela" : "Normal"))
+}
+
+/** Lista legible de las cortinas que NO están en modo Normal (ej: "Gaza C2: SÓLO TELA"). */
+export function describirModosEspeciales(
+  carac: Pick<
+    ICaracteristicasItem,
+    "modosPanosGaza" | "modosTramosBO" | "soloTelaPanosGaza" | "soloTelaTramosBO" | "gaza" | "bo"
+  > | null | undefined
+): string[] {
+  if (!carac) return []
+  const res: string[] = []
+  const agregar = (capa: string, modos: ModoCortina[], total: number) => {
+    modos.slice(0, total).forEach((m, i) => {
+      if (m && m !== "Normal") {
+        const etiqueta = total > 1 ? `${capa} C${i + 1}` : capa
+        res.push(`${etiqueta}: ${m === "Solo tela" ? "SÓLO TELA" : "SÓLO RIEL"}`)
+      }
+    })
+  }
+  if (carac.gaza?.activa) {
+    agregar("Gaza", obtenerModosCapa(carac.modosPanosGaza, carac.soloTelaPanosGaza), carac.gaza.panos || 1)
+  }
+  if (carac.bo?.activa) {
+    agregar("B.O.", obtenerModosCapa(carac.modosTramosBO, carac.soloTelaTramosBO), carac.bo.tramos || 1)
+  }
+  return res
+}
+
 export type LadoMando = "Izquierda" | "Derecha" | "Izquierdo" | "Derecho" | "Sin mando"
 
 export type TipoCaida = "Por delante" | "Por detrás"
@@ -82,6 +167,7 @@ export interface IBOConfig {
 
 export interface ICaracteristicasItem {
   tipo: TipoCortina
+  subtipoMotorizada?: SubtipoMotorizada
 
   // Exclusivo para Aluminio
   aluminio?: {
@@ -91,21 +177,45 @@ export interface ICaracteristicasItem {
     tensor?: boolean
   }
 
-  // Para Tradicional, Roller, Bandas, Roller Noche total, Mosquera
+  // Tipos específicos para Gaza / BO en combinaciones avanzadas y aluminio
+  tipoCapaGaza?: TipoCapaGaza
+  tipoCapaBO?: TipoCapaBO
+
+  // Para Tradicional, Roller, Bandas, Roller Noche total, Mosquera, Motorizada
   sistema?: SistemaTradicional
   colorBarral?: ColorBarral
   perfileria?: string // PerfileriaNocheTotal | PerfileriaRoller | PerfileriaBandas
+  tipoRiel?: TipoRiel // Normal | Curvo (para tradicional común y mot)
 
   sujecion?: TipoSujecion
   mando?: LadoMando
   caida?: TipoCaida
+  posicionRoller?: "Adelante" | "Atrás"
+  caidaBO?: TipoCaida
+  posicionRollerBO?: "Adelante" | "Atrás"
   marca?: MarcaCortina
 
   // Formato y configuración de B.O. (Tradicional vs Roller)
   formatoBO?: "Tradicional" | "Roller"
   mandoBO?: LadoMando
-  marcaBO?: MarcaCortina
+  marcaBO?: MarcaCortina | null
   mandosRollerBO?: LadoMando[]
+  mandosRollerGaza?: LadoMando[]
+
+  // Marcas independientes por capa
+  marcaGaza?: MarcaCortina | null
+
+  // Configuración de Motorización
+  motorGaza?: IConfigMotor
+  motorBO?: IConfigMotor
+  cantidadCargadores?: number
+
+  // Modo por cortina/tramo (Roller y Bandas: Normal / Solo tela / Solo riel; Roller Mot: Normal / Solo tela)
+  modosPanosGaza?: ModoCortina[]
+  modosTramosBO?: ModoCortina[]
+  // Legado: "Sólo tela" booleano (se sigue escribiendo para compatibilidad)
+  soloTelaPanosGaza?: boolean[]
+  soloTelaTramosBO?: boolean[]
 
   // Telas
   gaza?: IGazaConfig
@@ -188,11 +298,19 @@ export interface IMedicionOffline {
   observaciones?: string | null
   sincronizado: boolean
   guardadoEn: string // ISO date
+  /** Fecha de la versión del servidor que tiene la tablet (para bajar cambios de la web) */
+  actualizadoEnServidor?: string | null
+  /** Mensaje del servidor si rechazó la última sincronización (ej: presupuesto aceptado) */
+  errorSync?: string | null
+  /** Tiene presupuesto aceptado: no se pueden agregar ni quitar cortinas */
+  bloqueada?: boolean
   ambientes: Array<{
+    id?: string | null // ID del servidor
     idLocal: string
     nombre: string
     orden: number
     items: Array<{
+      id?: string | null // ID del servidor
       idLocal: string
       descripcion: string
       ancho: number
@@ -213,7 +331,33 @@ export const TIPOS_CORTINA: TipoCortina[] = [
   "Aluminio",
   "Roller Noche total",
   "Mosquera",
+  "Motorizada",
 ]
+
+export const SUBTIPOS_MOTORIZADA: SubtipoMotorizada[] = [
+  "Tradicional Mot",
+  "Tradicional Mot y Tradicional",
+  "Tradicional Mot y Roller",
+  "Tradicional Mot y Roller Mot",
+  "Roller Mot",
+  "Roller Mot y Roller",
+  "Roller Mot y Tradicional",
+  "Bandas Verticales y Roller Mot",
+]
+
+export const MODELOS_MOTOR_ROLLER_SOMFY: ModeloMotorRollerSomfy[] = [
+  "LSN 6/28R",
+  "LTN 10/28R",
+  "Li-ion",
+]
+
+export const MODELOS_MOTOR_ROLLER_TUBE: ModeloMotorRollerTube[] = [
+  "6/28R 40mm",
+  "5/28R 50mm",
+  "li-ion",
+]
+
+export const CANALES_CONTROL: CanalesControl[] = [1, 4, 15, 16]
 
 export const FORMATOS_BO = ["Tradicional", "Roller"] as const
 

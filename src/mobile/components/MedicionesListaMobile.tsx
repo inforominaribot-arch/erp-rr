@@ -178,6 +178,12 @@ export function MedicionesListaMobile({
                       )}
                     </div>
 
+                    {m.errorSync && (
+                      <div className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-700">
+                        No se pudo subir: {m.errorSync}
+                      </div>
+                    )}
+
                     {(m.clienteDireccion || m.clienteLocalidad) && (
                       <div className="flex items-center gap-1.5 text-xs text-slate-500">
                         <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />

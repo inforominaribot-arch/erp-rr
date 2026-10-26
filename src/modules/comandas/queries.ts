@@ -14,6 +14,7 @@ import type {
   IPresupuestoAceptadoResumen,
 } from "./types"
 import type { ICaracteristicasItem } from "@/modules/mediciones/types"
+import { serializarAvisoMedida } from "@/modules/mediciones/types"
 
 // ─── Helpers de Serialización ────────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ function serializarItemComanda(item: ItemComanda): IItemComanda {
     caracteristicas: (item.caracteristicas as unknown as ICaracteristicasItem) || null,
     observaciones: item.observaciones,
     completado: item.completado,
+    avisoMedida: serializarAvisoMedida(item.medidaAnterior, item.medidaModificadaEn),
     creadoEn: item.creadoEn,
   }
 }

@@ -25,12 +25,15 @@ interface MedicionFormProps {
   medicionExistente?: IMedicion | null
   clientesIniciales?: IClienteCache[]
   modo?: "crear" | "editar"
+  /** Presupuesto aceptado: no se pueden agregar ni quitar cortinas */
+  bloquearAltasBajas?: boolean
 }
 
 export function MedicionForm({
   medicionExistente,
   clientesIniciales = [],
   modo = "crear",
+  bloquearAltasBajas = false,
 }: MedicionFormProps) {
   const router = useRouter()
   const { isOnline } = useNetworkStatus()
@@ -231,6 +234,7 @@ export function MedicionForm({
       {/* ── 2. Gestor de Ambientes y Cortinas ── */}
       <AmbienteManager
         ambientes={ambientes}
+        bloquearAltasBajas={bloquearAltasBajas}
         onAmbientesChange={(nuevos) => {
           setAmbientes(nuevos)
           setErrorGlobal(null)

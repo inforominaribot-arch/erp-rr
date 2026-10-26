@@ -86,7 +86,9 @@ export function App() {
     } else {
       setNotificacion({
         tipo: "error",
-        mensaje: `${res.mensaje} (${res.error || "Verificá la conexión y la URL del ERP"})`,
+        mensaje: res.error
+          ? `${res.mensaje} (${res.error})`
+          : res.mensaje,
       })
     }
     setSincronizando(false)

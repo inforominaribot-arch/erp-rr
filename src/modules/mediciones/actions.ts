@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 import { tienePermisoModuloMediciones } from "@/lib/auth"
 import type { ActionResponse } from "@/types"
 import {
@@ -11,6 +12,7 @@ import {
   type ClienteExpressInput,
 } from "./schemas"
 import type { IMedicionOffline } from "./types"
+import { aplicarCambiosMedicion, MedicionBloqueadaError } from "./lib/aplicar-cambios-medicion"
 
 // ─── Crear Medición (Online) ──────────────────────────────────────────────────
 
@@ -133,45 +135,28 @@ export async function actualizarMedicion(
       return { success: false, error: "La medición no existe" }
     }
 
-    await prisma.$transaction(async (tx) => {
-      // 1. Eliminar ambientes anteriores (cascada a items)
-      await tx.ambiente.deleteMany({
-        where: { medicionId: id },
-      })
-
-      // 2. Actualizar datos base y crear nuevos ambientes/items
-      await tx.medicion.update({
-        where: { id },
-        data: {
+    await prisma.$transaction(
+      (tx) =>
+        aplicarCambiosMedicion(tx, id, {
           clienteId,
-          observaciones: observaciones?.trim() || null,
-          sincronizado: true,
-          ambientes: {
-            create: ambientes.map((amb, index) => ({
-              nombre: amb.nombre.trim(),
-              orden: amb.orden ?? index,
-              items: {
-                create: amb.items.map((item) => ({
-                  descripcion: item.descripcion.trim(),
-                  ancho: item.ancho,
-                  alto: item.alto,
-                  cantidad: item.cantidad,
-                  caracteristicas: item.caracteristicas as any,
-                  observaciones: item.observaciones?.trim() || null,
-                })),
-              },
-            })),
-          },
-        },
-      })
-    })
+          observaciones,
+          ambientes,
+        }),
+      { timeout: 30000 }
+    )
 
     revalidatePath("/mediciones")
     revalidatePath(`/mediciones/${id}`)
     revalidatePath(`/clientes/${clienteId}`)
+    revalidatePath("/presupuestos")
+    revalidatePath("/comandas")
+    revalidatePath("/")
 
     return { success: true, data: { id } }
   } catch (error) {
+    if (error instanceof MedicionBloqueadaError) {
+      return { success: false, error: error.message }
+    }
     console.error("Error al actualizar medición:", error)
     return {
       success: false,
@@ -377,5 +362,62 @@ export async function crearClienteExpress(
       success: false,
       error: "Ocurrió un error al registrar el cliente express.",
     }
+  }
+}
+
+// ─── Aviso "Medida modificada": marcar como revisado (solo Administración) ─────
+
+export async function marcarAvisoMedidaRevisado(
+  origen: "presupuesto" | "comanda",
+  itemId: string
+): Promise<ActionResponse<void>> {
+  try {
+    const auth = await tienePermisoModuloMediciones(true)
+    if (!auth.permitido) {
+      return { success: false, error: auth.error || "No autorizado" }
+    }
+
+    const item =
+      origen === "presupuesto"
+        ? await prisma.itemPresupuesto.findUnique({
+            where: { id: itemId },
+            select: { id: true, itemMedicionId: true },
+          })
+        : await prisma.itemComanda.findUnique({
+            where: { id: itemId },
+            select: { id: true, itemMedicionId: true },
+          })
+    if (!item) {
+      return { success: false, error: "No se encontró la cortina." }
+    }
+
+    const limpiar = { medidaAnterior: Prisma.DbNull, medidaModificadaEn: null }
+
+    // El aviso se da por revisado en presupuesto y comanda de la misma cortina
+    await prisma.$transaction(async (tx) => {
+      if (item.itemMedicionId) {
+        await tx.itemPresupuesto.updateMany({
+          where: { itemMedicionId: item.itemMedicionId },
+          data: limpiar,
+        })
+        await tx.itemComanda.updateMany({
+          where: { itemMedicionId: item.itemMedicionId },
+          data: limpiar,
+        })
+      } else if (origen === "presupuesto") {
+        await tx.itemPresupuesto.update({ where: { id: item.id }, data: limpiar })
+      } else {
+        await tx.itemComanda.update({ where: { id: item.id }, data: limpiar })
+      }
+    })
+
+    revalidatePath("/presupuestos")
+    revalidatePath("/comandas")
+    revalidatePath("/")
+
+    return { success: true, data: undefined }
+  } catch (error) {
+    console.error("Error al marcar aviso de medida como revisado:", error)
+    return { success: false, error: "No se pudo marcar el aviso como revisado." }
   }
 }

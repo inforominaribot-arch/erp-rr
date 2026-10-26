@@ -32,6 +32,7 @@ export function MedicionFormMobile({
   const [ambientes, setAmbientes] = useState<any[]>(
     medicionExistente?.ambientes?.length
       ? medicionExistente.ambientes.map((a) => ({
+          id: a.id,
           idLocal: a.idLocal,
           nombre: a.nombre,
           orden: a.orden,
@@ -83,13 +84,18 @@ export function MedicionFormMobile({
       observaciones: observaciones.trim() || null,
       sincronizado: false,
       guardadoEn: new Date().toISOString(),
+      actualizadoEnServidor: medicionExistente?.actualizadoEnServidor ?? null,
+      bloqueada: medicionExistente?.bloqueada ?? false,
+      errorSync: null,
       ambientes: ambientes
         .filter((a) => a.items && a.items.length > 0)
         .map((amb, aIdx) => ({
+          id: amb.id || null,
           idLocal: amb.idLocal || amb.id || `amb_off_${aIdx}`,
           nombre: amb.nombre,
           orden: amb.orden ?? aIdx,
           items: amb.items.map((it: any, iIdx: number) => ({
+            id: it.id || null,
             idLocal: it.idLocal || it.id || `item_off_${iIdx}`,
             descripcion: it.descripcion,
             ancho: Number(it.ancho),
@@ -160,6 +166,7 @@ export function MedicionFormMobile({
         <AmbienteManager
           ambientes={ambientes}
           onAmbientesChange={setAmbientes}
+          bloquearAltasBajas={Boolean(medicionExistente?.bloqueada)}
         />
       </div>
 

@@ -10,6 +10,10 @@ import {
   medicionOfflineSyncSchema,
   type MedicionOfflineSyncInput,
 } from "@/modules/mediciones/schemas"
+import {
+  aplicarCambiosMedicion,
+  MedicionBloqueadaError,
+} from "@/modules/mediciones/lib/aplicar-cambios-medicion"
 
 export async function OPTIONS() {
   return handleCorsPreflight()
@@ -78,21 +82,56 @@ export async function POST(req: Request) {
       clienteId: string
       yaExistia?: boolean
     }> = []
+    const rechazadas: Array<{ idLocal: string; idServidor?: string | null; error: string }> = []
 
     // 4. Procesamiento transaccional de cada medición
     for (const med of medicionesParaSincronizar) {
-      // Si ya tiene idServidor, verificar si existe en base de datos para no duplicar
+      // Si ya existe en el servidor: se ACTUALIZA con la versión de la tablet (gana la tablet)
       if (med.idServidor) {
         const existente = await prisma.medicion.findUnique({
           where: { id: med.idServidor },
         })
         if (existente) {
-          resultadosSincronizacion.push({
-            idLocal: med.idLocal,
-            idServidor: existente.id,
-            clienteId: existente.clienteId,
-            yaExistia: true,
-          })
+          try {
+            await prisma.$transaction(
+              (tx) =>
+                aplicarCambiosMedicion(tx, existente.id, {
+                  observaciones: med.observaciones,
+                  ambientes: med.ambientes.map((amb) => ({
+                    id: amb.id,
+                    nombre: amb.nombre,
+                    orden: amb.orden,
+                    items: amb.items.map((it) => ({
+                      id: it.id,
+                      descripcion: it.descripcion,
+                      ancho: it.ancho,
+                      alto: it.alto,
+                      cantidad: it.cantidad,
+                      caracteristicas: it.caracteristicas,
+                      observaciones: it.observaciones,
+                    })),
+                  })),
+                }),
+              { timeout: 30000 }
+            )
+            resultadosSincronizacion.push({
+              idLocal: med.idLocal,
+              idServidor: existente.id,
+              clienteId: existente.clienteId,
+              yaExistia: true,
+            })
+          } catch (err) {
+            if (err instanceof MedicionBloqueadaError) {
+              rechazadas.push({ idLocal: med.idLocal, idServidor: existente.id, error: err.message })
+            } else {
+              console.error(`Error al actualizar medición ${existente.id} desde tablet:`, err)
+              rechazadas.push({
+                idLocal: med.idLocal,
+                idServidor: existente.id,
+                error: "Error al actualizar la medición en el ERP.",
+              })
+            }
+          }
           continue
         }
       }
@@ -179,12 +218,16 @@ export async function POST(req: Request) {
     // 5. Invalidación de caché para el ERP Web
     revalidatePath("/mediciones")
     revalidatePath("/clientes")
+    revalidatePath("/presupuestos")
+    revalidatePath("/comandas")
+    revalidatePath("/")
 
     return jsonResponse({
       success: true,
       mensaje: `Se sincronizaron exitosamente ${resultadosSincronizacion.length} mediciones.`,
       total: resultadosSincronizacion.length,
       sincronizadas: resultadosSincronizacion,
+      rechazadas,
     })
   } catch (error) {
     console.error("Error en endpoint POST /api/mediciones/sync:", error)

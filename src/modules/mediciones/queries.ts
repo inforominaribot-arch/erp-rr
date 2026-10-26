@@ -156,7 +156,7 @@ export async function obtenerMedicionPorId(
       ambientes: {
         orderBy: { orden: "asc" },
         include: {
-          items: true,
+          items: { orderBy: { creadoEn: "asc" } },
         },
       },
     },

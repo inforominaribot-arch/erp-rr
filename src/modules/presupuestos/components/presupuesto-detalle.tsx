@@ -34,6 +34,7 @@ import { eliminarPresupuesto, verificarStockPresupuestoAction } from "../actions
 import type { IReporteDisponibilidadStock } from "../lib/explosion-materiales"
 import { Package, AlertTriangle, Check } from "lucide-react"
 import { formatearPrecio, formatearFecha } from "@/lib/utils"
+import { AvisoMedidaModificada } from "@/components/shared/aviso-medida-modificada"
 
 interface PresupuestoDetalleProps {
   presupuesto: IPresupuestoDetalle
@@ -497,6 +498,15 @@ export function PresupuestoDetalle({
                             <span className="font-bold text-slate-900 block">
                               {it.descripcion}
                             </span>
+                            {puedeEditar && it.avisoMedida && (
+                              <AvisoMedidaModificada
+                                aviso={it.avisoMedida}
+                                anchoActual={it.ancho}
+                                altoActual={it.alto}
+                                origen="presupuesto"
+                                itemId={it.id}
+                              />
+                            )}
                           </td>
                           <td className="py-3 px-4 text-center text-slate-600 font-mono font-medium">
                             {it.ancho > 0 && it.alto > 0

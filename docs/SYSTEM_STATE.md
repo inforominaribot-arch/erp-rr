@@ -49,6 +49,7 @@ _(Completar a medida que se creen)_
 | Componente | Archivo | Descripción |
 |---|---|---|
 | `PWARegister` | `src/components/pwa-register.tsx` | Registro del Service Worker en el cliente para habilitar modo PWA offline |
+| `AvisoMedidaModificada` | `src/components/shared/aviso-medida-modificada.tsx` | Aviso "Medida modificada" para Administración con botón "Revisado" |
 
 ### 🗄️ Tablas de BD creadas
 _(Completar cuando se ejecute `prisma migrate`)_
@@ -100,7 +101,19 @@ _(Completar cuando se ejecute `prisma migrate`)_
   - Alineación precisa de cota superior sobre el marco de cortina.
   - Eliminación de cotas redundantes y alturas internas innecesarias.
   - Modo compacto para impresión de alta densidad en hojas A4.
-- [x] Formulario ágil de cortina con Aluminio, Tradicional, Roller, Bandas, Roller Noche Total y Mosquera (`src/modules/mediciones/components/cortina-item-form.tsx`)
+- [x] Formulario ágil de cortina con Aluminio, Tradicional, Roller, Bandas, Roller Noche Total, Mosquera y **Motorizada ⚡** (`src/modules/mediciones/components/cortina-item-form.tsx`):
+  - **Nuevo tipo de cortina Motorizada:**
+    - 8 subtipos combinados: *Tradicional Mot*, *Tradicional Mot y Tradicional*, *Roller Mot*, *Roller Mot y Roller*, *Tradicional Mot y Roller*, *Tradicional y Roller Mot*, *Tradicional Mot y Roller Mot*, *Roller Mot y Bandas Verticales*.
+    - Motores Somfy (*LSN 6/28R*, *LTN 10/28R*, *Li-ion*) y Tube (*6/28R 40mm*, *5/28R 50mm*, *li-ion*).
+    - Motores para Tradicional Mot (Somfy / Tube estándar).
+    - Control Remoto (SÍ / NO) con selección de canales (1, 4, 15, 16).
+    - Acordeón de motorización desplegable y limpio en tablet.
+  - **Marcas independientes por capa:** Marca diferenciada para Gaza (RS / HD) y B.O. (RS / HD), excluyendo confección propia de taller.
+  - **Combinación cruzada Roller $\leftrightarrow$ Bandas:** Gaza y B.O. configurables independientemente como Roller o Bandas.
+  - **Aluminio con Gaza delantera:** Posibilidad de sumar Gaza por delante de la persiana (Tradicional o Roller, común o motorizada) con medidas independientes.
+  - **Roller Noche Total:** Opción "Sin mando" disponible en la botonera de mandos.
+  - **Riel Normal o Curvo:** Configurable en Tradicional común y Tradicional Mot (por defecto Normal).
+  - **Sólo tela vs Normal en Roller:** Selector individual por cada cortina/tramo (por defecto Normal).
   - Auto-balance interactivo de paños (Gaza) y cortinas/tramos (B.O.) en Tradicional respetando el ancho total ingresado.
   - Soporte hasta 5 paños / cortinas con botón discreto "+ Agregar opción" para mantener la interfaz limpia.
   - Entrada de anchos independientes para cortinas de Roller, Bandas, Roller Noche Total y Mosquera con alto compartido.
@@ -487,6 +500,76 @@ Organizar la agenda previa comercial antes de generar la medición técnica en o
   - **Dashboard Principal (`/` y `src/modules/metricas/queries.ts`):** Nuevo KPI *"Visitas de obra"* (hoy / semana) y widget dedicado `DashboardVisitasHoy` para Romina.
 - [x] **Páginas del Dashboard:**
   - `/visitas` (`src/app/(dashboard)/visitas/page.tsx`): Página principal del módulo.
+
+---
+
+## Actualización — Formulario de Medición Técnica de Cortinas (Móvil / Tablet)
+
+### 🎯 Objetivo
+Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) para abarcar todo el espectro de combinaciones motorizadas, telas combinadas, Aluminio (persianas venecianas con o sin gaza delantera), Noche Total, y reglas precisas de taller propio vs proveedor externo.
+
+### ✅ Ajustes Implementados:
+- [x] **Subcategoría Motorizada (8 subtipos en grilla de 2 columnas numeradas):**
+  - Columna 1: 1. `Tradicional Mot`, 2. `Tradicional Mot y Tradicional`, 3. `Tradicional Mot y Roller`, 4. `Tradicional Mot y Roller Mot`.
+  - Columna 2: 5. `Roller Mot`, 6. `Roller Mot y Roller`, 7. `Roller Mot y Tradicional`, 8. `Bandas Verticales y Roller Mot`.
+- [x] **Tarjetas inferiores dinámicas para las 2 capas:**
+  - Nombres acordes para los 8 subtipos (ej: *Tradicional Mot 1 / Tradicional Mot 2*, *Roller Mot / Tradicional*, *Bandas Verticales / Roller Mot*, etc.).
+- [x] **Motores Li-ion con campo de cargadores:**
+  - Si el modelo de motor Roller Mot es `Li-ion` (Somfy) o `li-ion` (Tube), se habilita el recuadro numérico *"Cantidad de cargadores"* para la abertura entera.
+- [x] **Marcas de cortina:**
+  - Toda cortina Tradicional que no sea motorizada NO lleva marca (confección propia de taller Romina Ribot).
+- [x] **Sistema Tradicional en Motorizadas:**
+  - En combinaciones con Tradicional común (ej. `Roller Mot y Tradicional`), se puede configurar libremente como Riel (Normal o Curvo) o Barral (con sus colores).
+  - Si se elige Riel (normal o curvo), **NO** lleva soportes Kent/Grampa (solo aplican si se elige Barral).
+- [x] **Perfilería General:**
+  - Si en la abertura conviven capas Roller y/o Roller Mot, se muestra un único selector de perfilería general aplicable a ambas.
+- [x] **Lado de Mando individual por cortina:**
+  - Selector individual de lado de mando (*Izq / Der*) para cada tramo/cortina de Roller o Roller Mot.
+- [x] **Corrección de selector Bandas Verticales en Gaza:**
+  - Se permite alternar fluidamente entre *Roller* y *Bandas verticales* en la capa Gaza sin bloqueos.
+- [x] **Caída y Posición Roller ubicadas DENTRO de las tarjetas específicas:**
+  - Caída (`Por delante` | `Por detrás`) y Posición (`Adelante` | `Atrás`) ya **NO** aparecen arriba junto a Sujeción; figuran exclusivamente dentro de la tarjeta de la capa que sea Roller o Roller Mot.
+  - En capas combinadas (ej: Tradicional Mot + Roller), Caída y Posición aparecen únicamente en la tarjeta derecha (Roller).
+  - **Única excepción no-roller:** B.O. Tradicional puro (de taller) incluye únicamente el selector de `Posición` (`Adelante` | `Atrás`), sin caída.
+- [x] **Capa Tradicional en combinaciones motorizadas sin modo ni mando:**
+  - En `Tradicional Mot y Tradicional` o `Roller Mot y Tradicional`, la tarjeta de Tradicional se comporta como confección de taller (ancho total + paños/tramos + alto + tela), sin selectores de modo (sólo tela) ni mando (izq/der).
+- [x] **Títulos dinámicos y selector libre Roller / Bandas Verticales:**
+  - En los tipos Roller y Bandas Verticales, tanto la Gaza como el B.O. reflejan dinámicamente en el encabezado de su tarjeta el sistema elegido: `GAZA (Roller)` vs `GAZA (Bandas Verticales)`, y `B.O. (Roller)` vs `B.O. (Bandas Verticales)`.
+- [x] **Soporte Roller:**
+  - Soporte `Común` o `Extendido` disponible para cualquier configuración que contenga Roller.
+- [x] **Aluminio Mejorado:**
+  - Medidas (ancho y alto) siempre visibles desde el inicio sin requerir activar Gaza.
+  - Sujeción obligatoria agregada.
+  - Selector de 1 a 5 cortinas con anchos individuales y alto compartido.
+  - Opción de sumar Gaza delantera con selección completa de Tradicional, Roller o Motorizada.
+- [x] **Roller Noche Total:**
+  - Soporta sumar Gaza delantera de forma opcional con todas sus especificaciones.
+- [x] **Reflejo del Mando en el Dibujo Didáctico (Opción A):**
+  - **Gaza:** mandos representados en el cabezal superior de cada cortina (`top-1`, pastilla índigo/celeste `G{n}: Izq/Der` o ⚡ si es motorizada).
+  - **B.O.:** mandos representados en la línea inferior de cada cortina (`bottom-1`, pastilla oscura `BO{n}: Izq/Der` o ⚡ si es motorizada).
+  - **Tradicional común (no motorizada):** sin cadenita ni indicador de mando (confección textil pura).
+  - **Aluminio:** mando colgante individual reflejando lado izquierdo o derecho.
+  - **Barra inferior de especificaciones:**
+    - Eliminado el indicador redundante `Mando: ...`.
+    - Separación nítida de filas: **Posición de Telas** (`[Gaza (Adelante)] ➔ [B.O. (Atrás)]` según selección) y **Caída de Rollo** (`Caída Gaza` y `Caída B.O.` únicamente para capas Roller).
+
+---
+
+## Actualización — Edición de mediciones, sincronización bidireccional y modo Sólo riel (2026-10-26)
+
+### ✅ Implementado
+- [x] **Gaza Roller / Bandas se guarda:** `tipoCapaGaza` se persiste también en tipos Roller y Bandas verticales (antes se perdía). El validador acepta "Bandas verticales" en la Gaza. Las mediciones viejas sin el dato se abren con el valor según el tipo.
+- [x] **Modo por cortina Normal / Sólo tela / Sólo riel** (`modosPanosGaza`, `modosTramosBO`) en Roller y Bandas verticales; Roller Mot mantiene Normal / Sólo tela. Se sigue escribiendo `soloTela*` (legado). Se muestra en el dibujo (ficha de taller, comanda) y en la tabla de pedidos a proveedor de la comanda impresa (`describirModosEspeciales`).
+- [x] **Edición sin borrar cortinas** (`src/modules/mediciones/lib/aplicar-cambios-medicion.ts`): actualiza cada cortina por `id` y conserva los vínculos con presupuesto y comanda. Traslada medidas a `ItemPresupuesto` (precio sin cambios) y medidas + especificaciones a `ItemComanda` (no toca "completado").
+- [x] **Aviso "Medida modificada"** solo para Administración: `ItemPresupuesto/ItemComanda.medidaAnterior` y `medidaModificadaEn`. Se ve en detalle de presupuesto, detalle de comanda (no se imprime) y alerta del dashboard. Botón "Revisado" (`marcarAvisoMedidaRevisado`). Componente shared `AvisoMedidaModificada`.
+- [x] **Bloqueo con presupuesto aceptado (total o parcial):** no se pueden agregar ni quitar cortinas, solo modificarlas (web, tablet y servidor).
+- [x] **Sincronización bidireccional de la tablet:** al sincronizar primero sube (si la medición ya existe en el ERP la actualiza, gana la tablet) y después baja lo modificado en la web (`GET /api/mediciones/descargar`, últimos 6 meses). Si la tablet tiene cambios sin sincronizar en una medición, conserva la suya. Rechazos (presupuesto aceptado) quedan pendientes con el motivo visible.
+- [x] **Vínculo `ItemComanda.itemMedicionId`** (comandas nuevas se vinculan solas; script `scripts/vincular-comandas-mediciones.mjs` para las existentes).
+
+### 📦 Componentes Shared nuevos
+| Componente | Archivo | Descripción |
+|---|---|---|
+| `AvisoMedidaModificada` | `src/components/shared/aviso-medida-modificada.tsx` | Aviso de medida modificada con botón "Revisado" (solo Administración, no se imprime) |
 
 ---
 

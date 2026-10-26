@@ -11,12 +11,15 @@ export interface MobileConfig {
   erpUrl: string
   apiKey: string
   ultimoSync: string | null
+  /** Marca de tiempo del servidor de la última descarga de mediciones */
+  ultimaDescarga: string | null
 }
 
 const DEFAULT_CONFIG: MobileConfig = {
   erpUrl: "https://erp-rr.vercel.app",
   apiKey: "",
   ultimoSync: null,
+  ultimaDescarga: null,
 }
 
 // ─── Inicialización de Base de Datos Local IndexedDB ─────────────────────────
@@ -125,7 +128,97 @@ export async function marcarMedicionSincronizadaLocal(
   if (!med) return
   med.sincronizado = true
   med.idServidor = idServidor
+  med.errorSync = null
   await guardarMedicionLocal(med)
+}
+
+/** Deja la medición pendiente y guarda el motivo por el que el ERP la rechazó. */
+export async function marcarErrorSyncLocal(idLocal: string, error: string): Promise<void> {
+  const med = await obtenerMedicionLocalPorId(idLocal)
+  if (!med) return
+  med.errorSync = error
+  await guardarMedicionLocal(med)
+}
+
+/**
+ * Incorpora las mediciones bajadas del ERP.
+ * Si la tablet tiene cambios SIN sincronizar en esa medición, se conserva la versión
+ * de la tablet (gana la tablet); si no, se reemplaza por la versión del ERP.
+ * Devuelve cuántas mediciones se actualizaron o agregaron.
+ */
+export async function incorporarMedicionesDelServidor(
+  delServidor: Array<{
+    idServidor: string
+    clienteId: string
+    clienteNombre: string
+    clienteTelefono?: string | null
+    clienteDireccion?: string | null
+    clienteLocalidad?: string | null
+    observaciones?: string | null
+    creadoEn: string
+    actualizadoEn: string
+    bloqueada: boolean
+    ambientes: Array<{
+      id: string
+      nombre: string
+      orden: number
+      items: Array<{
+        id: string
+        descripcion: string
+        ancho: number
+        alto: number
+        cantidad: number
+        caracteristicas: IMedicionOffline["ambientes"][number]["items"][number]["caracteristicas"]
+        observaciones?: string | null
+      }>
+    }>
+  }>
+): Promise<number> {
+  const locales = await obtenerMedicionesLocales()
+  const porIdServidor = new Map(
+    locales.filter((m) => m.idServidor).map((m) => [m.idServidor as string, m])
+  )
+
+  let cambios = 0
+  for (const srv of delServidor) {
+    const local = porIdServidor.get(srv.idServidor)
+    if (local && !local.sincronizado) continue // cambios pendientes en la tablet: gana la tablet
+
+    const med: IMedicionOffline = {
+      idLocal: local?.idLocal || `srv_${srv.idServidor}`,
+      idServidor: srv.idServidor,
+      clienteId: srv.clienteId,
+      clienteNombre: srv.clienteNombre,
+      clienteTelefono: srv.clienteTelefono ?? null,
+      clienteDireccion: srv.clienteDireccion ?? null,
+      clienteLocalidad: srv.clienteLocalidad ?? null,
+      observaciones: srv.observaciones ?? null,
+      sincronizado: true,
+      guardadoEn: local?.guardadoEn || srv.creadoEn,
+      actualizadoEnServidor: srv.actualizadoEn,
+      bloqueada: srv.bloqueada,
+      errorSync: null,
+      ambientes: srv.ambientes.map((a) => ({
+        id: a.id,
+        idLocal: a.id,
+        nombre: a.nombre,
+        orden: a.orden,
+        items: a.items.map((it) => ({
+          id: it.id,
+          idLocal: it.id,
+          descripcion: it.descripcion,
+          ancho: it.ancho,
+          alto: it.alto,
+          cantidad: it.cantidad,
+          caracteristicas: it.caracteristicas,
+          observaciones: it.observaciones ?? null,
+        })),
+      })),
+    }
+    await guardarMedicionLocal(med)
+    cambios++
+  }
+  return cambios
 }
 
 // ─── Clientes Cacheados ──────────────────────────────────────────────────────
@@ -190,11 +283,13 @@ export async function obtenerConfiguracion(): Promise<MobileConfig> {
     const { value: erpUrl } = await Preferences.get({ key: "erp_url" })
     const { value: apiKey } = await Preferences.get({ key: "api_key" })
     const { value: ultimoSync } = await Preferences.get({ key: "ultimo_sync" })
+    const { value: ultimaDescarga } = await Preferences.get({ key: "ultima_descarga" })
 
     return {
       erpUrl: erpUrl || DEFAULT_CONFIG.erpUrl,
       apiKey: apiKey || DEFAULT_CONFIG.apiKey,
       ultimoSync: ultimoSync || null,
+      ultimaDescarga: ultimaDescarga || null,
     }
   } catch {
     return DEFAULT_CONFIG
@@ -209,6 +304,12 @@ export async function guardarConfiguracion(
   }
   if (config.apiKey !== undefined) {
     await Preferences.set({ key: "api_key", value: config.apiKey.trim() })
+  }
+  if (config.ultimaDescarga !== undefined) {
+    await Preferences.set({
+      key: "ultima_descarga",
+      value: config.ultimaDescarga || "",
+    })
   }
   if (config.ultimoSync !== undefined) {
     await Preferences.set({

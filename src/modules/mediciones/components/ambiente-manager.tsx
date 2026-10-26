@@ -29,11 +29,14 @@ interface AmbienteManagerProps {
     items: Array<Partial<IItemMedicion>>
   }>
   onAmbientesChange: (ambientes: any[]) => void
+  /** Presupuesto aceptado: solo se pueden modificar cortinas existentes (no agregar ni quitar) */
+  bloquearAltasBajas?: boolean
 }
 
 export function AmbienteManager({
   ambientes,
   onAmbientesChange,
+  bloquearAltasBajas = false,
 }: AmbienteManagerProps) {
   // Ambiente actualmente seleccionado para visualización/edición
   const [ambienteActivoIdx, setAmbienteActivoIdx] = useState<number>(0)
@@ -142,6 +145,7 @@ export function AmbienteManager({
           </div>
 
           {/* Input para agregar ambiente personalizado */}
+          {!bloquearAltasBajas && (
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <input
               type="text"
@@ -166,9 +170,18 @@ export function AmbienteManager({
               Agregar
             </button>
           </div>
+          )}
         </div>
 
+        {bloquearAltasBajas && (
+          <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
+            Esta medición tiene un presupuesto aceptado: podés modificar medidas y especificaciones,
+            pero no agregar ni quitar cortinas o ambientes.
+          </div>
+        )}
+
         {/* Botones rápidos de ambientes predeterminados */}
+        {!bloquearAltasBajas && (
         <div className="mt-3 flex flex-wrap gap-1.5 pt-2 border-t border-slate-100">
           <span className="text-[11px] font-semibold text-slate-400 self-center mr-1">
             Sugeridos:
@@ -184,6 +197,7 @@ export function AmbienteManager({
             </button>
           ))}
         </div>
+        )}
 
         {/* Pestañas de ambientes existentes */}
         <div className="mt-4 flex flex-wrap gap-2">
@@ -219,7 +233,7 @@ export function AmbienteManager({
                   </span>
                 </button>
 
-                {ambientes.length > 1 && (
+                {ambientes.length > 1 && !bloquearAltasBajas && (
                   <button
                     type="button"
                     title="Eliminar ambiente"
@@ -258,6 +272,7 @@ export function AmbienteManager({
               </span>
             </h4>
 
+            {!bloquearAltasBajas && (
             <button
               type="button"
               onClick={() =>
@@ -271,6 +286,7 @@ export function AmbienteManager({
               <Plus className="h-4 w-4" />
               Nueva Cortina
             </button>
+            )}
           </div>
 
           {ambienteActual.items.length === 0 ? (
@@ -319,6 +335,7 @@ export function AmbienteManager({
 
                     {/* Acciones de cortina */}
                     <div className="flex items-center gap-1">
+                      {!bloquearAltasBajas && (
                       <button
                         type="button"
                         title="Duplicar cortina"
@@ -327,6 +344,7 @@ export function AmbienteManager({
                       >
                         <Copy className="h-3.5 w-3.5" />
                       </button>
+                      )}
                       <button
                         type="button"
                         title="Editar cortina"
@@ -341,6 +359,7 @@ export function AmbienteManager({
                       >
                         <Edit2 className="h-3.5 w-3.5" />
                       </button>
+                      {!bloquearAltasBajas && (
                       <button
                         type="button"
                         title="Eliminar cortina"
@@ -349,6 +368,7 @@ export function AmbienteManager({
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
+                      )}
                     </div>
                   </div>
 

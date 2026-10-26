@@ -28,6 +28,7 @@ import { ComandaEstadoBadge } from "./comanda-estado-badge"
 import { ComandaTipoBadge } from "./comanda-tipo-badge"
 import { ComandaImprimible } from "./comanda-imprimible"
 import { CortinaDibujoDidactico } from "@/modules/mediciones/components/cortina-dibujo-didactico"
+import { AvisoMedidaModificada } from "@/components/shared/aviso-medida-modificada"
 import {
   cambiarEstadoComanda,
   toggleCompletadoItemComanda,
@@ -570,6 +571,17 @@ export function ComandaDetalle({
                               </span>
                               <ComandaTipoBadge tipo={it.tipo} tamano="sm" />
                             </div>
+
+                            {/* Aviso solo para Administración (no se imprime) */}
+                            {puedeEditar && it.avisoMedida && (
+                              <AvisoMedidaModificada
+                                aviso={it.avisoMedida}
+                                anchoActual={it.ancho}
+                                altoActual={it.alto}
+                                origen="comanda"
+                                itemId={it.id}
+                              />
+                            )}
 
                             {/* Medidas destacadas */}
                             <div className="flex items-center gap-3 text-xs font-mono font-bold text-slate-800">

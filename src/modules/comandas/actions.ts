@@ -122,6 +122,7 @@ export async function generarComandaDesdePresupuesto(
 
       return {
         productoId: it.itemMedicion?.productoId || null,
+        itemMedicionId: it.itemMedicionId || null,
         descripcion: it.descripcion,
         ambiente: it.ambiente || "General",
         ancho: it.ancho,

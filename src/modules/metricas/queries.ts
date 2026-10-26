@@ -860,3 +860,50 @@ export async function obtenerMetricasAvanzadas(
     esRolFinanciero,
   }
 }
+
+// ─── Avisos "Medida modificada" pendientes de revisar (solo Administración) ────
+
+export interface IAvisoMedidaDashboard {
+  presupuestoId: string
+  presupuestoNumero: number
+  clienteNombre: string
+  cortinas: number
+  ultimaModificacion: string
+}
+
+export async function obtenerAvisosMedidaModificada(): Promise<IAvisoMedidaDashboard[]> {
+  try {
+    const items = await prisma.itemPresupuesto.findMany({
+      where: { medidaModificadaEn: { not: null } },
+      select: {
+        medidaModificadaEn: true,
+        presupuesto: {
+          select: { id: true, numero: true, cliente: { select: { nombre: true } } },
+        },
+      },
+      orderBy: { medidaModificadaEn: "desc" },
+      take: 200,
+    })
+
+    const porPresupuesto = new Map<string, IAvisoMedidaDashboard>()
+    for (const it of items) {
+      const p = it.presupuesto
+      const actual = porPresupuesto.get(p.id)
+      if (actual) {
+        actual.cortinas++
+      } else {
+        porPresupuesto.set(p.id, {
+          presupuestoId: p.id,
+          presupuestoNumero: p.numero,
+          clienteNombre: p.cliente.nombre,
+          cortinas: 1,
+          ultimaModificacion: it.medidaModificadaEn!.toISOString(),
+        })
+      }
+    }
+    return [...porPresupuesto.values()]
+  } catch (error) {
+    console.error("Error al obtener avisos de medida modificada:", error)
+    return []
+  }
+}

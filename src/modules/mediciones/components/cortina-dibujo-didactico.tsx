@@ -7,6 +7,7 @@ import {
   calcularCantidadSoportes,
   determinarVarianteSoporte,
   calcularAnchoConfeccionGaza,
+  describirModosEspeciales,
 } from "../types"
 import {
   Ruler,
@@ -69,22 +70,25 @@ export function CortinaDibujoDidactico({
 
   const tipo = caracteristicas?.tipo || "Tradicional"
 
+  // En Aluminio, puede haber Gaza delantera agregada
+  const esAluminioConGaza = tipo === "Aluminio" && Boolean(caracteristicas?.gaza?.activa)
+
   const tieneGaza = Boolean(caracteristicas?.gaza?.activa)
-  const tieneBO = Boolean(caracteristicas?.bo?.activa)
+  const tieneBO = tipo === "Aluminio" ? true : Boolean(caracteristicas?.bo?.activa)
   const anchoGaza = caracteristicas?.gaza?.ancho || ancho
   const altoGaza = caracteristicas?.gaza?.alto || alto
   const panosGaza = caracteristicas?.gaza?.panos || 1
   const anchosPanos = caracteristicas?.gaza?.anchosPanos || []
 
-  const anchoBO = caracteristicas?.bo?.ancho || ancho
-  const altoBO = caracteristicas?.bo?.alto || alto
-  const tramosBO = caracteristicas?.bo?.tramos || 1
-  const anchosTramos = caracteristicas?.bo?.anchosTramos || []
+  const anchoBO = tipo === "Aluminio" ? ancho : (caracteristicas?.bo?.ancho || ancho)
+  const altoBO = tipo === "Aluminio" ? alto : (caracteristicas?.bo?.alto || alto)
+  const tramosBO = tipo === "Aluminio" ? 1 : (caracteristicas?.bo?.tramos || 1)
+  const anchosTramos = tipo === "Aluminio" ? [ancho] : (caracteristicas?.bo?.anchosTramos || [])
 
   // Ancho y alto efectivo calculados para el esquema
   const anchoEfectivo =
     tipo === "Aluminio"
-      ? ancho
+      ? (anchoGaza > 0 && tieneGaza ? Math.max(ancho, anchoGaza) : ancho)
       : tieneGaza
       ? anchoGaza
       : tieneBO
@@ -92,7 +96,7 @@ export function CortinaDibujoDidactico({
       : ancho
   const altoEfectivo =
     tipo === "Aluminio"
-      ? alto
+      ? (altoGaza > 0 && tieneGaza ? Math.max(alto, altoGaza) : alto)
       : tieneGaza
       ? altoGaza
       : tieneBO
@@ -101,9 +105,9 @@ export function CortinaDibujoDidactico({
 
   // Fórmulas de confección y componentes
   const argollas = useMemo(() => {
-    if (!tieneGaza) return 0
+    if (!tieneGaza || caracteristicas?.sistema !== "Barral") return 0
     return calcularArgollasGaza(anchoGaza)
-  }, [tieneGaza, anchoGaza])
+  }, [tieneGaza, anchoGaza, caracteristicas?.sistema])
 
   const cantidadSoportes = useMemo(() => {
     return calcularCantidadSoportes(anchoEfectivo)
@@ -117,29 +121,93 @@ export function CortinaDibujoDidactico({
     return calcularAnchoConfeccionGaza(anchoGaza)
   }, [anchoGaza])
 
-  // Lado de mando:
-  // Si es Tradicional: se muestra solo si B.O. está activo y formatoBO === "Roller"
+  // Si es Tradicional con B.O. en formato Roller
   const esTradicionalConBORoller =
     tipo === "Tradicional" && tieneBO && caracteristicas?.formatoBO === "Roller"
 
-  const mostrarMando =
-    tipo !== "Tradicional" || esTradicionalConBORoller
-  const mando =
-    tipo === "Aluminio"
-      ? caracteristicas?.aluminio?.mando || "Derecho"
-      : esTradicionalConBORoller
-      ? caracteristicas?.mandoBO || caracteristicas?.mando || "Derecha"
-      : caracteristicas?.mando || "Derecha"
+  // Identificación precisa de sistemas por capa:
+  const gazaEsTradicionalComun =
+    tipo === "Tradicional" ||
+    caracteristicas?.tipoCapaGaza === "Tradicional"
 
-  const tieneMandoVisible = mando !== "Sin mando"
-  const mandoLadoIzquierdo =
-    String(mando) === "Izquierda" || String(mando) === "Izquierdo"
+  const boEsTradicionalComun =
+    (tipo === "Tradicional" && (!caracteristicas?.formatoBO || caracteristicas?.formatoBO === "Tradicional")) ||
+    (tipo === "Motorizada" && (
+      caracteristicas?.subtipoMotorizada === "Tradicional Mot y Tradicional" ||
+      caracteristicas?.subtipoMotorizada === "Roller Mot y Tradicional"
+    ))
 
-  // Orden de capas según Caída:
-  // "Por delante": B.O. adelante de Gaza
-  // "Por detrás": Gaza adelante de B.O.
-  const caida = caracteristicas?.caida || "Por delante"
-  const boAdelante = caida === "Por delante"
+  const gazaEsRoller =
+    tipo === "Roller" ||
+    caracteristicas?.tipoCapaGaza === "Roller" ||
+    caracteristicas?.tipoCapaGaza === "Roller Mot" ||
+    (tipo === "Motorizada" && (
+      caracteristicas?.subtipoMotorizada === "Roller Mot" ||
+      caracteristicas?.subtipoMotorizada === "Roller Mot y Roller" ||
+      caracteristicas?.subtipoMotorizada === "Roller Mot y Tradicional"
+    ))
+
+  const boEsRoller =
+    tipo === "Roller" ||
+    (tipo === "Tradicional" && caracteristicas?.formatoBO === "Roller") ||
+    tipo === "Roller Noche total" ||
+    tipo === "Noche total" ||
+    caracteristicas?.tipoCapaBO === "Roller" ||
+    caracteristicas?.tipoCapaBO === "Roller Mot" ||
+    (tipo === "Motorizada" && (
+      caracteristicas?.subtipoMotorizada === "Tradicional Mot y Roller" ||
+      caracteristicas?.subtipoMotorizada === "Tradicional Mot y Roller Mot" ||
+      caracteristicas?.subtipoMotorizada === "Roller Mot" ||
+      caracteristicas?.subtipoMotorizada === "Roller Mot y Roller" ||
+      caracteristicas?.subtipoMotorizada === "Bandas Verticales y Roller Mot"
+    ))
+
+  const gazaEsMotorizada =
+    (tipo === "Motorizada" && (
+      caracteristicas?.subtipoMotorizada === "Tradicional Mot" ||
+      caracteristicas?.subtipoMotorizada === "Tradicional Mot y Tradicional" ||
+      caracteristicas?.subtipoMotorizada === "Tradicional Mot y Roller" ||
+      caracteristicas?.subtipoMotorizada === "Tradicional Mot y Roller Mot" ||
+      caracteristicas?.subtipoMotorizada === "Roller Mot" ||
+      caracteristicas?.subtipoMotorizada === "Roller Mot y Roller" ||
+      caracteristicas?.subtipoMotorizada === "Roller Mot y Tradicional"
+    )) ||
+    caracteristicas?.tipoCapaGaza === "Tradicional Mot" ||
+    caracteristicas?.tipoCapaGaza === "Roller Mot"
+
+  const boEsMotorizada =
+    (tipo === "Motorizada" && (
+      caracteristicas?.subtipoMotorizada === "Tradicional Mot" ||
+      caracteristicas?.subtipoMotorizada === "Tradicional Mot y Roller Mot" ||
+      caracteristicas?.subtipoMotorizada === "Roller Mot" ||
+      caracteristicas?.subtipoMotorizada === "Bandas Verticales y Roller Mot"
+    )) ||
+    caracteristicas?.tipoCapaBO === "Tradicional Mot" ||
+    caracteristicas?.tipoCapaBO === "Roller Mot"
+
+  // ¿Lleva mando la capa Gaza? Solo si NO es tradicional común
+  const gazaLlevaMando = tieneGaza && !gazaEsTradicionalComun
+
+  // ¿Lleva mando la capa BO? Solo si NO es tradicional común y no es aluminio puro
+  const boLlevaMando = tieneBO && !boEsTradicionalComun && tipo !== "Aluminio"
+
+  // Posición física real (quién va adelante y quién atrás):
+  const boAdelante = (() => {
+    if (tipo === "Aluminio" || tipo === "Roller Noche total" || tipo === "Noche total") return false
+    if (caracteristicas?.posicionRollerBO === "Adelante") return true
+    if (caracteristicas?.posicionRollerBO === "Atrás") return false
+    if (caracteristicas?.posicionRoller === "Adelante") return false
+    if (caracteristicas?.posicionRoller === "Atrás") return true
+    return false // Por defecto Gaza va adelante y B.O. atrás
+  })()
+
+  // Caídas de telas independientes:
+  const caidaGaza = caracteristicas?.caida || "Por delante"
+  const caidaBO = caracteristicas?.caidaBO || "Por delante"
+
+  // Mando de persiana de aluminio
+  const mandoAluminioLadoIzquierdo =
+    String(caracteristicas?.aluminio?.mando || "Derecho").startsWith("Izq")
 
   // Proporción geométrica real (aspect ratio): ancho / alto
   const anchoVal = anchoEfectivo > 0 ? anchoEfectivo : 2.0
@@ -208,30 +276,33 @@ export function CortinaDibujoDidactico({
 
   const capaActiva = tieneGaza && tieneBO ? capaSeleccionada : tieneGaza ? "Gaza" : "BO"
 
-  // Lista de paños de Gaza con sus anchos
+  // Lista de paños de Gaza con sus anchos y mandos
   const listaPanosGaza = useMemo(() => {
     if (!tieneGaza) return []
     return Array.from({ length: panosGaza }).map((_, idx) => ({
       numero: idx + 1,
-      etiqueta: `Paño ${idx + 1}`,
+      etiqueta: gazaEsTradicionalComun ? `Paño ${idx + 1}` : `Cortina ${idx + 1}`,
       ancho: anchosPanos[idx] || Number((anchoGaza / panosGaza).toFixed(2)),
+      mando: gazaLlevaMando
+        ? (caracteristicas?.mandosRollerGaza?.[idx] || (idx === 0 ? "Derecha" : idx === 1 ? "Izquierda" : "Derecha"))
+        : null,
+      esMotor: gazaEsMotorizada,
     }))
-  }, [tieneGaza, panosGaza, anchosPanos, anchoGaza])
+  }, [tieneGaza, panosGaza, anchosPanos, anchoGaza, gazaLlevaMando, gazaEsMotorizada, gazaEsTradicionalComun, caracteristicas?.mandosRollerGaza])
 
   // Lista de cortinas/tramos de Black Out con sus anchos y mandos
   const listaTramosBO = useMemo(() => {
     if (!tieneBO) return []
     return Array.from({ length: tramosBO }).map((_, idx) => ({
       numero: idx + 1,
-      etiqueta: esTradicionalConBORoller ? `Cortina ${idx + 1}` : `Tramo ${idx + 1}`,
+      etiqueta: boEsTradicionalComun ? `Paño ${idx + 1}` : `Cortina ${idx + 1}`,
       ancho: anchosTramos[idx] || Number((anchoBO / tramosBO).toFixed(2)),
-      mando: esTradicionalConBORoller
-        ? caracteristicas?.mandosRollerBO?.[idx] ||
-          caracteristicas?.bo?.mandosRoller?.[idx] ||
-          null
+      mando: boLlevaMando
+        ? (caracteristicas?.mandosRollerBO?.[idx] || (idx === 0 ? "Derecha" : idx === 1 ? "Izquierda" : "Derecha"))
         : null,
+      esMotor: boEsMotorizada,
     }))
-  }, [tieneBO, tramosBO, anchosTramos, anchoBO, esTradicionalConBORoller, caracteristicas])
+  }, [tieneBO, tramosBO, anchosTramos, anchoBO, boLlevaMando, boEsMotorizada, boEsTradicionalComun, caracteristicas?.mandosRollerBO])
 
   // Sumas de anchos para proporciones
   const sumaAnchosGaza = useMemo(() => {
@@ -616,7 +687,7 @@ export function CortinaDibujoDidactico({
                   {/* Mando Colgante (Izquierdo o Derecho) */}
                   <div
                     className={`absolute top-2 z-20 flex flex-col items-center pointer-events-none ${
-                      mandoLadoIzquierdo ? "left-2" : "right-2"
+                      mandoAluminioLadoIzquierdo ? "left-2" : "right-2"
                     }`}
                   >
                     <div className="w-1.5 h-1.5 rounded-full bg-slate-800" />
@@ -648,7 +719,7 @@ export function CortinaDibujoDidactico({
             {/* Especificación de aluminio */}
             <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-xs font-medium text-slate-700">
               <span className="rounded-lg bg-white border border-slate-200 px-2.5 py-1 shadow-2xs">
-                Mando: <strong>{mando}</strong>
+                Mando: <strong>{caracteristicas?.aluminio?.mando || "Derecho"}</strong>
               </span>
               <span className="rounded-lg bg-white border border-slate-200 px-2.5 py-1 shadow-2xs">
                 Lámina: <strong>{caracteristicas?.aluminio?.tipoLamina || "25 mm"}</strong>
@@ -860,6 +931,40 @@ export function CortinaDibujoDidactico({
                                       <div className="w-[1px] h-full bg-slate-900/30" />
                                     </div>
                                   </div>
+
+                                  {/* Mando superior de Gaza (Opción A): Solo si la capa Gaza lleva mando (Roller, Bandas o Motorizada) */}
+                                  {p.mando && (
+                                    <div
+                                      className={`absolute top-1 z-30 flex flex-col items-center pointer-events-none ${
+                                        String(p.mando) === "Izquierda" ? "left-1.5" : "right-1.5"
+                                      }`}
+                                    >
+                                      <div
+                                        className={`w-2 h-2 rounded-full shadow-xs ${
+                                          p.esMotor ? "bg-amber-500" : "bg-indigo-600"
+                                        }`}
+                                      />
+                                      <div
+                                        className={`w-[1.5px] shadow-xs ${
+                                          p.esMotor ? "bg-amber-400" : "bg-indigo-400"
+                                        }`}
+                                        style={{ height: `${Math.round(boxHeight * 0.35)}px` }}
+                                      />
+                                      <div
+                                        className={`px-1 py-0.5 rounded border text-[7px] leading-none font-black shadow-xs flex items-center gap-0.5 ${
+                                          p.esMotor
+                                            ? "border-amber-400 bg-amber-50 text-amber-900"
+                                            : "border-indigo-300 bg-indigo-50 text-indigo-900"
+                                        }`}
+                                      >
+                                        {p.esMotor && <span>⚡</span>}
+                                        <span>
+                                          {panosGaza > 1 || tieneBO ? `G${p.numero}: ` : ""}
+                                          {String(p.mando) === "Izquierda" ? "Izq" : "Der"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )
                             })}
@@ -874,7 +979,41 @@ export function CortinaDibujoDidactico({
                                   key={idx}
                                   style={{ flex: `${peso} 1 0%`, minWidth: "48px" }}
                                   className="relative flex flex-col justify-between p-2 select-none bg-slate-100/80"
-                                />
+                                >
+                                  {/* Mando superior cuando solo hay B.O. */}
+                                  {b.mando && (
+                                    <div
+                                      className={`absolute top-1 z-30 flex flex-col items-center pointer-events-none ${
+                                        String(b.mando) === "Izquierda" ? "left-1.5" : "right-1.5"
+                                      }`}
+                                    >
+                                      <div
+                                        className={`w-2 h-2 rounded-full shadow-xs ${
+                                          b.esMotor ? "bg-amber-500" : "bg-slate-900"
+                                        }`}
+                                      />
+                                      <div
+                                        className={`w-[1.5px] shadow-xs ${
+                                          b.esMotor ? "bg-amber-400" : "bg-slate-600"
+                                        }`}
+                                        style={{ height: `${Math.round(boxHeight * 0.45)}px` }}
+                                      />
+                                      <div
+                                        className={`px-1 py-0.5 rounded border text-[7px] leading-none font-black shadow-xs flex items-center gap-0.5 ${
+                                          b.esMotor
+                                            ? "border-amber-500 bg-amber-50 text-amber-950"
+                                            : "border-slate-800 bg-slate-900 text-white"
+                                        }`}
+                                      >
+                                        {b.esMotor && <span>⚡</span>}
+                                        <span>
+                                          {tramosBO > 1 ? `C${b.numero}: ` : ""}
+                                          {String(b.mando) === "Izquierda" ? "Izq" : "Der"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               )
                             })}
                           </div>
@@ -893,44 +1032,42 @@ export function CortinaDibujoDidactico({
                                     bIdx > 0 ? "border-l-2 border-dashed border-slate-900" : ""
                                   }`}
                                 >
-                                  {/* Mando de cada cortina B.O. Roller si corresponde */}
+                                  {/* Mando inferior de B.O. (Opción A): Solo si B.O. lleva mando */}
                                   {b.mando && (
                                     <div
-                                      className={`absolute top-1 flex flex-col items-center ${
-                                        String(b.mando) === "Izquierda" ? "left-1" : "right-1"
+                                      className={`absolute bottom-1 z-30 flex flex-col-reverse items-center pointer-events-none ${
+                                        String(b.mando) === "Izquierda" ? "left-1.5" : "right-1.5"
                                       }`}
                                     >
-                                      <div className="w-1.5 h-1.5 rounded-full bg-slate-950 shadow-xs" />
                                       <div
-                                        className="w-[1.5px] bg-slate-700 shadow-xs"
-                                        style={{ height: `${Math.round(boxHeight * 0.5)}px` }}
+                                        className={`w-2 h-2 rounded-full shadow-xs ${
+                                          b.esMotor ? "bg-amber-600" : "bg-slate-950"
+                                        }`}
                                       />
-                                      <div className="w-auto px-1 h-3 rounded-full border border-slate-800 bg-white text-[7px] flex items-center justify-center font-black text-slate-900 shadow-xs">
-                                        {String(b.mando) === "Izquierda" ? "Izq" : "Der"}
+                                      <div
+                                        className={`w-[1.5px] shadow-xs ${
+                                          b.esMotor ? "bg-amber-500" : "bg-slate-600"
+                                        }`}
+                                        style={{ height: `${Math.round(boxHeight * 0.35)}px` }}
+                                      />
+                                      <div
+                                        className={`px-1 py-0.5 rounded border text-[7px] leading-none font-black shadow-xs flex items-center gap-0.5 ${
+                                          b.esMotor
+                                            ? "border-amber-500 bg-amber-50 text-amber-950"
+                                            : "border-slate-800 bg-slate-900 text-white"
+                                        }`}
+                                      >
+                                        {b.esMotor && <span>⚡</span>}
+                                        <span>
+                                          {`BO${b.numero}: `}
+                                          {String(b.mando) === "Izquierda" ? "Izq" : "Der"}
+                                        </span>
                                       </div>
                                     </div>
                                   )}
                                 </div>
                               )
                             })}
-                          </div>
-                        )}
-
-                        {/* Mando Colgante General cuando no son mandos individuales de BO Roller */}
-                        {mostrarMando && tieneMandoVisible && (!esTradicionalConBORoller || !tieneBO) && (
-                          <div
-                            className={`absolute top-2 z-30 flex flex-col items-center pointer-events-none ${
-                              mandoLadoIzquierdo ? "left-2" : "right-2"
-                            }`}
-                          >
-                            <div className="w-1.5 h-1.5 rounded-full bg-slate-800 shadow-xs" />
-                            <div
-                              className="w-[1.5px] bg-slate-500 shadow-xs"
-                              style={{ height: `${Math.round(boxHeight * 0.65)}px` }}
-                            />
-                            <div className="w-2.5 h-4 rounded-full border border-slate-600 bg-white text-[8px] flex items-center justify-center font-bold text-slate-800 shadow-xs">
-                              ●
-                            </div>
                           </div>
                         )}
                       </div>
@@ -1017,7 +1154,7 @@ export function CortinaDibujoDidactico({
         )}
       </div>
 
-      {/* ── Especificación de Sistema, Mando y Caída ── */}
+      {/* ── Especificación de Sistema, Caída y Posición ── */}
       {tipo !== "Aluminio" && (
         <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-xs space-y-2.5">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-2">
@@ -1036,68 +1173,76 @@ export function CortinaDibujoDidactico({
                 Sujeción: <strong>{caracteristicas.sujecion}</strong>
               </span>
             )}
-
-            {mostrarMando && (
-              <span className="font-bold text-indigo-900 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
-                {esTradicionalConBORoller &&
-                caracteristicas?.mandosRollerBO &&
-                caracteristicas.mandosRollerBO.length > 1 ? (
-                  <>
-                    Mandos B.O. Roller:{" "}
-                    {caracteristicas.mandosRollerBO
-                      .map(
-                        (m, idx) =>
-                          `C${idx + 1} (${m === "Izquierda" ? "Izq" : "Der"})`
-                      )
-                      .join(" • ")}
-                  </>
-                ) : (
-                  <>Mando{esTradicionalConBORoller ? " (B.O. Roller)" : ""}: {mando}</>
-                )}
-              </span>
-            )}
           </div>
 
-          {/* Caída B.O. y Superposición de Telas */}
-          {(tieneGaza || tieneBO) && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 text-[11px]">
-              {tieneGaza && tieneBO ? (
-                <div className="flex items-center gap-2 text-slate-700">
-                  <span className="font-semibold">Caída B.O. ({caida}):</span>
-                  <span className="rounded bg-slate-900 text-white px-2 py-0.5 font-bold">
-                    {boAdelante ? "B.O. (Adelante)" : "Gaza (Adelante)"}
-                  </span>
-                  <ArrowRight className="h-3 w-3 text-slate-400" />
-                  <span className="rounded bg-indigo-100 text-indigo-900 px-2 py-0.5 font-bold">
-                    {boAdelante ? "Gaza (Detrás)" : "B.O. (Detrás)"}
-                  </span>
-                </div>
-              ) : tieneBO ? (
-                <span className="text-slate-600">
-                  Tela: <strong>Solo B.O.</strong> (Caída B.O.:{" "}
-                  <strong>{caida}</strong>)
+          {/* Posición de Telas y Caídas de Rollo */}
+          <div className="flex flex-col gap-2 pt-1 text-[11px]">
+            {/* Fila 1: Posición de Telas (quién va adelante y quién atrás) */}
+            {tieneGaza && tieneBO ? (
+              <div className="flex flex-wrap items-center gap-2 text-slate-700">
+                <span className="font-semibold text-slate-600">Posición de Telas:</span>
+                <span className="rounded bg-slate-900 text-white px-2 py-0.5 font-bold shadow-2xs">
+                  {boAdelante ? "B.O. (Adelante)" : "Gaza (Adelante)"}
                 </span>
-              ) : (
-                <span className="text-slate-600">
-                  Tela: <strong>Solo GAZA</strong>
+                <ArrowRight className="h-3 w-3 text-slate-400" />
+                <span className="rounded bg-indigo-100 text-indigo-900 px-2 py-0.5 font-bold border border-indigo-200 shadow-2xs">
+                  {boAdelante ? "Gaza (Detrás)" : "B.O. (Detrás)"}
                 </span>
-              )}
+              </div>
+            ) : (
+              <div className="text-slate-600">
+                Tela: <strong>{tieneGaza ? "Solo Gaza" : "Solo B.O."}</strong>
+              </div>
+            )}
 
-              {/* Nombres de Telas */}
-              <div className="flex flex-wrap gap-1.5">
+            {/* Fila 2: Caídas de Rollo (solo si la capa es Roller) */}
+            {(gazaEsRoller || boEsRoller) && (
+              <div className="flex flex-wrap items-center gap-3 text-slate-600">
+                {gazaEsRoller && (
+                  <span>
+                    Caída Gaza: <strong className="text-slate-800">{caidaGaza}</strong>
+                  </span>
+                )}
+                {boEsRoller && (
+                  <span>
+                    Caída B.O.: <strong className="text-slate-800">{caidaBO}</strong>
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Fila 3: Nombres de Telas */}
+            {((tieneGaza && caracteristicas?.gaza?.nombreTela) ||
+              (tieneBO && caracteristicas?.bo?.nombreTela)) && (
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
                 {tieneGaza && caracteristicas?.gaza?.nombreTela && (
-                  <span className="rounded-md bg-white border border-indigo-200 px-2 py-0.5 text-indigo-900">
+                  <span className="rounded-md bg-white border border-indigo-200 px-2 py-0.5 text-indigo-900 font-medium">
                     <strong>Gaza:</strong> {caracteristicas.gaza.nombreTela}
                   </span>
                 )}
                 {tieneBO && caracteristicas?.bo?.nombreTela && (
-                  <span className="rounded-md bg-slate-800 px-2 py-0.5 text-white">
+                  <span className="rounded-md bg-slate-800 px-2 py-0.5 text-white font-medium">
                     <strong>B.O.:</strong> {caracteristicas.bo.nombreTela}
                   </span>
                 )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Modo especial por cortina (Sólo tela / Sólo riel) ── */}
+      {describirModosEspeciales(caracteristicas).length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-[11px]">
+          <span className="font-bold text-amber-900">Modo:</span>
+          {describirModosEspeciales(caracteristicas).map((txt) => (
+            <span
+              key={txt}
+              className="rounded bg-amber-600 px-2 py-0.5 font-extrabold text-white"
+            >
+              {txt}
+            </span>
+          ))}
         </div>
       )}
 

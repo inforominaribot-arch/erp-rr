@@ -3,6 +3,8 @@ import {
   guardarConfiguracion,
   obtenerMedicionesLocales,
   marcarMedicionSincronizadaLocal,
+  marcarErrorSyncLocal,
+  incorporarMedicionesDelServidor,
   guardarClientesLocales,
 } from "./storage-service"
 import type { IMedicionOffline } from "@/modules/mediciones/types"
@@ -12,7 +14,10 @@ export interface ResultadoSync {
   exito: boolean
   mensaje: string
   medicionesSincronizadas: number
+  medicionesDescargadas: number
   clientesDescargados: number
+  /** Mediciones que el ERP no aceptó (quedan pendientes en la tablet con su motivo) */
+  rechazadas: Array<{ idLocal: string; error: string }>
   error?: string
 }
 
@@ -21,7 +26,9 @@ export async function sincronizarTodo(): Promise<ResultadoSync> {
   const erpBaseUrl = config.erpUrl.replace(/\/+$/, "")
 
   let medicionesSincronizadas = 0
+  let medicionesDescargadas = 0
   let clientesDescargados = 0
+  let rechazadas: Array<{ idLocal: string; error: string }> = []
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -56,6 +63,30 @@ export async function sincronizarTodo(): Promise<ResultadoSync> {
         }
         medicionesSincronizadas = dataMed.sincronizadas.length
       }
+      if (Array.isArray(dataMed.rechazadas)) {
+        rechazadas = dataMed.rechazadas
+        for (const r of rechazadas) {
+          await marcarErrorSyncLocal(r.idLocal, r.error)
+        }
+      }
+    }
+
+    // ── 1b. Bajar mediciones modificadas en la web (después de subir: gana la tablet) ──
+    const desde = config.ultimaDescarga
+      ? `?desde=${encodeURIComponent(config.ultimaDescarga)}`
+      : ""
+    const respDescarga = await fetch(`${erpBaseUrl}/api/mediciones/descargar${desde}`, {
+      method: "GET",
+      headers,
+    })
+    if (respDescarga.ok) {
+      const dataDesc = await respDescarga.json()
+      if (dataDesc.success && Array.isArray(dataDesc.mediciones)) {
+        medicionesDescargadas = await incorporarMedicionesDelServidor(dataDesc.mediciones)
+        await guardarConfiguracion({ ultimaDescarga: dataDesc.servidorAhora })
+      }
+    } else {
+      console.warn("No se pudieron bajar las mediciones del ERP:", respDescarga.status)
     }
 
     // ── 2. Descargar Catálogo Actualizado de Clientes ──
@@ -90,14 +121,23 @@ export async function sincronizarTodo(): Promise<ResultadoSync> {
     const ahoraIso = new Date().toISOString()
     await guardarConfiguracion({ ultimoSync: ahoraIso })
 
+    const partes = [
+      `Subidas: ${medicionesSincronizadas}`,
+      `Bajadas del ERP: ${medicionesDescargadas}`,
+      `Clientes: ${clientesDescargados}`,
+    ]
     return {
-      exito: true,
+      exito: rechazadas.length === 0,
       mensaje:
-        pendientes.length > 0
-          ? `¡Sincronización completa! Se subieron ${medicionesSincronizadas} mediciones y se actualizaron ${clientesDescargados} clientes.`
-          : `Catálogo de clientes actualizado (${clientesDescargados} clientes disponibles en la tablet).`,
+        rechazadas.length > 0
+          ? `Sincronización con observaciones: ${rechazadas.length} medición(es) no se pudieron subir. ${rechazadas
+              .map((r) => r.error)
+              .join(" | ")}`
+          : `¡Sincronización completa! ${partes.join(" • ")}.`,
       medicionesSincronizadas,
+      medicionesDescargadas,
       clientesDescargados,
+      rechazadas,
     }
   } catch (error: any) {
     console.error("Fallo durante la sincronización móvil:", error)
@@ -106,7 +146,9 @@ export async function sincronizarTodo(): Promise<ResultadoSync> {
       mensaje: "No se pudo conectar con el servidor ERP.",
       error: error?.message || "Fallo de conexión de red",
       medicionesSincronizadas: 0,
+      medicionesDescargadas: 0,
       clientesDescargados: 0,
+      rechazadas: [],
     }
   }
 }

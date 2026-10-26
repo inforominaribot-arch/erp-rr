@@ -6,6 +6,8 @@ import {
   obtenerClientesParaMedicion,
 } from "@/modules/mediciones/queries"
 import { tienePermisoModuloMediciones } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
+import { medicionTienePresupuestoAceptado } from "@/modules/mediciones/lib/aplicar-cambios-medicion"
 
 export const dynamic = "force-dynamic"
 
@@ -21,9 +23,10 @@ export default async function EditarMedicionPage({
 
   const { id } = await params
 
-  const [medicion, clientes] = await Promise.all([
+  const [medicion, clientes, bloqueada] = await Promise.all([
     obtenerMedicionPorId(id),
     obtenerClientesParaMedicion(),
+    medicionTienePresupuestoAceptado(prisma, id),
   ])
 
   if (!medicion) {
@@ -41,6 +44,7 @@ export default async function EditarMedicionPage({
         clientesIniciales={clientes}
         medicionExistente={medicion}
         modo="editar"
+        bloquearAltasBajas={bloqueada}
       />
     </div>
   )
