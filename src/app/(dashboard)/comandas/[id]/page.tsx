@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation"
-import { obtenerComandaPorId } from "@/modules/comandas/queries"
+import { obtenerComandaPorId, obtenerProveedoresParaPedidos } from "@/modules/comandas/queries"
 import { tienePermisoModuloComandas } from "@/modules/comandas/lib/auth"
 import { ComandaDetalle } from "@/modules/comandas/components/comanda-detalle"
 import { AlertCircle } from "lucide-react"
@@ -38,9 +38,10 @@ export default async function ComandaDetallePage({
     )
   }
 
-  const [authEscritura, comanda] = await Promise.all([
+  const [authEscritura, comanda, proveedores] = await Promise.all([
     tienePermisoModuloComandas(true),
     obtenerComandaPorId(id),
+    obtenerProveedoresParaPedidos(),
   ])
 
   if (!comanda) {
@@ -54,6 +55,7 @@ export default async function ComandaDetallePage({
       comanda={comanda}
       puedeEditar={authEscritura.permitido}
       iniciarEnImpresion={iniciarEnImpresion}
+      proveedores={proveedores}
     />
   )
 }

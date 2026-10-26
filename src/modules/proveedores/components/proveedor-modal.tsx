@@ -42,6 +42,8 @@ export function ProveedorModal({
   const [direccion, setDireccion] = useState("")
   const [notas, setNotas] = useState("")
   const [activo, setActivo] = useState(true)
+  const [marcas, setMarcas] = useState<("HD" | "RS" | "MG")[]>([])
+  const [diasEntrega, setDiasEntrega] = useState<string>("")
 
   const [guardando, setGuardando] = useState(false)
   const [errorGlobal, setErrorGlobal] = useState<string | null>(null)
@@ -55,6 +57,8 @@ export function ProveedorModal({
       setDireccion(proveedorAEditar.direccion || "")
       setNotas(proveedorAEditar.notas || "")
       setActivo(proveedorAEditar.activo)
+      setMarcas((proveedorAEditar.marcas || []) as ("HD" | "RS" | "MG")[])
+      setDiasEntrega(proveedorAEditar.diasEntrega ? String(proveedorAEditar.diasEntrega) : "")
     } else {
       setNombre("")
       setContacto("")
@@ -63,6 +67,8 @@ export function ProveedorModal({
       setDireccion("")
       setNotas("")
       setActivo(true)
+      setMarcas([])
+      setDiasEntrega("")
     }
     setErrorGlobal(null)
   }, [proveedorAEditar, abierto])
@@ -91,6 +97,8 @@ export function ProveedorModal({
         direccion: direccion.trim() || null,
         notas: notas.trim() || null,
         activo,
+        marcas,
+        diasEntrega: diasEntrega.trim() === "" ? null : parseInt(diasEntrega, 10),
       }
 
       let res
@@ -257,6 +265,57 @@ export function ProveedorModal({
                 placeholder="Plazo de entrega habitual, días de despacho, CBU bancario o requisitos de factura..."
                 className="w-full rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-600 focus:bg-white focus:outline-hidden transition"
               />
+            </div>
+          </div>
+
+          {/* Marcas de cortina y días de entrega */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-indigo-100 bg-indigo-50/40 p-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Marcas de cortina que provee
+              </label>
+              <div className="flex gap-2">
+                {(["HD", "RS", "MG"] as const).map((m) => {
+                  const activa = marcas.includes(m)
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() =>
+                        setMarcas(activa ? marcas.filter((x) => x !== m) : [...marcas, m])
+                      }
+                      className={`min-h-[40px] flex-1 rounded-lg border px-3 text-xs font-bold transition ${
+                        activa
+                          ? "border-indigo-600 bg-indigo-600 text-white"
+                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Se preselecciona en los pedidos de cortinas de esa marca.
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Días de entrega habituales
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={365}
+                step={1}
+                value={diasEntrega}
+                onChange={(e) => setDiasEntrega(e.target.value)}
+                placeholder="Ej: 15"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:outline-hidden min-h-[40px]"
+              />
+              <p className="mt-1 text-[11px] text-slate-500">
+                Si un pedido supera estos días sin recibirse, se marca como demorado.
+              </p>
             </div>
           </div>
 

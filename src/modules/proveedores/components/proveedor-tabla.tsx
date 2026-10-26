@@ -148,6 +148,13 @@ export function ProveedorTabla({
                             <span className="truncate">{prov.contacto}</span>
                           </p>
                         )}
+                        {(prov.marcas.length > 0 || prov.diasEntrega) && (
+                          <p className="text-[11px] text-indigo-700 font-semibold mt-0.5">
+                            {prov.marcas.length > 0 && `Marcas: ${prov.marcas.join(", ")}`}
+                            {prov.marcas.length > 0 && prov.diasEntrega ? " • " : ""}
+                            {prov.diasEntrega ? `Entrega: ${prov.diasEntrega} días` : ""}
+                          </p>
+                        )}
                       </div>
                     </div>
 

@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/shared/layout/PageHeader"
 import {
   obtenerItemsProduccion,
   obtenerMetricasProduccion,
+  obtenerProveedoresParaPedidos,
 } from "@/modules/comandas/queries"
 import { tienePermisoModuloProduccion } from "@/modules/comandas/lib/auth"
 import { ProduccionTablero } from "@/modules/comandas/components/produccion-tablero"
@@ -26,9 +27,11 @@ export default async function ProduccionPage() {
     )
   }
 
-  const [metricas, items] = await Promise.all([
+  // Primero los ítems: crea los pedidos por capa que falten (datos anteriores)
+  const items = await obtenerItemsProduccion()
+  const [metricas, proveedores] = await Promise.all([
     obtenerMetricasProduccion(),
-    obtenerItemsProduccion(),
+    obtenerProveedoresParaPedidos(),
   ])
 
   return (
@@ -42,6 +45,7 @@ export default async function ProduccionPage() {
         itemsIniciales={items}
         metricasIniciales={metricas}
         puedeGestionar={true}
+        proveedores={proveedores}
       />
     </div>
   )

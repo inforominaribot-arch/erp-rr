@@ -29,6 +29,8 @@ import { ComandaTipoBadge } from "./comanda-tipo-badge"
 import { ComandaImprimible } from "./comanda-imprimible"
 import { CortinaDibujoDidactico } from "@/modules/mediciones/components/cortina-dibujo-didactico"
 import { AvisoMedidaModificada } from "@/components/shared/aviso-medida-modificada"
+import { PedidosProveedorPanel } from "./pedidos-proveedor-panel"
+import type { IProveedorPedido } from "../types"
 import {
   cambiarEstadoComanda,
   toggleCompletadoItemComanda,
@@ -43,12 +45,14 @@ interface ComandaDetalleProps {
   comanda: IComandaDetalle
   puedeEditar?: boolean
   iniciarEnImpresion?: boolean
+  proveedores?: IProveedorPedido[]
 }
 
 export function ComandaDetalle({
   comanda,
   puedeEditar = true,
   iniciarEnImpresion = false,
+  proveedores = [],
 }: ComandaDetalleProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -70,6 +74,11 @@ export function ComandaDetalle({
 
   // Estado local para actualización optimista de ítems
   const [items, setItems] = useState(comanda.items)
+  const [itemsServidor, setItemsServidor] = useState(comanda.items)
+  if (comanda.items !== itemsServidor) {
+    setItemsServidor(comanda.items)
+    setItems(comanda.items)
+  }
   const [estadoComanda, setEstadoComanda] = useState<EstadoComanda>(
     comanda.estado
   )
@@ -682,6 +691,17 @@ export function ComandaDetalle({
                                 <p className="text-xs text-indigo-700 bg-indigo-50/60 rounded-lg p-2 mt-1">
                                   <strong>Nota Taller:</strong> {it.observaciones}
                                 </p>
+                              )}
+
+                              {/* Pedidos a proveedor por capa (Administración y Taller) */}
+                              {it.tipo === "PEDIR_PROVEEDOR" && it.pedidos.length > 0 && (
+                                <div className="mt-2">
+                                  <PedidosProveedorPanel
+                                    pedidos={it.pedidos}
+                                    proveedores={proveedores}
+                                    compacto
+                                  />
+                                </div>
                               )}
                               </div>
                             </div>

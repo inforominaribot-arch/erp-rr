@@ -16,6 +16,8 @@ export interface IProveedor {
   direccion: string | null
   notas: string | null
   activo: boolean
+  marcas: string[]
+  diasEntrega: number | null
   creadoEn: string
   actualizadoEn: string
   _count?: {

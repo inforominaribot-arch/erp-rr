@@ -18,7 +18,9 @@ import {
   ExternalLink,
   AlertCircle,
 } from "lucide-react"
-import type { IItemProduccion, IMetricasProduccion, TipoItemComanda } from "../types"
+import type { IItemProduccion, IMetricasProduccion, IProveedorPedido, TipoItemComanda } from "../types"
+import { PedidosProveedorPanel } from "./pedidos-proveedor-panel"
+import { calcularDemora } from "../lib/pedidos-proveedor"
 import { ComandaEstadoBadge } from "./comanda-estado-badge"
 import { ComandaTipoBadge } from "./comanda-tipo-badge"
 import { toggleCompletadoItemComanda, actualizarTipoItemComanda } from "../actions"
@@ -27,12 +29,16 @@ interface ProduccionTableroProps {
   itemsIniciales: IItemProduccion[]
   metricasIniciales: IMetricasProduccion
   puedeGestionar?: boolean
+  proveedores?: IProveedorPedido[]
 }
+
+type FiltroPedido = "TODOS" | "POR_PEDIR" | "PEDIDOS" | "DEMORADOS"
 
 export function ProduccionTablero({
   itemsIniciales,
   metricasIniciales,
   puedeGestionar = true,
+  proveedores = [],
 }: ProduccionTableroProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -41,9 +47,33 @@ export function ProduccionTablero({
   const [tabTipo, setTabTipo] = useState<"TODOS" | "FABRICAR" | "PEDIR_PROVEEDOR">("FABRICAR")
   const [filtroEstado, setFiltroEstado] = useState<"PENDIENTES" | "TODOS">("PENDIENTES")
   const [busqueda, setBusqueda] = useState("")
+  const [filtroPedido, setFiltroPedido] = useState<FiltroPedido>("TODOS")
 
-  // Optimistic updates
+  // Optimistic updates (se reemplazan cuando llegan datos nuevos del servidor)
   const [items, setItems] = useState<IItemProduccion[]>(itemsIniciales)
+  const [itemsServidor, setItemsServidor] = useState(itemsIniciales)
+  if (itemsIniciales !== itemsServidor) {
+    setItemsServidor(itemsIniciales)
+    setItems(itemsIniciales)
+  }
+
+  // Resumen de pedidos a proveedor (por capa)
+  const resumenPedidos = useMemo(() => {
+    let porPedir = 0
+    let pedidos = 0
+    let demorados = 0
+    for (const it of items) {
+      if (it.tipo !== "PEDIR_PROVEEDOR") continue
+      for (const p of it.pedidos) {
+        if (p.estado === "PENDIENTE_PEDIDO") porPedir++
+        if (p.estado === "PEDIDO_REALIZADO") {
+          pedidos++
+          if (calcularDemora(p.estado, p.fechaPedido, p.diasEntrega).demorado) demorados++
+        }
+      }
+    }
+    return { porPedir, pedidos, demorados }
+  }, [items])
   const [avisoListo, setAvisoListo] = useState<string | null>(null)
 
   // Filtrado reactivo en cliente
@@ -57,6 +87,16 @@ export function ProduccionTablero({
       // Filtro completados
       if (filtroEstado === "PENDIENTES" && it.completado) {
         return false
+      }
+
+      // Filtro por estado de pedido (solo pestaña Proveedor)
+      if (tabTipo === "PEDIR_PROVEEDOR" && filtroPedido !== "TODOS") {
+        const cumple = it.pedidos.some((p) => {
+          if (filtroPedido === "POR_PEDIR") return p.estado === "PENDIENTE_PEDIDO"
+          if (filtroPedido === "PEDIDOS") return p.estado === "PEDIDO_REALIZADO"
+          return calcularDemora(p.estado, p.fechaPedido, p.diasEntrega).demorado
+        })
+        if (!cumple) return false
       }
 
       // Filtro texto
@@ -83,7 +123,7 @@ export function ProduccionTablero({
 
       return true
     })
-  }, [items, tabTipo, filtroEstado, busqueda])
+  }, [items, tabTipo, filtroEstado, filtroPedido, busqueda])
 
   // Handlers
   async function handleToggle(itemId: string) {
@@ -193,10 +233,14 @@ export function ProduccionTablero({
             <Truck className="h-4 w-4 text-amber-600" />
           </div>
           <p className="mt-2 text-2xl font-bold text-amber-950 font-mono">
-            {metricasIniciales.itemsProveedorPendientes}
+            {resumenPedidos.porPedir}
+            <span className="ml-1 text-xs font-sans font-bold text-amber-700">por pedir</span>
           </p>
           <span className="text-[11px] text-amber-700/80">
-            Por encargo / sistemas
+            {resumenPedidos.pedidos} esperando
+            {resumenPedidos.demorados > 0 && (
+              <strong className="ml-1 text-red-700">• {resumenPedidos.demorados} demorados</strong>
+            )}
           </span>
         </div>
 
@@ -314,6 +358,35 @@ export function ProduccionTablero({
           </button>
         </div>
       </div>
+
+      {/* ── FILTRO POR ESTADO DE PEDIDO (pestaña Proveedor) ── */}
+      {tabTipo === "PEDIR_PROVEEDOR" && (
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["TODOS", "Todos"],
+              ["POR_PEDIR", `Por pedir (${resumenPedidos.porPedir})`],
+              ["PEDIDOS", `Pedidos (${resumenPedidos.pedidos})`],
+              ["DEMORADOS", `Demorados (${resumenPedidos.demorados})`],
+            ] as [FiltroPedido, string][]
+          ).map(([val, label]) => (
+            <button
+              key={val}
+              type="button"
+              onClick={() => setFiltroPedido(val)}
+              className={`min-h-[36px] rounded-lg border px-3 text-xs font-bold transition ${
+                filtroPedido === val
+                  ? val === "DEMORADOS"
+                    ? "border-red-600 bg-red-600 text-white"
+                    : "border-amber-600 bg-amber-600 text-white"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ── GRILLA DE TARJETAS TÁCTILES DE PRODUCCIÓN ── */}
       {itemsFiltrados.length === 0 ? (
@@ -464,6 +537,17 @@ export function ProduccionTablero({
                         <strong>Nota:</strong> {it.observaciones}
                       </div>
                     )}
+
+                    {/* Pedidos a proveedor por capa */}
+                    {it.tipo === "PEDIR_PROVEEDOR" && it.pedidos.length > 0 && (
+                      <div className="mt-3">
+                        <PedidosProveedorPanel
+                          pedidos={it.pedidos}
+                          proveedores={proveedores}
+                          puedeEditar={puedeGestionar}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -497,7 +581,16 @@ export function ProduccionTablero({
                     </button>
                   </div>
 
-                  {/* Botón Táctil de Completado */}
+                  {/* Botón Táctil de Completado (en proveedor, "listo" = todas las capas recibidas) */}
+                  {it.tipo === "PEDIR_PROVEEDOR" && it.pedidos.length > 0 ? (
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold ${
+                        it.completado ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      {it.completado ? "Recibido completo ✓" : "Esperando recepción"}
+                    </span>
+                  ) : (
                   <button
                     type="button"
                     onClick={() => handleToggle(it.id)}
@@ -511,6 +604,7 @@ export function ProduccionTablero({
                     <Check className="h-4 w-4 shrink-0" />
                     <span>{it.completado ? "Terminado ✓" : "Marcar Listo"}</span>
                   </button>
+                  )}
                 </div>
               </div>
             )

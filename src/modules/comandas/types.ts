@@ -22,7 +22,32 @@ export interface IItemComanda {
   observaciones: string | null
   completado: boolean
   avisoMedida: IAvisoMedidaModificada | null
+  /** Pedidos a proveedor por capa (solo ítems PEDIR_PROVEEDOR) */
+  pedidos: IPedidoProveedor[]
   creadoEn: Date
+}
+
+export type EstadoPedidoProveedor = "PENDIENTE_PEDIDO" | "PEDIDO_REALIZADO" | "PEDIDO_RECIBIDO"
+
+export interface IPedidoProveedor {
+  id: string
+  capa: string
+  etiqueta: string
+  marca: string | null
+  proveedorId: string | null
+  proveedorNombre: string | null
+  diasEntrega: number | null
+  estado: EstadoPedidoProveedor
+  fechaPedido: string | null
+  fechaRecibido: string | null
+  nota: string | null
+}
+
+export interface IProveedorPedido {
+  id: string
+  nombre: string
+  marcas: string[]
+  diasEntrega: number | null
 }
 
 // ─── Comanda Básica ──────────────────────────────────────────────────────────
@@ -113,6 +138,7 @@ export interface IItemProduccion {
   completado: boolean
   caracteristicas: ICaracteristicasItem | null
   observaciones: string | null
+  pedidos: IPedidoProveedor[]
   creadoEn: Date
 }
 

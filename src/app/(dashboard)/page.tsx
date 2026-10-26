@@ -5,7 +5,12 @@ import { Metadata } from "next"
 import { Users, ClipboardList, Package, Calendar, FileText, ArrowRight, CalendarCheck } from "lucide-react"
 import Link from "next/link"
 import { tienePermisoModuloMetricas } from "@/modules/metricas/lib/auth"
-import { obtenerDashboardOperativo, obtenerAvisosMedidaModificada } from "@/modules/metricas/queries"
+import {
+  obtenerDashboardOperativo,
+  obtenerAvisosMedidaModificada,
+  obtenerResumenPedidosProveedor,
+} from "@/modules/metricas/queries"
+import { DashboardPedidosProveedor } from "@/modules/metricas/components/dashboard-pedidos-proveedor"
 import { DashboardAvisosMedida } from "@/modules/metricas/components/dashboard-avisos-medida"
 import { DashboardKpiCard } from "@/modules/metricas/components/dashboard-kpi-card"
 import { DashboardVisitasHoy } from "@/modules/metricas/components/dashboard-visitas-hoy"
@@ -90,7 +95,10 @@ export default async function DashboardPage() {
   }
 
   // Vista completa para ADMIN_GENERAL y ADMINISTRACION
-  const avisosMedida = await obtenerAvisosMedidaModificada()
+  const [avisosMedida, resumenPedidos] = await Promise.all([
+    obtenerAvisosMedidaModificada(),
+    obtenerResumenPedidosProveedor(),
+  ])
 
   return (
     <div className="space-y-6">
@@ -118,6 +126,9 @@ export default async function DashboardPage() {
 
       {/* Alerta: medidas modificadas después de presupuestar */}
       <DashboardAvisosMedida avisos={avisosMedida} />
+
+      {/* Alerta: cortinas por pedir a proveedor y pedidos demorados */}
+      <DashboardPedidosProveedor resumen={resumenPedidos} />
 
       {/* Tarjetas de KPIs principales en vivo */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">

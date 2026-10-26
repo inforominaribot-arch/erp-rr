@@ -907,3 +907,42 @@ export async function obtenerAvisosMedidaModificada(): Promise<IAvisoMedidaDashb
     return []
   }
 }
+
+// ─── Pedidos a proveedor de cortinas (por capa) ──────────────────────────────
+
+export interface IResumenPedidosProveedor {
+  porPedir: number
+  esperando: number
+  demorados: number
+}
+
+export async function obtenerResumenPedidosProveedor(): Promise<IResumenPedidosProveedor> {
+  try {
+    const pedidos = await prisma.pedidoProveedorItem.findMany({
+      where: {
+        estado: { in: ["PENDIENTE_PEDIDO", "PEDIDO_REALIZADO"] },
+        itemComanda: { tipo: "PEDIR_PROVEEDOR", comanda: { estado: { not: "INSTALADO" } } },
+      },
+      select: { estado: true, fechaPedido: true, proveedor: { select: { diasEntrega: true } } },
+    })
+    const ahora = Date.now()
+    let porPedir = 0
+    let esperando = 0
+    let demorados = 0
+    for (const p of pedidos) {
+      if (p.estado === "PENDIENTE_PEDIDO") {
+        porPedir++
+        continue
+      }
+      esperando++
+      const dias = p.proveedor?.diasEntrega
+      if (dias && p.fechaPedido && ahora > p.fechaPedido.getTime() + dias * 86_400_000) {
+        demorados++
+      }
+    }
+    return { porPedir, esperando, demorados }
+  } catch (error) {
+    console.error("Error al obtener resumen de pedidos a proveedor:", error)
+    return { porPedir: 0, esperando: 0, demorados: 0 }
+  }
+}

@@ -44,6 +44,8 @@ export async function crearProveedor(
         direccion: validado.direccion,
         notas: validado.notas,
         activo: validado.activo,
+        marcas: validado.marcas,
+        diasEntrega: validado.diasEntrega ?? null,
       },
     })
 
@@ -61,6 +63,8 @@ export async function crearProveedor(
         direccion: nuevo.direccion,
         notas: nuevo.notas,
         activo: nuevo.activo,
+        marcas: nuevo.marcas,
+        diasEntrega: nuevo.diasEntrega,
         creadoEn: nuevo.creadoEn.toISOString(),
         actualizadoEn: nuevo.actualizadoEn.toISOString(),
       },
@@ -102,6 +106,16 @@ export async function actualizarProveedor(
     if (input.direccion !== undefined) dataActualizar.direccion = input.direccion
     if (input.notas !== undefined) dataActualizar.notas = input.notas
     if (input.activo !== undefined) dataActualizar.activo = input.activo
+    if (input.marcas !== undefined) {
+      dataActualizar.marcas = input.marcas.filter((m) => ["HD", "RS", "MG"].includes(m))
+    }
+    if (input.diasEntrega !== undefined) {
+      const d = input.diasEntrega
+      if (d !== null && (!Number.isInteger(d) || d < 1 || d > 365)) {
+        return { success: false, error: "Los días de entrega deben ser un número entre 1 y 365." }
+      }
+      dataActualizar.diasEntrega = d
+    }
 
     const actualizado = await prisma.proveedor.update({
       where: { id },
@@ -122,6 +136,8 @@ export async function actualizarProveedor(
         direccion: actualizado.direccion,
         notas: actualizado.notas,
         activo: actualizado.activo,
+        marcas: actualizado.marcas,
+        diasEntrega: actualizado.diasEntrega,
         creadoEn: actualizado.creadoEn.toISOString(),
         actualizadoEn: actualizado.actualizadoEn.toISOString(),
       },

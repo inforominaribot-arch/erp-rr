@@ -66,6 +66,12 @@ enum TipoItemComanda {
   PEDIR_PROVEEDOR
 }
 
+enum EstadoPedidoProveedor {
+  PENDIENTE_PEDIDO
+  PEDIDO_REALIZADO
+  PEDIDO_RECIBIDO
+}
+
 enum EstadoInstalacion {
   PROGRAMADA
   COMPLETADA
@@ -272,11 +278,33 @@ model ItemComanda {
   creadoEn           DateTime        @default(now()) @map("creado_en")
 
   // Relaciones
-  comanda      Comanda       @relation(fields: [comandaId], references: [id], onDelete: Cascade)
-  producto     Producto?     @relation(fields: [productoId], references: [id])
-  itemMedicion ItemMedicion? @relation(fields: [itemMedicionId], references: [id], onDelete: SetNull)
+  comanda      Comanda               @relation(fields: [comandaId], references: [id], onDelete: Cascade)
+  producto     Producto?             @relation(fields: [productoId], references: [id])
+  itemMedicion ItemMedicion?         @relation(fields: [itemMedicionId], references: [id], onDelete: SetNull)
+  pedidos      PedidoProveedorItem[]
 
   @@map("items_comanda")
+}
+
+// Pedido a proveedor de una capa de cortina (Gaza / B.O. / única) de un ítem de comanda
+model PedidoProveedorItem {
+  id            String                @id @default(uuid())
+  itemComandaId String                @map("item_comanda_id")
+  capa          String // "GAZA", "BO", "GAZA_BO" (misma marca) o "UNICA"
+  marca         String? // Marca tomada de la medición (HD, RS, MG)
+  proveedorId   String?               @map("proveedor_id")
+  estado        EstadoPedidoProveedor @default(PENDIENTE_PEDIDO)
+  fechaPedido   DateTime?             @map("fecha_pedido")
+  fechaRecibido DateTime?             @map("fecha_recibido")
+  nota          String?
+  creadoEn      DateTime              @default(now()) @map("creado_en")
+  actualizadoEn DateTime              @updatedAt @map("actualizado_en")
+
+  itemComanda ItemComanda @relation(fields: [itemComandaId], references: [id], onDelete: Cascade)
+  proveedor   Proveedor?  @relation(fields: [proveedorId], references: [id], onDelete: SetNull)
+
+  @@unique([itemComandaId, capa])
+  @@map("pedidos_proveedor_items")
 }
 
 // ─── PRODUCTOS / STOCK ────────────────────────────────────────────────────────
@@ -334,12 +362,17 @@ model Proveedor {
   direccion     String?
   notas         String?
   activo        Boolean  @default(true)
+  // Marcas de cortina que provee (HD, RS, MG) para preseleccionarlo en los pedidos
+  marcas        String[] @default([])
+  // Días habituales de entrega (para la alerta de pedido demorado)
+  diasEntrega   Int?     @map("dias_entrega")
   creadoEn      DateTime @default(now()) @map("creado_en")
   actualizadoEn DateTime @updatedAt @map("actualizado_en")
 
   // Relaciones
-  productos     ProductoProveedor[]
-  ordenesCompra OrdenCompra[]
+  productos      ProductoProveedor[]
+  ordenesCompra  OrdenCompra[]
+  pedidosCortina PedidoProveedorItem[]
 
   @@map("proveedores")
 }

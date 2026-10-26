@@ -56,6 +56,16 @@ export const proveedorSchema = z.object({
     .nullable()
     .transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
   activo: z.boolean().default(true),
+  // Marcas de cortina que provee (para preseleccionarlo en pedidos de cortinas)
+  marcas: z.array(z.enum(["HD", "RS", "MG"])).default([]),
+  // Días habituales de entrega (alerta de pedido demorado)
+  diasEntrega: z
+    .number()
+    .int("Los días de entrega deben ser un número entero")
+    .min(1, "Los días de entrega deben ser al menos 1")
+    .max(365, "Los días de entrega no pueden superar 365")
+    .optional()
+    .nullable(),
 })
 
 export type ProveedorInput = z.infer<typeof proveedorSchema>

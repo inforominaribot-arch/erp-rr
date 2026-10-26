@@ -2,7 +2,8 @@
 // Consultas de solo lectura a la base de datos mediante Prisma ORM
 
 import { prisma } from "@/lib/prisma"
-import type { Prisma, Comanda, ItemComanda, Presupuesto, Cliente } from "@prisma/client"
+import type { Prisma, Comanda, ItemComanda, Presupuesto, Cliente, PedidoProveedorItem } from "@prisma/client"
+import { asegurarPedidosItems } from "./lib/pedidos-proveedor"
 import type { FiltrosComandasInput, FiltrosProduccionInput } from "./schemas"
 import type {
   IComandaConRelaciones,
@@ -12,13 +13,56 @@ import type {
   IMetricasComandas,
   IMetricasProduccion,
   IPresupuestoAceptadoResumen,
+  IPedidoProveedor,
+  IProveedorPedido,
 } from "./types"
 import type { ICaracteristicasItem } from "@/modules/mediciones/types"
 import { serializarAvisoMedida } from "@/modules/mediciones/types"
 
 // ─── Helpers de Serialización ────────────────────────────────────────────────
 
-function serializarItemComanda(item: ItemComanda): IItemComanda {
+type PedidoConProveedor = PedidoProveedorItem & {
+  proveedor: { nombre: string; diasEntrega: number | null } | null
+}
+
+const ETIQUETA_CAPA: Record<string, string> = {
+  GAZA: "Gaza",
+  BO: "B.O.",
+  GAZA_BO: "Gaza + B.O.",
+  UNICA: "Cortina",
+}
+
+function serializarPedidos(
+  pedidos: PedidoConProveedor[] | undefined,
+  caracteristicas: unknown
+): IPedidoProveedor[] {
+  const esAluminio = (caracteristicas as { tipo?: string } | null)?.tipo === "Aluminio"
+  const orden = ["GAZA", "GAZA_BO", "BO", "UNICA"]
+  return (pedidos || [])
+    .slice()
+    .sort((a, b) => orden.indexOf(a.capa) - orden.indexOf(b.capa))
+    .map((p) => ({
+      id: p.id,
+      capa: p.capa,
+      etiqueta: esAluminio && p.capa === "BO" ? "Aluminio" : ETIQUETA_CAPA[p.capa] || p.capa,
+      marca: p.marca,
+      proveedorId: p.proveedorId,
+      proveedorNombre: p.proveedor?.nombre ?? null,
+      diasEntrega: p.proveedor?.diasEntrega ?? null,
+      estado: p.estado,
+      fechaPedido: p.fechaPedido?.toISOString() ?? null,
+      fechaRecibido: p.fechaRecibido?.toISOString() ?? null,
+      nota: p.nota,
+    }))
+}
+
+const INCLUDE_PEDIDOS = {
+  pedidos: { include: { proveedor: { select: { nombre: true, diasEntrega: true } } } },
+} as const
+
+function serializarItemComanda(
+  item: ItemComanda & { pedidos?: PedidoConProveedor[] }
+): IItemComanda {
   return {
     id: item.id,
     comandaId: item.comandaId,
@@ -33,6 +77,7 @@ function serializarItemComanda(item: ItemComanda): IItemComanda {
     observaciones: item.observaciones,
     completado: item.completado,
     avisoMedida: serializarAvisoMedida(item.medidaAnterior, item.medidaModificadaEn),
+    pedidos: serializarPedidos(item.pedidos, item.caracteristicas),
     creadoEn: item.creadoEn,
   }
 }
@@ -173,6 +218,17 @@ export async function obtenerComandaPorId(
   try {
     if (!id || typeof id !== "string") return null
 
+    const sinPedidos = await prisma.itemComanda.findMany({
+      where: { comandaId: id, tipo: "PEDIR_PROVEEDOR", pedidos: { none: {} } },
+      select: { id: true },
+    })
+    if (sinPedidos.length > 0) {
+      await prisma.$transaction(
+        (tx) => asegurarPedidosItems(tx, sinPedidos.map((i) => i.id)),
+        { timeout: 30000 }
+      )
+    }
+
     const c = await prisma.comanda.findUnique({
       where: { id },
       include: {
@@ -183,6 +239,7 @@ export async function obtenerComandaPorId(
         },
         items: {
           orderBy: [{ ambiente: "asc" }, { creadoEn: "asc" }],
+          include: INCLUDE_PEDIDOS,
         },
         instalacion: {
           select: {
@@ -393,9 +450,22 @@ export async function obtenerItemsProduccion(
       ]
     }
 
+    // Asegurar que toda cortina de proveedor tenga sus pedidos por capa (datos anteriores)
+    const sinPedidos = await prisma.itemComanda.findMany({
+      where: { tipo: "PEDIR_PROVEEDOR", pedidos: { none: {} }, comanda: { estado: { not: "INSTALADO" } } },
+      select: { id: true },
+    })
+    if (sinPedidos.length > 0) {
+      await prisma.$transaction(
+        (tx) => asegurarPedidosItems(tx, sinPedidos.map((i) => i.id)),
+        { timeout: 30000 }
+      )
+    }
+
     const itemsDb = await prisma.itemComanda.findMany({
       where,
       include: {
+        ...INCLUDE_PEDIDOS,
         comanda: {
           select: {
             id: true,
@@ -445,6 +515,7 @@ export async function obtenerItemsProduccion(
       completado: item.completado,
       caracteristicas: (item.caracteristicas as unknown as ICaracteristicasItem) || null,
       observaciones: item.observaciones,
+      pedidos: serializarPedidos(item.pedidos, item.caracteristicas),
       creadoEn: item.creadoEn,
     }))
   } catch (error) {
@@ -518,6 +589,22 @@ export async function obtenerPresupuestosAceptadosSinComanda(): Promise<
     })
   } catch (error) {
     console.error("Error al obtener presupuestos aceptados sin comanda:", error)
+    return []
+  }
+}
+
+// ─── Proveedores para asignar a pedidos de cortinas ───────────────────────────
+
+export async function obtenerProveedoresParaPedidos(): Promise<IProveedorPedido[]> {
+  try {
+    const provs = await prisma.proveedor.findMany({
+      where: { activo: true },
+      select: { id: true, nombre: true, marcas: true, diasEntrega: true },
+      orderBy: { nombre: "asc" },
+    })
+    return provs
+  } catch (error) {
+    console.error("Error al obtener proveedores para pedidos:", error)
     return []
   }
 }

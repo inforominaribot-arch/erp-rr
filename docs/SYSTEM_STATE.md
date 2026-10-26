@@ -573,6 +573,19 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 
 ---
 
+## Actualización — Ficha de trabajo completa y pedidos a proveedor por capa (2026-10-26)
+
+### ✅ Implementado
+- [x] **Ficha de trabajo A4 con todas las cortinas** (`comanda-imprimible.tsx`): taller y proveedor como tarjetas con dibujo, etiqueta TALLER / PROVEEDOR, proveedor por capa y casillas (Corte / Confección / Control OK vs Recibido / Controlado / Embalado). Se quitó la tabla aparte de proveedor.
+- [x] **Pedidos a proveedor por capa** (modelo `PedidoProveedorItem`, enum `EstadoPedidoProveedor`): Pendiente de pedido → Pedido realizado → Pedido recibido. Gaza y B.O. de distinta marca son pedidos separados; de la misma marca, uno solo (`capasPedidoProveedor` en `src/modules/comandas/lib/pedidos-proveedor.ts`).
+- [x] **Proveedor preseleccionado por marca** de la medición (`Proveedor.marcas`), modificable. **Alerta de demora** con `Proveedor.diasEntrega` (fecha de pedido + días).
+- [x] **Producción:** panel de pedidos en cada cortina de proveedor (`PedidosProveedorPanel`), KPI "por pedir / esperando / demorados" y filtros. Lo usan Administración y Taller. También en el detalle de comanda.
+- [x] **Estado automático de la comanda:** "listo" de una cortina de proveedor = todas sus capas recibidas; todo listo → LISTO_PARA_INSTALAR; taller listo pero falta proveedor → ESPERANDO_PROVEEDOR.
+- [x] **Dashboard de administración:** alerta de cortinas por pedir, esperando y demoradas.
+- [x] Los pedidos de comandas existentes se crean solos al abrir Producción o la comanda (las ya marcadas como listas nacen "recibidas").
+
+---
+
 ## Notas de integración entre módulos
 
 | De | A | Dato compartido |

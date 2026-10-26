@@ -17,6 +17,11 @@ import {
   type ActualizarItemComandaInput,
   type ActualizarNotasComandaInput,
 } from "./schemas"
+import {
+  asegurarPedidosItems,
+  recalcularEstadoComanda,
+} from "./lib/pedidos-proveedor"
+import type { EstadoPedidoProveedor } from "@prisma/client"
 
 // ─── 1. Generar Comanda desde Presupuesto Aceptado ───────────────────────────
 
@@ -196,8 +201,18 @@ export async function generarComandaDesdePresupuesto(
         }
       }
 
+      // Pedidos a proveedor por capa (con proveedor preseleccionado por marca)
+      const itemsCreados = await tx.itemComanda.findMany({
+        where: { comandaId: comandaCreada.id, tipo: "PEDIR_PROVEEDOR" },
+        select: { id: true },
+      })
+      await asegurarPedidosItems(
+        tx,
+        itemsCreados.map((i) => i.id)
+      )
+
       return comandaCreada
-    })
+    }, { timeout: 30000 })
 
     revalidatePath("/comandas")
     revalidatePath("/produccion")
@@ -335,43 +350,28 @@ export async function toggleCompletadoItemComanda(
 
     // Evaluar en transacción
     const resultado = await prisma.$transaction(async (tx) => {
-      // 1. Actualizar el ítem
+      if (item.tipo === "PEDIR_PROVEEDOR") {
+        // En cortinas de proveedor "listo" = todas sus capas recibidas
+        await asegurarPedidosItems(tx, [itemId])
+        await tx.pedidoProveedorItem.updateMany({
+          where: { itemComandaId: itemId },
+          data: nuevoCompletado
+            ? { estado: "PEDIDO_RECIBIDO", fechaRecibido: new Date() }
+            : { estado: "PEDIDO_REALIZADO", fechaRecibido: null },
+        })
+      }
       await tx.itemComanda.update({
         where: { id: itemId },
         data: { completado: nuevoCompletado },
       })
 
-      // 2. Traer todos los ítems actualizados de la comanda
-      const todosLosItems = await tx.itemComanda.findMany({
-        where: { comandaId: item.comandaId },
-      })
-
-      const todosListos = todosLosItems.every((it) =>
-        it.id === itemId ? nuevoCompletado : it.completado
-      )
-
-      let nuevoEstadoComanda: EstadoComanda = item.comanda.estado
-
-      // 3. Regla automática: si todos están listos y no está instalada, pasa a LISTO_PARA_INSTALAR
-      if (todosListos && item.comanda.estado !== "INSTALADO") {
-        nuevoEstadoComanda = "LISTO_PARA_INSTALAR"
-        await tx.comanda.update({
-          where: { id: item.comandaId },
-          data: { estado: nuevoEstadoComanda },
-        })
-      } else if (!todosListos && item.comanda.estado === "LISTO_PARA_INSTALAR") {
-        // Si se desmarcó y estaba en LISTO_PARA_INSTALAR, vuelve a EN_PRODUCCION
-        nuevoEstadoComanda = "EN_PRODUCCION"
-        await tx.comanda.update({
-          where: { id: item.comandaId },
-          data: { estado: nuevoEstadoComanda },
-        })
-      }
+      const nuevoEstadoComanda =
+        (await recalcularEstadoComanda(tx, item.comandaId)) ?? item.comanda.estado
 
       return {
         id: itemId,
         completado: nuevoCompletado,
-        comandaEstado: nuevoEstadoComanda,
+        comandaEstado: nuevoEstadoComanda as EstadoComanda,
       }
     })
 
@@ -404,14 +404,23 @@ export async function actualizarTipoItemComanda(
       return { success: false, error: auth.error || "No autorizado" }
     }
 
-    const item = await prisma.itemComanda.update({
-      where: { id: itemId },
-      data: { tipo },
-      select: {
-        id: true,
-        comandaId: true,
-        tipo: true,
-      },
+    const item = await prisma.$transaction(async (tx) => {
+      const actualizado = await tx.itemComanda.update({
+        where: { id: itemId },
+        data: { tipo },
+        select: {
+          id: true,
+          comandaId: true,
+          tipo: true,
+        },
+      })
+      if (tipo === "PEDIR_PROVEEDOR") {
+        await asegurarPedidosItems(tx, [itemId])
+      } else {
+        await tx.pedidoProveedorItem.deleteMany({ where: { itemComandaId: itemId } })
+      }
+      await recalcularEstadoComanda(tx, actualizado.comandaId)
+      return actualizado
     })
 
     revalidatePath("/produccion")
@@ -512,5 +521,61 @@ export async function eliminarComanda(id: string): Promise<ActionResponse<void>>
       success: false,
       error: "No se pudo eliminar la comanda seleccionada.",
     }
+  }
+}
+
+// ─── Pedidos a Proveedor por capa (Producción: Administración y Taller) ──────
+
+export async function actualizarPedidoProveedor(input: {
+  pedidoId: string
+  estado: EstadoPedidoProveedor
+  proveedorId?: string | null
+  nota?: string | null
+}): Promise<ActionResponse<{ comandaEstado: string | null }>> {
+  try {
+    const auth = await tienePermisoModuloProduccion()
+    if (!auth.permitido) {
+      return { success: false, error: auth.error || "No autorizado" }
+    }
+
+    const ESTADOS: EstadoPedidoProveedor[] = ["PENDIENTE_PEDIDO", "PEDIDO_REALIZADO", "PEDIDO_RECIBIDO"]
+    if (!ESTADOS.includes(input.estado)) {
+      return { success: false, error: "Estado de pedido inválido." }
+    }
+
+    const pedido = await prisma.pedidoProveedorItem.findUnique({
+      where: { id: input.pedidoId },
+      select: { id: true, fechaPedido: true, itemComanda: { select: { comandaId: true } } },
+    })
+    if (!pedido) {
+      return { success: false, error: "El pedido no existe." }
+    }
+
+    const ahora = new Date()
+    const comandaEstado = await prisma.$transaction(async (tx) => {
+      await tx.pedidoProveedorItem.update({
+        where: { id: input.pedidoId },
+        data: {
+          estado: input.estado,
+          ...(input.proveedorId !== undefined ? { proveedorId: input.proveedorId || null } : {}),
+          ...(input.nota !== undefined ? { nota: input.nota?.trim() || null } : {}),
+          // Fechas según el estado
+          fechaPedido:
+            input.estado === "PENDIENTE_PEDIDO" ? null : pedido.fechaPedido ?? ahora,
+          fechaRecibido: input.estado === "PEDIDO_RECIBIDO" ? ahora : null,
+        },
+      })
+      return recalcularEstadoComanda(tx, pedido.itemComanda.comandaId)
+    })
+
+    revalidatePath("/produccion")
+    revalidatePath("/comandas")
+    revalidatePath(`/comandas/${pedido.itemComanda.comandaId}`)
+    revalidatePath("/")
+
+    return { success: true, data: { comandaEstado: comandaEstado ?? null } }
+  } catch (error) {
+    console.error("Error al actualizar pedido a proveedor:", error)
+    return { success: false, error: "No se pudo actualizar el pedido." }
   }
 }
