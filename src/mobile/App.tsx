@@ -226,7 +226,9 @@ export function App() {
         ) : (
           <MedicionFormMobile
             medicionExistente={medicionEnEdicion}
-            onVolver={() => {
+            onVolver={async () => {
+              // Recargar: los datos del cliente pueden haberse editado aunque no se guarde la medición
+              await refrescarMediciones()
               setMedicionEnEdicion(null)
               setVista("lista")
             }}

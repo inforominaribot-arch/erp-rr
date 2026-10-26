@@ -4,7 +4,8 @@ import { useState } from "react"
 import Link from "next/link"
 import { CortinaDibujoDidactico } from "./cortina-dibujo-didactico"
 import { MedicionSyncBadge } from "./medicion-sync-badge"
-import { formatearFecha } from "@/lib/utils"
+import { formatearFecha, fmtMedida } from "@/lib/utils"
+import { textoMarcaCortina } from "../lib/marcas"
 import type { IMedicion, IItemMedicion } from "../types"
 import {
   calcularArgollasGaza,
@@ -285,7 +286,7 @@ export function MedicionDetalle({
                                   ? carac?.formatoBO === "Roller"
                                     ? `B.O. Roller (${carac?.marcaBO || carac?.marca || "HD"})`
                                     : "Taller Propio"
-                                  : carac?.marca || "—"}
+                                  : textoMarcaCortina(carac) || "—"}
                               </strong>
                             </div>
 
@@ -351,18 +352,18 @@ export function MedicionDetalle({
                                 {tieneGaza && (
                                   <div className="flex flex-wrap items-center justify-between gap-1 border-b border-slate-200/80 pb-0.5">
                                     <span>
-                                      <strong>GAZA (Tradicional):</strong> {anchoGaza.toFixed(2)}m (Alto: {altoGaza.toFixed(2)}m)
+                                      <strong>GAZA (Tradicional):</strong> {fmtMedida(anchoGaza)}m (Alto: {fmtMedida(altoGaza)}m)
                                       {carac?.gaza?.nombreTela ? ` • ${carac.gaza.nombreTela}` : ""}
                                     </span>
                                     {/* CORTE TALLER +10 CM DESTACADO */}
                                     <span className="rounded bg-amber-100 border border-amber-300 px-1.5 py-0.5 text-[10px] font-black text-amber-950">
-                                      Corte (+10cm): {anchoConfeccionGaza.toFixed(2)} m
+                                      Corte (+10cm): {fmtMedida(anchoConfeccionGaza)} m
                                     </span>
                                     <div className="w-full text-[10px] text-slate-600">
                                       Paños ({panosGaza}):{" "}
                                       {anchosPanos.length > 0
-                                        ? anchosPanos.map((p, pIdx) => `P${pIdx + 1}: ${p.toFixed(2)}m`).join(" + ")
-                                        : `${(anchoGaza / panosGaza).toFixed(2)}m c/u`}
+                                        ? anchosPanos.map((p, pIdx) => `P${pIdx + 1}: ${fmtMedida(p)}m`).join(" + ")
+                                        : `${fmtMedida(anchoGaza / panosGaza)}m c/u`}
                                     </div>
                                   </div>
                                 )}
@@ -380,7 +381,7 @@ export function MedicionDetalle({
                                           : ""}
                                         :
                                       </strong>{" "}
-                                      {anchoBO.toFixed(2)}m (Alto: {altoBO.toFixed(2)}m)
+                                      {fmtMedida(anchoBO)}m (Alto: {fmtMedida(altoBO)}m)
                                       {carac?.bo?.nombreTela ? ` • ${carac.bo.nombreTela}` : ""}
                                     </span>
                                     {tipo === "Tradicional" && carac?.formatoBO === "Roller" && (
@@ -399,17 +400,17 @@ export function MedicionDetalle({
                                                     carac?.mandosRollerBO?.[tIdx] ||
                                                     carac?.bo?.mandosRoller?.[tIdx] ||
                                                     (tramosBO === 1 ? carac?.mandoBO || "Derecha" : "—")
-                                                  return `Cortina ${tIdx + 1}: ${t.toFixed(2)}m (Mando ${m})`
+                                                  return `Cortina ${tIdx + 1}: ${fmtMedida(t)}m (Mando ${m})`
                                                 })
                                                 .join(" • ")
-                                            : `${(anchoBO / tramosBO).toFixed(2)}m c/u`}
+                                            : `${fmtMedida(anchoBO / tramosBO)}m c/u`}
                                         </span>
                                       ) : (
                                         <span>
                                           Tramos ({tramosBO}):{" "}
                                           {anchosTramos.length > 0
-                                            ? anchosTramos.map((t, tIdx) => `T${tIdx + 1}: ${t.toFixed(2)}m`).join(" + ")
-                                            : `${(anchoBO / tramosBO).toFixed(2)}m c/u`}
+                                            ? anchosTramos.map((t, tIdx) => `T${tIdx + 1}: ${fmtMedida(t)}m`).join(" + ")
+                                            : `${fmtMedida(anchoBO / tramosBO)}m c/u`}
                                         </span>
                                       )}
                                     </div>
@@ -579,8 +580,8 @@ export function MedicionDetalle({
                         <p className="text-xs text-slate-500">
                           Ancho: <strong>{item.ancho} m</strong> • Alto:{" "}
                           <strong>{item.alto} m</strong>
-                          {item.caracteristicas?.marca && (
-                            <span> • Marca: <strong>{item.caracteristicas.marca}</strong></span>
+                          {textoMarcaCortina(item.caracteristicas) && (
+                            <span> • Marca: <strong>{textoMarcaCortina(item.caracteristicas)}</strong></span>
                           )}
                         </p>
                       </div>

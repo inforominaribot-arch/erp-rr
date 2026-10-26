@@ -798,7 +798,7 @@ export function PresupuestoForm({
                   <td className="py-2 px-2">
                     <input
                       type="number"
-                      step="0.01"
+                      step="0.001"
                       min="0"
                       value={it.ancho}
                       onChange={(e) =>
@@ -816,7 +816,7 @@ export function PresupuestoForm({
                   <td className="py-2 px-2">
                     <input
                       type="number"
-                      step="0.01"
+                      step="0.001"
                       min="0"
                       value={it.alto}
                       onChange={(e) =>

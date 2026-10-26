@@ -54,6 +54,8 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react"
+import { fmtMedida } from "@/lib/utils"
+import { marcaPrincipalCortina } from "../lib/marcas"
 
 interface CortinaItemFormProps {
   itemInicial?: Partial<IItemMedicion> | null
@@ -144,9 +146,6 @@ export function CortinaItemForm({
   )
   const [posicionRollerBO, setPosicionRollerBO] = useState<"Adelante" | "Atrás">(
     caracInicial?.posicionRollerBO || "Atrás"
-  )
-  const [marca, setMarca] = useState<MarcaCortina | null>(
-    caracInicial?.marca || null
   )
   const [tipoSoporte, setTipoSoporte] = useState<"Grampa" | "Kent" | null>(
     caracInicial?.tipoSoporte || null
@@ -333,10 +332,10 @@ export function CortinaItemForm({
       if (cant === 1) {
         setAnchosPanos([numAnc])
       } else {
-        const parte = Number((numAnc / cant).toFixed(2))
+        const parte = Number((numAnc / cant).toFixed(3))
         const arr = Array(cant).fill(parte)
-        const sumaParcial = Number((parte * (cant - 1)).toFixed(2))
-        arr[cant - 1] = Number((numAnc - sumaParcial).toFixed(2))
+        const sumaParcial = Number((parte * (cant - 1)).toFixed(3))
+        arr[cant - 1] = Number((numAnc - sumaParcial).toFixed(3))
         setAnchosPanos(arr)
       }
     }
@@ -357,10 +356,10 @@ export function CortinaItemForm({
       if (cant === 1) {
         setAnchosTramos([numAnc])
       } else {
-        const parte = Number((numAnc / cant).toFixed(2))
+        const parte = Number((numAnc / cant).toFixed(3))
         const arr = Array(cant).fill(parte)
-        const sumaParcial = Number((parte * (cant - 1)).toFixed(2))
-        arr[cant - 1] = Number((numAnc - sumaParcial).toFixed(2))
+        const sumaParcial = Number((parte * (cant - 1)).toFixed(3))
+        arr[cant - 1] = Number((numAnc - sumaParcial).toFixed(3))
         setAnchosTramos(arr)
       }
     }
@@ -540,22 +539,22 @@ export function CortinaItemForm({
       ? (typeof anchoAluminio === "number" ? anchoAluminio : 0)
       : esTipoDirecto
       ? anchosTramos.length > 0
-        ? Number(anchosTramos.slice(0, tramosBO).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(2))
+        ? Number(anchosTramos.slice(0, tramosBO).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(3))
         : 0
       : (tipo === "Tradicional" || esMotorizada)
       ? (gazaActiva
           ? (typeof anchoGaza === "number"
               ? anchoGaza
               : anchosPanos.length > 0
-              ? Number(anchosPanos.slice(0, panosGaza).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(2))
+              ? Number(anchosPanos.slice(0, panosGaza).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(3))
               : 0)
           : capaBOEsTradicional
           ? (typeof anchoBO === "number" ? anchoBO : 0)
-          : Number(anchosTramos.slice(0, tramosBO).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(2)))
+          : Number(anchosTramos.slice(0, tramosBO).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(3)))
       : (gazaActiva && anchosPanos.length > 0
-          ? Number(anchosPanos.slice(0, panosGaza).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(2))
+          ? Number(anchosPanos.slice(0, panosGaza).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(3))
           : boActiva && anchosTramos.length > 0
-          ? Number(anchosTramos.slice(0, tramosBO).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(2))
+          ? Number(anchosTramos.slice(0, tramosBO).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(3))
           : 0)
 
   const altoEfectivo =
@@ -653,7 +652,9 @@ export function CortinaItemForm({
         formatoBO: tipo === "Tradicional" && boActiva ? formatoBO : undefined,
         // Marcas: Tradicional común nunca lleva marca (taller propio)
         marcaBO:
-          (tipo === "Tradicional" && boActiva && formatoBO === "Tradicional") ||
+          tipo === "Aluminio"
+            ? "HD" // el aluminio es siempre HD
+            : (tipo === "Tradicional" && boActiva && formatoBO === "Tradicional") ||
           (esMotorizada && (subtipoMotorizada === "Tradicional Mot y Tradicional" || subtipoMotorizada === "Roller Mot y Tradicional"))
             ? null
             : boActiva || esMotorizada
@@ -684,12 +685,8 @@ export function CortinaItemForm({
           capaBOEsRoller || (tipo === "Tradicional" && formatoBO === "Tradicional")
             ? posicionRollerBO
             : undefined,
-        marca:
-          tipo === "Mosquera"
-            ? "MG"
-            : tipo === "Tradicional"
-            ? undefined
-            : marca || marcaBO || undefined,
+        // Se completa abajo según las capas activas (marcaPrincipalCortina)
+        marca: undefined,
 
         // Configuración de Motorización
         motorGaza:
@@ -746,7 +743,7 @@ export function CortinaItemForm({
                 activa: true,
                 ancho: capaGazaEsTradicional
                   ? (typeof anchoGaza === "number" ? anchoGaza : 0)
-                  : Number(anchosPanos.slice(0, panosGaza).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(2)),
+                  : Number(anchosPanos.slice(0, panosGaza).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(3)),
                 alto: typeof altoGaza === "number" ? altoGaza : 0,
                 panos: panosGaza,
                 anchosPanos: anchosPanos.slice(0, panosGaza).map((v) => (typeof v === "number" ? v : 0)),
@@ -758,7 +755,7 @@ export function CortinaItemForm({
             ? {
                 activa: true,
                 ancho: esTipoDirecto || !capaBOEsTradicional
-                  ? Number(anchosTramos.slice(0, tramosBO).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(2))
+                  ? Number(anchosTramos.slice(0, tramosBO).reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0).toFixed(3))
                   : (typeof anchoBO === "number" ? anchoBO : 0),
                 alto: typeof altoBO === "number" ? altoBO : 0,
                 tramos: tramosBO,
@@ -780,6 +777,10 @@ export function CortinaItemForm({
             : undefined,
       }
     : null
+  // Marca general según las capas activas (antes quedaba fija en HD, el default del B.O.)
+  if (caracteristicasActuales) {
+    caracteristicasActuales.marca = marcaPrincipalCortina(caracteristicasActuales)
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -815,12 +816,12 @@ export function CortinaItemForm({
               anchosPanos
                 .slice(0, panosGaza)
                 .reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0)
-                .toFixed(2)
+                .toFixed(3)
             )
             const numAnchoGaza = typeof anchoGaza === "number" ? anchoGaza : parseFloat(String(anchoGaza)) || 0
             if (Math.abs(suma - numAnchoGaza) > 0.02) {
               setErrorValidacion(
-                `La suma de los paños de Gaza (${suma.toFixed(2)} m) debe ser exactamente igual al Ancho Total (${numAnchoGaza.toFixed(2)} m). Podés tocar "Centrar" para ajustarlos.`
+                `La suma de los paños de Gaza (${fmtMedida(suma)} m) debe ser exactamente igual al Ancho Total (${fmtMedida(numAnchoGaza)} m). Podés tocar "Centrar" para ajustarlos.`
               )
               return
             }
@@ -871,12 +872,12 @@ export function CortinaItemForm({
               anchosPanos
                 .slice(0, panosGaza)
                 .reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0)
-                .toFixed(2)
+                .toFixed(3)
             )
             const numAnchoGaza = typeof anchoGaza === "number" ? anchoGaza : parseFloat(String(anchoGaza)) || 0
             if (Math.abs(suma - numAnchoGaza) > 0.02) {
               setErrorValidacion(
-                `La suma de los paños de Gaza (${suma.toFixed(2)} m) debe ser exactamente igual al Ancho Total (${numAnchoGaza.toFixed(2)} m). Podés tocar "Centrar" para ajustarlos.`
+                `La suma de los paños de Gaza (${fmtMedida(suma)} m) debe ser exactamente igual al Ancho Total (${fmtMedida(numAnchoGaza)} m). Podés tocar "Centrar" para ajustarlos.`
               )
               return
             }
@@ -918,12 +919,12 @@ export function CortinaItemForm({
               anchosPanos
                 .slice(0, panosGaza)
                 .reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0)
-                .toFixed(2)
+                .toFixed(3)
             )
             const numAnchoGaza = typeof anchoGaza === "number" ? anchoGaza : parseFloat(String(anchoGaza)) || 0
             if (Math.abs(suma - numAnchoGaza) > 0.02) {
               setErrorValidacion(
-                `La suma de los paños de Gaza (${suma.toFixed(2)} m) debe ser exactamente igual al Ancho Total (${numAnchoGaza.toFixed(2)} m). Podés tocar "Centrar" para ajustarlos.`
+                `La suma de los paños de Gaza (${fmtMedida(suma)} m) debe ser exactamente igual al Ancho Total (${fmtMedida(numAnchoGaza)} m). Podés tocar "Centrar" para ajustarlos.`
               )
               return
             }
@@ -956,12 +957,12 @@ export function CortinaItemForm({
               anchosTramos
                 .slice(0, tramosBO)
                 .reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0)
-                .toFixed(2)
+                .toFixed(3)
             )
             const numAnchoBO = typeof anchoBO === "number" ? anchoBO : parseFloat(String(anchoBO)) || 0
             if (Math.abs(suma - numAnchoBO) > 0.02) {
               setErrorValidacion(
-                `La suma de los tramos de ${tituloTarjetaBO} (${suma.toFixed(2)} m) debe ser exactamente igual al Ancho Total (${numAnchoBO.toFixed(2)} m). Podés tocar "Centrar" para ajustarlos.`
+                `La suma de los tramos de ${tituloTarjetaBO} (${fmtMedida(suma)} m) debe ser exactamente igual al Ancho Total (${fmtMedida(numAnchoBO)} m). Podés tocar "Centrar" para ajustarlos.`
               )
               return
             }
@@ -1285,7 +1286,7 @@ export function CortinaItemForm({
                   </label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="0.001"
                     min="0.1"
                     value={anchoAluminio}
                     onChange={(e) => {
@@ -1304,7 +1305,7 @@ export function CortinaItemForm({
                   </label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="0.001"
                     min="0.1"
                     value={altoAluminio}
                     onChange={(e) =>
@@ -1330,7 +1331,7 @@ export function CortinaItemForm({
                         </span>
                         <input
                           type="number"
-                          step="0.01"
+                          step="0.001"
                           min="0.01"
                           value={anchosAluminio[idx] ?? ""}
                           onChange={(e) => {
@@ -1338,7 +1339,7 @@ export function CortinaItemForm({
                             arr[idx] = e.target.value === "" ? "" : parseFloat(e.target.value) || ""
                             setAnchosAluminio(arr)
                             const total = arr.reduce<number>((a, b) => a + (typeof b === "number" ? b : 0), 0)
-                            setAnchoAluminio(Number(total.toFixed(2)))
+                            setAnchoAluminio(Number(total.toFixed(3)))
                           }}
                           placeholder="0.00"
                           required
@@ -1355,7 +1356,7 @@ export function CortinaItemForm({
                   </label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="0.001"
                     min="0.1"
                     value={altoAluminio}
                     onChange={(e) =>
@@ -1596,7 +1597,7 @@ export function CortinaItemForm({
                         </label>
                         <input
                           type="number"
-                          step="0.01"
+                          step="0.001"
                           min="0.1"
                           value={anchoGaza}
                           onChange={(e) => {
@@ -1632,7 +1633,7 @@ export function CortinaItemForm({
                                 </span>
                                 <input
                                   type="number"
-                                  step="0.01"
+                                  step="0.001"
                                   min="0.01"
                                   value={anchosPanos[pIdx] ?? ""}
                                   onChange={(e) =>
@@ -1657,7 +1658,7 @@ export function CortinaItemForm({
                       </label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="0.001"
                         min="0.1"
                         value={altoGaza}
                         onChange={(e) =>
@@ -1841,7 +1842,7 @@ export function CortinaItemForm({
                               </span>
                               <input
                                 type="number"
-                                step="0.01"
+                                step="0.001"
                                 min="0.01"
                                 value={anchosPanos[pIdx] ?? ""}
                                 onChange={(e) =>
@@ -1927,7 +1928,7 @@ export function CortinaItemForm({
                       </label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="0.001"
                         min="0.1"
                         value={altoGaza}
                         onChange={(e) =>
@@ -2065,7 +2066,7 @@ export function CortinaItemForm({
                               </span>
                               <input
                                 type="number"
-                                step="0.01"
+                                step="0.001"
                                 min="0.01"
                                 value={anchosPanos[pIdx] ?? ""}
                                 onChange={(e) =>
@@ -2151,7 +2152,7 @@ export function CortinaItemForm({
                       </label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="0.001"
                         min="0.1"
                         value={altoGaza}
                         onChange={(e) =>
@@ -2258,7 +2259,7 @@ export function CortinaItemForm({
                         </label>
                         <input
                           type="number"
-                          step="0.01"
+                          step="0.001"
                           min="0.1"
                           value={anchoGaza}
                           onChange={(e) => {
@@ -2294,7 +2295,7 @@ export function CortinaItemForm({
                                 </span>
                                 <input
                                   type="number"
-                                  step="0.01"
+                                  step="0.001"
                                   min="0.01"
                                   value={anchosPanos[pIdx] ?? ""}
                                   onChange={(e) =>
@@ -2319,7 +2320,7 @@ export function CortinaItemForm({
                       </label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="0.001"
                         min="0.1"
                         value={altoGaza}
                         onChange={(e) =>
@@ -2531,7 +2532,7 @@ export function CortinaItemForm({
               <div className="flex flex-wrap gap-2">
                 {(tipo === "Roller Noche total" || tipo === "Noche total" || tipo === "Mosquera"
                   ? PERFILERIA_NOCHE_TOTAL
-                  : (marca === "RS" || marcaBO === "RS" || marcaGaza === "RS")
+                  : (caracteristicasActuales?.marcaBO === "RS" || caracteristicasActuales?.marcaGaza === "RS")
                   ? (["Blanco", "Negro", "Gris", "Beige"] as const)
                   : (["Blanco", "Negro"] as const)
                 ).map((perf) => (
@@ -2723,7 +2724,7 @@ export function CortinaItemForm({
                       </label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="0.001"
                         min="0.1"
                         value={anchosTramos[0] ?? ""}
                         onChange={(e) =>
@@ -2744,7 +2745,7 @@ export function CortinaItemForm({
                       </label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="0.001"
                         min="0.1"
                         value={altoBO}
                         onChange={(e) =>
@@ -2773,7 +2774,7 @@ export function CortinaItemForm({
                             </span>
                             <input
                               type="number"
-                              step="0.01"
+                              step="0.001"
                               min="0.01"
                               value={anchosTramos[tIdx] ?? ""}
                               onChange={(e) =>
@@ -2797,7 +2798,7 @@ export function CortinaItemForm({
                       </label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="0.001"
                         min="0.1"
                         value={altoBO}
                         onChange={(e) =>
@@ -3038,7 +3039,7 @@ export function CortinaItemForm({
                               </label>
                               <input
                                 type="number"
-                                step="0.01"
+                                step="0.001"
                                 min="0.1"
                                 value={anchoGaza}
                                 onChange={(e) => {
@@ -3074,7 +3075,7 @@ export function CortinaItemForm({
                                       </span>
                                       <input
                                         type="number"
-                                        step="0.01"
+                                        step="0.001"
                                         min="0.01"
                                         value={anchosPanos[pIdx] ?? ""}
                                         onChange={(e) =>
@@ -3099,7 +3100,7 @@ export function CortinaItemForm({
                             </label>
                             <input
                               type="number"
-                              step="0.01"
+                              step="0.001"
                               min="0.1"
                               value={altoGaza}
                               onChange={(e) =>
@@ -3283,7 +3284,7 @@ export function CortinaItemForm({
                                     </span>
                                     <input
                                       type="number"
-                                      step="0.01"
+                                      step="0.001"
                                       min="0.01"
                                       value={anchosPanos[pIdx] ?? ""}
                                       onChange={(e) =>
@@ -3369,7 +3370,7 @@ export function CortinaItemForm({
                             </label>
                             <input
                               type="number"
-                              step="0.01"
+                              step="0.001"
                               min="0.1"
                               value={altoGaza}
                               onChange={(e) =>
@@ -3507,7 +3508,7 @@ export function CortinaItemForm({
                                     </span>
                                     <input
                                       type="number"
-                                      step="0.01"
+                                      step="0.001"
                                       min="0.01"
                                       value={anchosPanos[pIdx] ?? ""}
                                       onChange={(e) =>
@@ -3593,7 +3594,7 @@ export function CortinaItemForm({
                             </label>
                             <input
                               type="number"
-                              step="0.01"
+                              step="0.001"
                               min="0.1"
                               value={altoGaza}
                               onChange={(e) =>
@@ -3702,7 +3703,7 @@ export function CortinaItemForm({
                               </label>
                               <input
                                 type="number"
-                                step="0.01"
+                                step="0.001"
                                 min="0.1"
                                 value={anchoGaza}
                                 onChange={(e) => {
@@ -3738,7 +3739,7 @@ export function CortinaItemForm({
                                       </span>
                                       <input
                                         type="number"
-                                        step="0.01"
+                                        step="0.001"
                                         min="0.01"
                                         value={anchosPanos[pIdx] ?? ""}
                                         onChange={(e) =>
@@ -3763,7 +3764,7 @@ export function CortinaItemForm({
                             </label>
                             <input
                               type="number"
-                              step="0.01"
+                              step="0.001"
                               min="0.1"
                               value={altoGaza}
                               onChange={(e) =>
@@ -3998,7 +3999,7 @@ export function CortinaItemForm({
                             </label>
                             <input
                               type="number"
-                              step="0.01"
+                              step="0.001"
                               min="0.1"
                               value={anchoGaza}
                               onChange={(e) => {
@@ -4034,7 +4035,7 @@ export function CortinaItemForm({
                                     </span>
                                     <input
                                       type="number"
-                                      step="0.01"
+                                      step="0.001"
                                       min="0.01"
                                       value={anchosPanos[pIdx] ?? ""}
                                       onChange={(e) =>
@@ -4066,7 +4067,7 @@ export function CortinaItemForm({
                                   </span>
                                   <input
                                     type="number"
-                                    step="0.01"
+                                    step="0.001"
                                     min="0.01"
                                     value={anchosPanos[pIdx] ?? ""}
                                     onChange={(e) =>
@@ -4153,7 +4154,7 @@ export function CortinaItemForm({
                         </label>
                         <input
                           type="number"
-                          step="0.01"
+                          step="0.001"
                           min="0.1"
                           value={altoGaza}
                           onChange={(e) =>
@@ -4464,7 +4465,7 @@ export function CortinaItemForm({
                             </label>
                             <input
                               type="number"
-                              step="0.01"
+                              step="0.001"
                               min="0.1"
                               value={anchoBO}
                               onChange={(e) => {
@@ -4501,7 +4502,7 @@ export function CortinaItemForm({
                                     </span>
                                     <input
                                       type="number"
-                                      step="0.01"
+                                      step="0.001"
                                       min="0.01"
                                       value={anchosTramos[tIdx] ?? ""}
                                       onChange={(e) =>
@@ -4533,7 +4534,7 @@ export function CortinaItemForm({
                                   </span>
                                   <input
                                     type="number"
-                                    step="0.01"
+                                    step="0.001"
                                     min="0.01"
                                     value={anchosTramos[tIdx] ?? ""}
                                     onChange={(e) =>
@@ -4616,7 +4617,7 @@ export function CortinaItemForm({
                         </label>
                         <input
                           type="number"
-                          step="0.01"
+                          step="0.001"
                           min="0.1"
                           value={altoBO}
                           onChange={(e) =>

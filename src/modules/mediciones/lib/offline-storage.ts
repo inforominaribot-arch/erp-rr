@@ -124,7 +124,10 @@ export interface IClienteCache {
   email?: string | null
   direccion?: string | null
   localidad?: string | null
+  notas?: string | null
   estado?: string
+  /** Datos editados en la tablet que falta subir al ERP */
+  pendienteSync?: boolean
 }
 
 export async function guardarClientesCache(

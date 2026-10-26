@@ -62,7 +62,7 @@ export async function medicionTienePresupuestoAceptado(
   return cantidad > 0
 }
 
-const r2 = (n: unknown) => Math.round(Number(n || 0) * 100) / 100
+const r3 = (n: unknown) => Math.round(Number(n || 0) * 1000) / 1000
 
 /** Firma de las medidas de una cortina (ancho/alto general + medidas de Gaza y B.O.). */
 function firmaMedidas(ancho: unknown, alto: unknown, caracteristicas: unknown): string {
@@ -71,20 +71,20 @@ function firmaMedidas(ancho: unknown, alto: unknown, caracteristicas: unknown): 
     bo?: { activa?: boolean; ancho?: number; alto?: number; anchosTramos?: number[] }
   }
   return JSON.stringify({
-    ancho: r2(ancho),
-    alto: r2(alto),
+    ancho: r3(ancho),
+    alto: r3(alto),
     gaza: c?.gaza?.activa
       ? {
-          ancho: r2(c.gaza.ancho),
-          alto: r2(c.gaza.alto),
-          anchos: (c.gaza.anchosPanos || []).map(r2),
+          ancho: r3(c.gaza.ancho),
+          alto: r3(c.gaza.alto),
+          anchos: (c.gaza.anchosPanos || []).map(r3),
         }
       : null,
     bo: c?.bo?.activa
       ? {
-          ancho: r2(c.bo.ancho),
-          alto: r2(c.bo.alto),
-          anchos: (c.bo.anchosTramos || []).map(r2),
+          ancho: r3(c.bo.ancho),
+          alto: r3(c.bo.alto),
+          anchos: (c.bo.anchosTramos || []).map(r3),
         }
       : null,
   })
@@ -250,7 +250,7 @@ export async function aplicarCambiosMedicion(
       const medidasCambiaron =
         firmaMedidas(existente.ancho, existente.alto, existente.caracteristicas) !==
         firmaMedidas(item.ancho, item.alto, item.caracteristicas)
-      const anterior = { ancho: r2(existente.ancho), alto: r2(existente.alto) }
+      const anterior = { ancho: r3(existente.ancho), alto: r3(existente.alto) }
 
       await tx.itemMedicion.update({ where: { id: existente.id }, data: datos })
       resultado.itemsActualizados++

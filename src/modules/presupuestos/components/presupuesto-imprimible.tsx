@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { Printer, ArrowLeft, Phone, MapPin, CreditCard } from "lucide-react"
-import { formatearPrecio, formatearFecha } from "@/lib/utils"
+import { formatearPrecio, formatearFecha, fmtMedida } from "@/lib/utils"
 import {
   formatearNumeroPresupuesto,
   calcularDiasRestantesValidez,
@@ -317,7 +317,7 @@ export function PresupuestoImprimible({
                         </td>
                         <td className="py-1.5 px-3 text-center text-slate-600 font-mono">
                           {it.ancho > 0 && it.alto > 0
-                            ? `${it.ancho.toFixed(2)} × ${it.alto.toFixed(2)}`
+                            ? `${fmtMedida(it.ancho)} × ${fmtMedida(it.alto)}`
                             : "—"}
                         </td>
                         <td className="py-1.5 px-3 text-center font-bold text-slate-800">

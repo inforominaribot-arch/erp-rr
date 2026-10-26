@@ -6,6 +6,8 @@ import {
   marcarErrorSyncLocal,
   incorporarMedicionesDelServidor,
   guardarClientesLocales,
+  obtenerClientesPendientesSync,
+  marcarClientesSincronizados,
 } from "./storage-service"
 import type { IMedicionOffline } from "@/modules/mediciones/types"
 import type { IClienteCache } from "@/modules/mediciones/lib/offline-storage"
@@ -16,6 +18,8 @@ export interface ResultadoSync {
   medicionesSincronizadas: number
   medicionesDescargadas: number
   clientesDescargados: number
+  /** Clientes editados en la tablet que se subieron al ERP */
+  clientesSubidos: number
   /** Mediciones que el ERP no aceptó (quedan pendientes en la tablet con su motivo) */
   rechazadas: Array<{ idLocal: string; error: string }>
   error?: string
@@ -28,6 +32,8 @@ export async function sincronizarTodo(): Promise<ResultadoSync> {
   let medicionesSincronizadas = 0
   let medicionesDescargadas = 0
   let clientesDescargados = 0
+  let clientesSubidos = 0
+  const clientesConError: string[] = []
   let rechazadas: Array<{ idLocal: string; error: string }> = []
 
   const headers: Record<string, string> = {
@@ -71,6 +77,40 @@ export async function sincronizarTodo(): Promise<ResultadoSync> {
       }
     }
 
+    // ── 1a. Subir clientes editados en la tablet (gana la tablet) ──
+    const clientesPendientes = await obtenerClientesPendientesSync()
+    if (clientesPendientes.length > 0) {
+      const respCli = await fetch(`${erpBaseUrl}/api/mediciones/clientes-sync`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          clientes: clientesPendientes.map((c) => ({
+            id: c.id,
+            nombre: c.nombre,
+            telefono: c.telefono || "",
+            email: c.email || "",
+            direccion: c.direccion || "",
+            localidad: c.localidad || "",
+            notas: c.notas || "",
+          })),
+        }),
+      })
+      if (respCli.ok) {
+        const dataCli = await respCli.json()
+        if (dataCli.success) {
+          const listos: string[] = [...(dataCli.actualizados || []), ...(dataCli.noEncontrados || [])]
+          await marcarClientesSincronizados(listos)
+          clientesSubidos = (dataCli.actualizados || []).length
+          for (const r of dataCli.rechazados || []) {
+            const c = clientesPendientes.find((p) => p.id === r.id)
+            clientesConError.push(`${c?.nombre || "Cliente"}: ${r.error}`)
+          }
+        }
+      } else {
+        clientesConError.push(`No se pudieron subir los clientes editados (${respCli.status})`)
+      }
+    }
+
     // ── 1b. Bajar mediciones modificadas en la web (después de subir: gana la tablet) ──
     const desde = config.ultimaDescarga
       ? `?desde=${encodeURIComponent(config.ultimaDescarga)}`
@@ -109,6 +149,7 @@ export async function sincronizarTodo(): Promise<ResultadoSync> {
             email: c.email,
             direccion: c.direccion,
             localidad: c.localidad,
+            notas: c.notas,
             estado: c.estado,
           })
         )
@@ -123,20 +164,26 @@ export async function sincronizarTodo(): Promise<ResultadoSync> {
 
     const partes = [
       `Subidas: ${medicionesSincronizadas}`,
+      ...(clientesSubidos > 0 ? [`Clientes editados: ${clientesSubidos}`] : []),
       `Bajadas del ERP: ${medicionesDescargadas}`,
       `Clientes: ${clientesDescargados}`,
     ]
+    const observaciones = [
+      ...(rechazadas.length > 0
+        ? [`${rechazadas.length} medición(es) no se pudieron subir. ${rechazadas.map((r) => r.error).join(" | ")}`]
+        : []),
+      ...clientesConError,
+    ]
     return {
-      exito: rechazadas.length === 0,
+      exito: observaciones.length === 0,
       mensaje:
-        rechazadas.length > 0
-          ? `Sincronización con observaciones: ${rechazadas.length} medición(es) no se pudieron subir. ${rechazadas
-              .map((r) => r.error)
-              .join(" | ")}`
+        observaciones.length > 0
+          ? `Sincronización con observaciones: ${observaciones.join(" | ")}`
           : `¡Sincronización completa! ${partes.join(" • ")}.`,
       medicionesSincronizadas,
       medicionesDescargadas,
       clientesDescargados,
+      clientesSubidos,
       rechazadas,
     }
   } catch (error: any) {
@@ -148,6 +195,7 @@ export async function sincronizarTodo(): Promise<ResultadoSync> {
       medicionesSincronizadas: 0,
       medicionesDescargadas: 0,
       clientesDescargados: 0,
+      clientesSubidos: 0,
       rechazadas: [],
     }
   }

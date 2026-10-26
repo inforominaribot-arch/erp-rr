@@ -470,5 +470,5 @@ export function determinarVarianteSoporte(
  */
 export function calcularAnchoConfeccionGaza(anchoMetros: number): number {
   if (!anchoMetros || anchoMetros <= 0) return 0
-  return Number((anchoMetros + 0.1).toFixed(2))
+  return Number((anchoMetros + 0.1).toFixed(3))
 }

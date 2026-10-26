@@ -244,19 +244,86 @@ export async function obtenerClientesLocales(): Promise<IClienteCache[]> {
   }
 }
 
+/**
+ * Guarda los clientes bajados del ERP. No pisa los que tienen cambios de la tablet
+ * pendientes de subir. Después refresca los datos del cliente en las mediciones locales.
+ */
 export async function guardarClientesLocales(
   clientes: IClienteCache[]
 ): Promise<void> {
   if (!clientes || clientes.length === 0) return
+  const pendientes = new Set((await obtenerClientesPendientesSync()).map((c) => c.id))
+  const aGuardar = clientes.filter((c) => !pendientes.has(c.id))
+  const db = await abrirDB()
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE_CLIENTES, "readwrite")
+    const store = tx.objectStore(STORE_CLIENTES)
+
+    for (const c of aGuardar) {
+      store.put(c)
+    }
+
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+  await refrescarClienteEnMediciones(aGuardar)
+}
+
+/**
+ * Las mediciones guardan una copia del nombre/teléfono/dirección del cliente para mostrarla.
+ * La actualiza con los datos vigentes del cliente (editado en la web o en la tablet).
+ */
+async function refrescarClienteEnMediciones(clientes: IClienteCache[]): Promise<void> {
+  if (clientes.length === 0) return
+  const porId = new Map(clientes.map((c) => [c.id, c]))
+  const mediciones = await obtenerMedicionesLocales()
+  for (const med of mediciones) {
+    const c = porId.get(med.clienteId)
+    if (!c) continue
+    const nuevos = {
+      clienteNombre: c.nombre,
+      clienteTelefono: c.telefono ?? null,
+      clienteDireccion: c.direccion ?? null,
+      clienteLocalidad: c.localidad ?? null,
+    }
+    const cambio =
+      med.clienteNombre !== nuevos.clienteNombre ||
+      (med.clienteTelefono ?? null) !== nuevos.clienteTelefono ||
+      (med.clienteDireccion ?? null) !== nuevos.clienteDireccion ||
+      (med.clienteLocalidad ?? null) !== nuevos.clienteLocalidad
+    if (cambio) await guardarMedicionLocal({ ...med, ...nuevos })
+  }
+}
+
+/**
+ * Guarda los datos del cliente editados en la tablet.
+ * Los clientes que ya existen en el ERP quedan pendientes de subir; los dados de alta
+ * sin internet (id temporal) viajan con su medición, que se actualiza acá mismo.
+ */
+export async function actualizarClienteLocal(cliente: IClienteCache): Promise<IClienteCache> {
+  const editado: IClienteCache = {
+    ...cliente,
+    pendienteSync: !cliente.id.startsWith("cli_offline_"),
+  }
+  await agregarClienteExpressLocal(editado)
+  await refrescarClienteEnMediciones([editado])
+  return editado
+}
+
+export async function obtenerClientesPendientesSync(): Promise<IClienteCache[]> {
+  const clientes = await obtenerClientesLocales()
+  return clientes.filter((c) => c.pendienteSync)
+}
+
+export async function marcarClientesSincronizados(ids: string[]): Promise<void> {
+  if (ids.length === 0) return
+  const set = new Set(ids)
+  const clientes = (await obtenerClientesLocales()).filter((c) => set.has(c.id))
   const db = await abrirDB()
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_CLIENTES, "readwrite")
     const store = tx.objectStore(STORE_CLIENTES)
-
-    for (const c of clientes) {
-      store.put(c)
-    }
-
+    for (const c of clientes) store.put({ ...c, pendienteSync: false })
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error)
   })

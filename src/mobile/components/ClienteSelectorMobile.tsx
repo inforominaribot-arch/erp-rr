@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { ClienteExpressModalMobile } from "./ClienteExpressModalMobile"
 import { obtenerClientesLocales } from "../services/storage-service"
 import type { IClienteCache } from "@/modules/mediciones/lib/offline-storage"
-import { Search, User, Phone, MapPin, UserPlus, Check, ChevronDown, X } from "lucide-react"
+import { Search, User, Phone, MapPin, UserPlus, Check, ChevronDown, X, Pencil } from "lucide-react"
 
 interface ClienteSelectorMobileProps {
   clienteSeleccionado: IClienteCache | null
@@ -17,6 +17,7 @@ export function ClienteSelectorMobile({
   const [busqueda, setBusqueda] = useState("")
   const [desplegado, setDesplegado] = useState(false)
   const [modalExpressAbierto, setModalExpressAbierto] = useState(false)
+  const [modalEditarAbierto, setModalEditarAbierto] = useState(false)
 
   const cargarClientes = async () => {
     const lista = await obtenerClientesLocales()
@@ -26,6 +27,15 @@ export function ClienteSelectorMobile({
   useEffect(() => {
     cargarClientes()
   }, [])
+
+  // Datos completos del cliente elegido (email, notas) tomados del caché local
+  const clienteParaEditar = useMemo<IClienteCache | null>(
+    () =>
+      clienteSeleccionado
+        ? { ...clienteSeleccionado, ...(clientes.find((c) => c.id === clienteSeleccionado.id) ?? {}) }
+        : null,
+    [clienteSeleccionado, clientes]
+  )
 
   const clientesFiltrados = clientes.filter((c) => {
     if (!busqueda.trim()) return true
@@ -89,14 +99,25 @@ export function ClienteSelectorMobile({
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => onSeleccionarCliente(null)}
-            className="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-            title="Cambiar cliente"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => setModalEditarAbierto(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-indigo-700 bg-indigo-50 hover:bg-indigo-100 text-xs font-semibold transition-colors min-h-[40px]"
+              title="Editar datos del cliente"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Editar datos
+            </button>
+            <button
+              type="button"
+              onClick={() => onSeleccionarCliente(null)}
+              className="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors min-h-[40px]"
+              title="Cambiar cliente"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       ) : (
         <div className="space-y-2 relative">
@@ -172,7 +193,21 @@ export function ClienteSelectorMobile({
         </div>
       )}
 
+      {/* Modal Editar Cliente (datos completos desde el caché local) */}
+      {modalEditarAbierto && (
+      <ClienteExpressModalMobile
+        abierto={modalEditarAbierto}
+        onCerrar={() => setModalEditarAbierto(false)}
+        clienteEditar={clienteParaEditar}
+        onClienteCreado={(editado) => {
+          cargarClientes()
+          onSeleccionarCliente(editado)
+        }}
+      />
+      )}
+
       {/* Modal Alta Express */}
+      {modalExpressAbierto && (
       <ClienteExpressModalMobile
         abierto={modalExpressAbierto}
         onCerrar={() => setModalExpressAbierto(false)}
@@ -181,6 +216,7 @@ export function ClienteSelectorMobile({
           onSeleccionarCliente(nuevo)
         }}
       />
+      )}
     </div>
   )
 }

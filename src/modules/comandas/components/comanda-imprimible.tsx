@@ -10,6 +10,7 @@ import {
   determinarVarianteSoporte,
 } from "@/modules/mediciones/types"
 import { calcularCorteRiel } from "@/modules/presupuestos/lib/explosion-materiales"
+import { fmtMedida } from "@/lib/utils"
 
 interface ComandaImprimibleProps {
   comanda: IComandaDetalle
@@ -224,15 +225,15 @@ export function ComandaImprimible({
                       const calculoRiel = calcularCorteRiel(Number(it.ancho))
                       let textoMedidaSoporte = ""
                       if (esBarral) {
-                        textoMedidaSoporte = `Barral: ${Number(it.ancho).toFixed(2)}m (sin corte)`
+                        textoMedidaSoporte = `Barral: ${fmtMedida(it.ancho)}m (sin corte)`
                       } else if (tipo === "Tradicional" || c?.sistema === "Riel") {
                         if (calculoRiel.cantidadTramos === 1) {
-                          textoMedidaSoporte = `Riel: ${calculoRiel.medidaPorTramo.toFixed(2)}m (1 tramo)`
+                          textoMedidaSoporte = `Riel: ${fmtMedida(calculoRiel.medidaPorTramo)}m (1 tramo)`
                         } else {
-                          textoMedidaSoporte = `Riel: ${calculoRiel.totalMetros.toFixed(2)}m (2 tramos de ${calculoRiel.medidaPorTramo.toFixed(2)}m)`
+                          textoMedidaSoporte = `Riel: ${fmtMedida(calculoRiel.totalMetros)}m (2 tramos de ${fmtMedida(calculoRiel.medidaPorTramo)}m)`
                         }
                       } else {
-                        textoMedidaSoporte = `Sistema: ${Number(it.ancho).toFixed(2)}m`
+                        textoMedidaSoporte = `Sistema: ${fmtMedida(it.ancho)}m`
                       }
 
                       return (
@@ -341,20 +342,20 @@ export function ComandaImprimible({
                                   <div className="border-b border-slate-200/80 pb-1">
                                     <div className="flex items-center justify-between">
                                       <span>
-                                        <strong>GAZA:</strong> {anchoGaza.toFixed(2)}m × {altoGaza.toFixed(2)}m
+                                        <strong>GAZA:</strong> {fmtMedida(anchoGaza)}m × {fmtMedida(altoGaza)}m
                                         {c?.gaza?.nombreTela ? ` • ${c.gaza.nombreTela}` : ""}
                                       </span>
                                       {!esProveedor && (
                                         <span className="rounded bg-amber-100 border border-amber-300 px-1.5 py-0.2 text-[9px] font-black text-amber-950">
-                                          Corte (+10cm): {anchoConfeccionGaza.toFixed(2)}m
+                                          Corte (+10cm): {fmtMedida(anchoConfeccionGaza)}m
                                         </span>
                                       )}
                                     </div>
                                     <div className="text-[10px] text-slate-600 mt-0.5">
                                       Paños ({panosGaza}):{" "}
                                       {anchosPanos.length > 0
-                                        ? anchosPanos.map((p, pIdx) => `P${pIdx + 1}: ${p.toFixed(2)}m`).join(" + ")
-                                        : `${(anchoGaza / panosGaza).toFixed(2)}m c/u`}
+                                        ? anchosPanos.map((p, pIdx) => `P${pIdx + 1}: ${fmtMedida(p)}m`).join(" + ")
+                                        : `${fmtMedida(anchoGaza / panosGaza)}m c/u`}
                                       {argollas > 0 && ` • ${argollas} argollas`}
                                     </div>
                                   </div>
@@ -365,7 +366,7 @@ export function ComandaImprimible({
                                   <div className="pt-0.5">
                                     <div className="flex items-center justify-between">
                                       <span>
-                                        <strong>BLACK OUT:</strong> {anchoBO.toFixed(2)}m × {altoBO.toFixed(2)}m
+                                        <strong>BLACK OUT:</strong> {fmtMedida(anchoBO)}m × {fmtMedida(altoBO)}m
                                         {c?.bo?.nombreTela ? ` • ${c.bo.nombreTela}` : ""}
                                       </span>
                                       <span className="text-[10px] text-slate-500 font-medium">
@@ -375,8 +376,8 @@ export function ComandaImprimible({
                                     <div className="text-[10px] text-slate-600 mt-0.5">
                                       Tramos ({tramosBO}):{" "}
                                       {anchosTramos.length > 0
-                                        ? anchosTramos.map((t, tIdx) => `T${tIdx + 1}: ${t.toFixed(2)}m`).join(" + ")
-                                        : `${(anchoBO / tramosBO).toFixed(2)}m c/u`}
+                                        ? anchosTramos.map((t, tIdx) => `T${tIdx + 1}: ${fmtMedida(t)}m`).join(" + ")
+                                        : `${fmtMedida(anchoBO / tramosBO)}m c/u`}
                                     </div>
                                   </div>
                                 )}

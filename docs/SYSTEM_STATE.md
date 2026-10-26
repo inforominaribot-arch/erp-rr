@@ -620,3 +620,15 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 - [x] `CortinaItemForm` acepta `textoGuardar` opcional (texto del botón de guardar).
 - [x] Explosión de materiales: si la especificación dice `sistema: "Barral"` no se cuentan rieles aunque la descripción diga "Tradicional" (antes se contaban igual).
 
+---
+
+## Actualización — Marca por capa, medidas con milímetros y edición de clientes en la tablet (2026-10-26)
+
+### ✅ Implementado
+- [x] **Marca de la cortina:** `caracteristicas.marca` ahora se deriva de las capas activas (`src/modules/mediciones/lib/marcas.ts`, `marcaPrincipalCortina`). Antes quedaba fija en el default del B.O. (HD) aunque se eligiera RS en la Gaza, o en la marca vieja al editar. El dibujo y el detalle de medición muestran la marca por capa (`textoMarcaCortina`: "RS" o "Gaza: RS • B.O.: HD"), así que las mediciones viejas también se ven bien. El aluminio es siempre HD.
+- [x] **Medidas con 3 decimales:** `ancho`/`alto` de `items_medicion`, `items_presupuesto` e `items_comanda` pasan a `DECIMAL(9,3)`. Helper `fmtMedida` en `src/lib/utils.ts` (2 decimales, o 3 si hay milímetros: 2.50 / 1.775) usado en dibujo, detalle de medición, comanda imprimible, presupuesto y aviso de medida. Los campos aceptan 0.001 y los cálculos de paños/tramos redondean a 3 decimales. El aviso "Medida modificada" detecta cambios de 1 mm.
+- [x] **Editar cliente desde la tablet:** botón "Editar datos" en la tarjeta del cliente elegido (nombre, teléfono, email, dirección, localidad, notas). Funciona offline; queda `pendienteSync` y se envía al sincronizar con `POST /api/mediciones/clientes-sync` (Zod `clienteTabletSyncSchema`, gana la tablet). Los clientes dados de alta offline viajan con su medición.
+- [x] **Cambios de clientes hechos en la web llegan a la tablet:** al bajar clientes se refresca la copia del nombre/teléfono/dirección guardada en cada medición local (antes la lista seguía mostrando el nombre viejo). No se pisan clientes con cambios de la tablet sin subir.
+- [x] Orden de sincronización: sube mediciones → sube clientes editados → baja mediciones → baja clientes.
+- [x] Alta Express: guarda email y notas en la tablet (las notas de un cliente creado offline todavía no viajan al ERP).
+

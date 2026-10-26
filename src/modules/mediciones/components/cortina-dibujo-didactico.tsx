@@ -19,6 +19,8 @@ import {
   Info,
   Maximize2,
 } from "lucide-react"
+import { fmtMedida } from "@/lib/utils"
+import { textoMarcaCortina } from "../lib/marcas"
 
 interface CortinaDibujoDidacticoProps {
   ancho: number
@@ -282,7 +284,7 @@ export function CortinaDibujoDidactico({
     return Array.from({ length: panosGaza }).map((_, idx) => ({
       numero: idx + 1,
       etiqueta: gazaEsTradicionalComun ? `Paño ${idx + 1}` : `Cortina ${idx + 1}`,
-      ancho: anchosPanos[idx] || Number((anchoGaza / panosGaza).toFixed(2)),
+      ancho: anchosPanos[idx] || Number((anchoGaza / panosGaza).toFixed(3)),
       mando: gazaLlevaMando
         ? (caracteristicas?.mandosRollerGaza?.[idx] || (idx === 0 ? "Derecha" : idx === 1 ? "Izquierda" : "Derecha"))
         : null,
@@ -296,7 +298,7 @@ export function CortinaDibujoDidactico({
     return Array.from({ length: tramosBO }).map((_, idx) => ({
       numero: idx + 1,
       etiqueta: boEsTradicionalComun ? `Paño ${idx + 1}` : `Cortina ${idx + 1}`,
-      ancho: anchosTramos[idx] || Number((anchoBO / tramosBO).toFixed(2)),
+      ancho: anchosTramos[idx] || Number((anchoBO / tramosBO).toFixed(3)),
       mando: boLlevaMando
         ? (caracteristicas?.mandosRollerBO?.[idx] || (idx === 0 ? "Derecha" : idx === 1 ? "Izquierda" : "Derecha"))
         : null,
@@ -359,7 +361,7 @@ export function CortinaDibujoDidactico({
               <div className="flex flex-1 items-center px-0.5">
                 <div className="h-[1px] flex-1 bg-slate-400" />
                 <span className="px-0.5 text-[8px] font-extrabold text-slate-900 bg-white">
-                  {anchoEfectivo > 0 ? anchoEfectivo.toFixed(2) : "0.00"}m
+                  {anchoEfectivo > 0 ? fmtMedida(anchoEfectivo) : "0.00"}m
                 </span>
                 <div className="h-[1px] flex-1 bg-slate-400" />
               </div>
@@ -416,7 +418,7 @@ export function CortinaDibujoDidactico({
           >
             <span>─</span>
             <span className="text-[8px] font-extrabold text-slate-900 -rotate-90 whitespace-nowrap">
-              {altoEfectivo > 0 ? altoEfectivo.toFixed(2) : "0.00"}m
+              {altoEfectivo > 0 ? fmtMedida(altoEfectivo) : "0.00"}m
             </span>
             <span>─</span>
           </div>
@@ -436,7 +438,7 @@ export function CortinaDibujoDidactico({
               <div className="h-[1px] flex-1 bg-slate-400" />
               <span className="px-0.5 text-[8px] font-extrabold text-slate-900 bg-white">
                 {tieneGaza && tieneBO ? "Gaza: " : ""}
-                {anchoEfectivo > 0 ? anchoEfectivo.toFixed(2) : "0.00"}m
+                {anchoEfectivo > 0 ? fmtMedida(anchoEfectivo) : "0.00"}m
               </span>
               <div className="h-[1px] flex-1 bg-slate-400" />
             </div>
@@ -455,7 +457,7 @@ export function CortinaDibujoDidactico({
             <div className="relative flex flex-1 w-full h-full overflow-hidden">
               {divisiones.length === 0 ? (
                 <div className="flex-1 flex items-center justify-center text-[8px] text-slate-400">
-                  {anchoEfectivo > 0 ? anchoEfectivo.toFixed(2) : "0.00"}m
+                  {anchoEfectivo > 0 ? fmtMedida(anchoEfectivo) : "0.00"}m
                 </div>
               ) : (
                 <div className="flex flex-1 w-full h-full divide-x divide-slate-700">
@@ -474,7 +476,7 @@ export function CortinaDibujoDidactico({
                             .replace("Tramo", "T")}
                         </span>
                         <span className="text-[9px] font-extrabold text-slate-950">
-                          {p.ancho.toFixed(2)}m
+                          {fmtMedida(p.ancho)}m
                         </span>
                       </div>
                     )
@@ -507,7 +509,7 @@ export function CortinaDibujoDidactico({
               <div className="flex flex-1 items-center px-0.5">
                 <div className="h-[1px] flex-1 bg-slate-500 border-b border-dashed" />
                 <span className="px-0.5 text-[7px] font-extrabold text-slate-900 bg-white">
-                  B.O.: {anchoBO > 0 ? Number(anchoBO).toFixed(2) : "0.00"}m
+                  B.O.: {anchoBO > 0 ? fmtMedida(anchoBO) : "0.00"}m
                 </span>
                 <div className="h-[1px] flex-1 bg-slate-500 border-b border-dashed" />
               </div>
@@ -523,7 +525,7 @@ export function CortinaDibujoDidactico({
         >
           <span>─</span>
           <span className="text-[8px] font-extrabold text-slate-900 -rotate-90 whitespace-nowrap">
-            {altoEfectivo > 0 ? altoEfectivo.toFixed(2) : "0.00"}m
+            {altoEfectivo > 0 ? fmtMedida(altoEfectivo) : "0.00"}m
           </span>
           <span>─</span>
         </div>
@@ -564,10 +566,10 @@ export function CortinaDibujoDidactico({
                   </span>
                 )
               ) : (
-                caracteristicas?.marca && (
+                textoMarcaCortina(caracteristicas) && (
                   <span>
                     {" "}
-                    • Marca: <strong>{caracteristicas.marca}</strong>
+                    • Marca: <strong>{textoMarcaCortina(caracteristicas)}</strong>
                   </span>
                 )
               )}
@@ -596,8 +598,8 @@ export function CortinaDibujoDidactico({
           <div className="flex items-center gap-1.5 rounded-lg bg-slate-50 px-3 py-1 text-xs font-bold text-slate-800 border border-slate-200">
             <Ruler className="h-3.5 w-3.5 text-indigo-600" />
             <span>
-              {anchoEfectivo > 0 ? anchoEfectivo.toFixed(2) : "0.00"} m (Ancho) ×{" "}
-              {altoEfectivo > 0 ? altoEfectivo.toFixed(2) : "0.00"} m (Alto)
+              {anchoEfectivo > 0 ? fmtMedida(anchoEfectivo) : "0.00"} m (Ancho) ×{" "}
+              {altoEfectivo > 0 ? fmtMedida(altoEfectivo) : "0.00"} m (Alto)
             </span>
           </div>
         </div>
@@ -618,7 +620,7 @@ export function CortinaDibujoDidactico({
                   <div className="flex flex-1 items-center gap-1 px-1">
                     <div className="h-[1.5px] flex-1 bg-slate-400" />
                     <span className="rounded-full border border-slate-300 bg-white px-2.5 py-0.5 text-[10px] font-extrabold text-slate-900 shadow-2xs whitespace-nowrap">
-                      Ancho Total: {anchoEfectivo > 0 ? anchoEfectivo.toFixed(2) : "0.00"} m
+                      Ancho Total: {anchoEfectivo > 0 ? fmtMedida(anchoEfectivo) : "0.00"} m
                     </span>
                     <div className="h-[1.5px] flex-1 bg-slate-400" />
                   </div>
@@ -708,7 +710,7 @@ export function CortinaDibujoDidactico({
                 <div className="flex flex-1 flex-col items-center justify-center gap-1 my-1">
                   <div className="w-[1.5px] flex-1 bg-slate-400" />
                   <span className="rounded-md border border-slate-300 bg-white px-1.5 py-1 text-[10px] font-extrabold text-slate-900 shadow-2xs -rotate-90 whitespace-nowrap">
-                    Alto Total: {altoEfectivo > 0 ? altoEfectivo.toFixed(2) : "0.00"} m
+                    Alto Total: {altoEfectivo > 0 ? fmtMedida(altoEfectivo) : "0.00"} m
                   </span>
                   <div className="w-[1.5px] flex-1 bg-slate-400" />
                 </div>
@@ -757,7 +759,7 @@ export function CortinaDibujoDidactico({
                           <div className="flex flex-1 items-center gap-1 px-1">
                             <div className="h-[1.5px] flex-1 bg-indigo-300" />
                             <span className="rounded-full border border-indigo-200 bg-indigo-50/90 px-2 py-0.5 text-[9px] font-extrabold text-indigo-900 shadow-2xs whitespace-nowrap">
-                              Gaza Total: {anchoGaza > 0 ? Number(anchoGaza).toFixed(2) : "0.00"} m
+                              Gaza Total: {anchoGaza > 0 ? fmtMedida(anchoGaza) : "0.00"} m
                             </span>
                             <div className="h-[1.5px] flex-1 bg-indigo-300" />
                           </div>
@@ -778,7 +780,7 @@ export function CortinaDibujoDidactico({
                                 <div className="flex flex-1 items-center px-0.5">
                                   <div className="h-[1.5px] flex-1 bg-indigo-400" />
                                   <span className="px-1 text-[9px] font-extrabold text-indigo-950 bg-white rounded border border-indigo-200 shadow-2xs whitespace-nowrap">
-                                    G{p.numero}: {p.ancho.toFixed(2)} m
+                                    G{p.numero}: {fmtMedida(p.ancho)} m
                                   </span>
                                   <div className="h-[1.5px] flex-1 bg-indigo-400" />
                                 </div>
@@ -795,7 +797,7 @@ export function CortinaDibujoDidactico({
                         <div className="flex flex-1 items-center gap-1 px-1">
                           <div className="h-[1.5px] flex-1 bg-slate-400" />
                           <span className="rounded-full border border-slate-300 bg-white px-2.5 py-0.5 text-[10px] font-extrabold text-slate-900 shadow-2xs whitespace-nowrap">
-                            Ancho Total: {anchoEfectivo > 0 ? anchoEfectivo.toFixed(2) : "0.00"} m
+                            Ancho Total: {anchoEfectivo > 0 ? fmtMedida(anchoEfectivo) : "0.00"} m
                           </span>
                           <div className="h-[1.5px] flex-1 bg-slate-400" />
                         </div>
@@ -1090,7 +1092,7 @@ export function CortinaDibujoDidactico({
                                 <div className="flex flex-1 items-center px-0.5">
                                   <div className="h-[1.5px] flex-1 bg-slate-600 border-b border-dashed" />
                                   <span className="px-1 text-[9px] font-extrabold text-white bg-slate-900 rounded shadow-2xs whitespace-nowrap">
-                                    BO{b.numero}: {b.ancho.toFixed(2)} m
+                                    BO{b.numero}: {fmtMedida(b.ancho)} m
                                   </span>
                                   <div className="h-[1.5px] flex-1 bg-slate-600 border-b border-dashed" />
                                 </div>
@@ -1106,7 +1108,7 @@ export function CortinaDibujoDidactico({
                           <div className="flex flex-1 items-center gap-1 px-1">
                             <div className="h-[1.5px] flex-1 bg-slate-400 border-b border-dashed" />
                             <span className="rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[9px] font-extrabold text-slate-800 shadow-2xs whitespace-nowrap">
-                              B.O. Total: {anchoBO > 0 ? Number(anchoBO).toFixed(2) : "0.00"} m
+                              B.O. Total: {anchoBO > 0 ? fmtMedida(anchoBO) : "0.00"} m
                             </span>
                             <div className="h-[1.5px] flex-1 bg-slate-400 border-b border-dashed" />
                           </div>
@@ -1125,7 +1127,7 @@ export function CortinaDibujoDidactico({
                     <div className="flex flex-1 flex-col items-center justify-center gap-1 my-1">
                       <div className="w-[1.5px] flex-1 bg-slate-400" />
                       <span className="rounded-md border border-slate-300 bg-white px-1.5 py-1 text-[10px] font-extrabold text-slate-900 shadow-2xs -rotate-90 whitespace-nowrap">
-                        Alto Total: {altoEfectivo > 0 ? altoEfectivo.toFixed(2) : "0.00"} m
+                        Alto Total: {altoEfectivo > 0 ? fmtMedida(altoEfectivo) : "0.00"} m
                       </span>
                       <div className="w-[1.5px] flex-1 bg-slate-400" />
                     </div>
@@ -1140,11 +1142,11 @@ export function CortinaDibujoDidactico({
               <div className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white px-3.5 py-1.5 text-xs font-bold text-indigo-950 border border-indigo-200 shadow-2xs animate-in fade-in duration-150">
                 <Info className="h-3.5 w-3.5 text-indigo-600" />
                 <span>
-                  {panoActivo.etiqueta}: <strong>{panoActivo.ancho.toFixed(2)} m</strong> • Alto:{" "}
-                  <strong>{altoEfectivo.toFixed(2)} m</strong>
+                  {panoActivo.etiqueta}: <strong>{fmtMedida(panoActivo.ancho)} m</strong> • Alto:{" "}
+                  <strong>{fmtMedida(altoEfectivo)} m</strong>
                   {tieneGaza && tipo === "Tradicional" && (
                     <span className="text-amber-800 ml-1">
-                      • Confección: {(panoActivo.ancho + 0.1).toFixed(2)} m
+                      • Confección: {fmtMedida(panoActivo.ancho + 0.1)} m
                     </span>
                   )}
                 </span>
@@ -1262,10 +1264,10 @@ export function CortinaDibujoDidactico({
                   Ancho Confección Gaza (+10 cm)
                 </span>
                 <span className="text-base font-extrabold text-amber-950">
-                  {anchoConfeccionGaza.toFixed(2)} m
+                  {fmtMedida(anchoConfeccionGaza)} m
                 </span>
                 <span className="block text-[10px] text-amber-600">
-                  ({anchoGaza.toFixed(2)}m + 0.10m de margen)
+                  ({fmtMedida(anchoGaza)}m + 0.10m de margen)
                 </span>
               </div>
             )}

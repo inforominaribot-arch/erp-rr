@@ -2,6 +2,7 @@
 // Schemas de validación Zod End-to-End
 
 import { z } from "zod"
+import { clienteSchema } from "@/modules/clientes/schemas"
 
 // ─── Telas: Gaza y Black Out ──────────────────────────────────────────────────
 
@@ -331,4 +332,16 @@ export const syncMedicionesBatchSchema = z.union([
 
 export type MedicionOfflineSyncInput = z.infer<typeof medicionOfflineSyncSchema>
 export type SyncMedicionesBatchInput = z.infer<typeof syncMedicionesBatchSchema>
+
+// ─── Clientes editados en la tablet (POST /api/mediciones/clientes-sync) ─────
+
+export const clienteTabletSyncSchema = clienteSchema
+  .pick({ nombre: true, telefono: true, email: true, direccion: true, localidad: true, notas: true })
+  .extend({ id: z.string().uuid("Identificador de cliente inválido") })
+
+export const clientesTabletSyncBatchSchema = z.object({
+  clientes: z.array(z.unknown()).max(500, "Demasiados clientes en un solo envío"),
+})
+
+export type ClienteTabletSyncInput = z.infer<typeof clienteTabletSyncSchema>
 

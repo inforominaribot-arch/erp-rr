@@ -20,6 +20,16 @@ export function formatearPrecio(precio: number | string): string {
   }).format(Number(precio))
 }
 
+/**
+ * Medida en metros con 2 decimales, o 3 si la medida tiene milímetros.
+ * Ej: 2.5 → "2.50", 1.775 → "1.775"
+ */
+export function fmtMedida(valor: number | string | null | undefined): string {
+  const n = Number(valor) || 0
+  const con3 = n.toFixed(3)
+  return con3.endsWith("0") ? n.toFixed(2) : con3
+}
+
 export function formatearMedida(valor: number | string): string {
-  return `${Number(valor).toFixed(2)} m`
+  return `${fmtMedida(valor)} m`
 }

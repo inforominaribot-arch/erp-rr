@@ -4,6 +4,7 @@ import { useState } from "react"
 import { AlertTriangle, Check, Loader2 } from "lucide-react"
 import type { IAvisoMedidaModificada } from "@/modules/mediciones/types"
 import { marcarAvisoMedidaRevisado } from "@/modules/mediciones/actions"
+import { fmtMedida } from "@/lib/utils"
 
 interface AvisoMedidaModificadaProps {
   aviso: IAvisoMedidaModificada
@@ -37,7 +38,7 @@ export function AvisoMedidaModificada({
     hour: "2-digit",
     minute: "2-digit",
   })
-  const fmt = (n: number) => n.toFixed(2)
+  const fmt = (n: number) => fmtMedida(n)
 
   async function handleRevisado() {
     setGuardando(true)

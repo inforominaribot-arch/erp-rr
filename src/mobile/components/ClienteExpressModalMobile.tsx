@@ -1,25 +1,34 @@
 import React, { useState } from "react"
-import { agregarClienteExpressLocal } from "../services/storage-service"
+import { agregarClienteExpressLocal, actualizarClienteLocal } from "../services/storage-service"
 import type { IClienteCache } from "@/modules/mediciones/lib/offline-storage"
-import { User, Phone, MapPin, Building, FileText, X, Check } from "lucide-react"
+import { User, Phone, MapPin, Building, FileText, X, Check, Mail } from "lucide-react"
 
 interface ClienteExpressModalMobileProps {
   abierto: boolean
   onCerrar: () => void
   onClienteCreado: (cliente: IClienteCache) => void
+  /** Si viene, el modal edita este cliente en lugar de dar uno de alta */
+  clienteEditar?: IClienteCache | null
 }
+
+const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function ClienteExpressModalMobile({
   abierto,
   onCerrar,
   onClienteCreado,
+  clienteEditar,
 }: ClienteExpressModalMobileProps) {
-  const [nombre, setNombre] = useState("")
-  const [telefono, setTelefono] = useState("")
-  const [direccion, setDireccion] = useState("")
-  const [localidad, setLocalidad] = useState("")
-  const [notas, setNotas] = useState("")
+  // El modal se monta al abrirse: los campos arrancan con los datos del cliente a editar
+  const [nombre, setNombre] = useState(clienteEditar?.nombre || "")
+  const [telefono, setTelefono] = useState(clienteEditar?.telefono || "")
+  const [email, setEmail] = useState(clienteEditar?.email || "")
+  const [direccion, setDireccion] = useState(clienteEditar?.direccion || "")
+  const [localidad, setLocalidad] = useState(clienteEditar?.localidad || "")
+  const [notas, setNotas] = useState(clienteEditar?.notas || "")
   const [error, setError] = useState<string | null>(null)
+
+  const editando = Boolean(clienteEditar)
 
   if (!abierto) return null
 
@@ -27,25 +36,37 @@ export function ClienteExpressModalMobile({
     e.preventDefault()
     setError(null)
 
-    if (!nombre.trim()) {
-      setError("El nombre o apellido del cliente es obligatorio.")
+    if (nombre.trim().length < 2) {
+      setError("El nombre o apellido del cliente es obligatorio (mínimo 2 letras).")
+      return
+    }
+    if (email.trim() && !EMAIL_VALIDO.test(email.trim())) {
+      setError("El email no es válido.")
       return
     }
 
-    const nuevoCliente: IClienteCache = {
-      id: `cli_offline_${Date.now()}`,
+    const datos: IClienteCache = {
+      ...(clienteEditar ?? {}),
+      id: clienteEditar?.id || `cli_offline_${Date.now()}`,
       nombre: nombre.trim(),
       telefono: telefono.trim() || null,
+      email: email.trim() || null,
       direccion: direccion.trim() || null,
       localidad: localidad.trim() || null,
-      estado: "MEDICION_TOMADA",
+      notas: notas.trim() || null,
+      estado: clienteEditar?.estado || "MEDICION_TOMADA",
     }
 
     try {
-      await agregarClienteExpressLocal(nuevoCliente)
-      onClienteCreado(nuevoCliente)
+      if (editando) {
+        const editado = await actualizarClienteLocal(datos)
+        onClienteCreado(editado)
+      } else {
+        await agregarClienteExpressLocal(datos)
+        onClienteCreado(datos)
+      }
       onCerrar()
-    } catch (err: any) {
+    } catch {
       setError("No se pudo guardar el cliente en el almacenamiento local.")
     }
   }
@@ -61,10 +82,12 @@ export function ClienteExpressModalMobile({
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900">
-                Alta Express de Cliente en Obra
+                {editando ? "Editar Datos del Cliente" : "Alta Express de Cliente en Obra"}
               </h3>
               <p className="text-xs text-slate-500">
-                Disponible de inmediato sin internet
+                {editando
+                  ? "Se guarda sin internet y se envía al ERP al sincronizar"
+                  : "Disponible de inmediato sin internet"}
               </p>
             </div>
           </div>
@@ -138,6 +161,22 @@ export function ClienteExpressModalMobile({
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              Email
+            </label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Ej: cliente@mail.com"
+                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
               Dirección de la Obra
             </label>
             <div className="relative">
@@ -181,7 +220,7 @@ export function ClienteExpressModalMobile({
               className="flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-md shadow-indigo-200 transition-colors min-h-[44px]"
             >
               <Check className="w-4 h-4" />
-              Guardar Cliente
+              {editando ? "Guardar Cambios" : "Guardar Cliente"}
             </button>
           </div>
         </form>

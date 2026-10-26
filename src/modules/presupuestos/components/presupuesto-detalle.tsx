@@ -34,7 +34,7 @@ import type { IPresupuestoAceptadoResumen } from "@/modules/comandas/types"
 import { eliminarPresupuesto, verificarStockPresupuestoAction } from "../actions"
 import type { IReporteDisponibilidadStock } from "../lib/explosion-materiales"
 import { Package, AlertTriangle, Check } from "lucide-react"
-import { formatearPrecio, formatearFecha } from "@/lib/utils"
+import { formatearPrecio, formatearFecha, fmtMedida } from "@/lib/utils"
 import { AvisoMedidaModificada } from "@/components/shared/aviso-medida-modificada"
 import {
   calcularTotalesPorOpcion,
@@ -575,7 +575,7 @@ export function PresupuestoDetalle({
                           </td>
                           <td className="py-3 px-4 text-center text-slate-600 font-mono font-medium">
                             {it.ancho > 0 && it.alto > 0
-                              ? `${it.ancho.toFixed(2)} × ${it.alto.toFixed(2)}`
+                              ? `${fmtMedida(it.ancho)} × ${fmtMedida(it.alto)}`
                               : "—"}
                           </td>
                           <td className="py-3 px-4 text-center font-bold text-slate-800">
