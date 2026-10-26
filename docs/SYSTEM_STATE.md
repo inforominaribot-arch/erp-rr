@@ -632,3 +632,16 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 - [x] Orden de sincronización: sube mediciones → sube clientes editados → baja mediciones → baja clientes.
 - [x] Alta Express: guarda email y notas en la tablet (las notas de un cliente creado offline todavía no viajan al ERP).
 
+---
+
+## Actualización — Lista de precios de proveedores (2026-10-26)
+
+### ✅ Implementado
+- [x] **Modelo `ListaPrecioItem`** (`lista_precios_items`) con enum `CategoriaListaPrecio` (SISTEMA, ACCESORIO, MOTORIZACION, RIEL_MOTORIZADO, TELA, BANDAS_VERTICALES, SERVICIO): proveedor, sección, descripción, colores, unidad, precio de lista (sin recargos), `vendemos`, orden, vigencia y nota de sección. Clave única proveedor + sección + descripción. Es independiente del stock (`Producto`) para no afectar el control de stock.
+- [x] **Proveedor Rollershade (marca RS)** cargado con contacto, 23 días de entrega y su lista de Septiembre 2026: 140 ítems verificados contra el PDF, 68 marcados "vendemos".
+- [x] **Importador** `scripts/importar-lista-precios.mjs <archivo de datos> [--aplicar]`: muestra los cambios y solo escribe con `--aplicar`; al recargar actualiza precios sin duplicar. Datos en `scripts/data/lista-rollershade-2026-09.mjs`.
+- [x] **Ficha del proveedor:** sección "Lista de Precios" (`lista-precios-proveedor.tsx`) con buscador, filtro por categoría, "Solo lo que vendemos" y edición de precio y "vendemos" (`actualizarItemListaPrecio`, Zod). Solo visible para roles que ven costos.
+
+### ⏳ Pendiente
+- [ ] Usar la lista en el presupuesto: elegir sistema/tela/accesorios y calcular el precio con los recargos por categoría (Sistemas y Motorización +10%, Accesorios +80%, Telas y Bandas redondeo al segundo mil superior; precios fijos para Black Out FV 1,83/2,50/3,05 y PL Técnico).
+

@@ -30,7 +30,9 @@ import type {
   IProveedor,
   IProductoProveedor,
   IOrdenCompra,
+  IListaPrecioItem,
 } from "../types"
+import { ListaPreciosProveedor } from "./lista-precios-proveedor"
 import { ProveedorEstadoBadge } from "./proveedor-estado-badge"
 import { OrdenCompraEstadoBadge } from "./orden-compra-estado-badge"
 import { OrdenCompraWhatsAppButton } from "./orden-compra-whatsapp-button"
@@ -53,6 +55,8 @@ interface ProveedorDetalleViewProps {
     stockMinimo: number
     precio: number | null
   }>
+  /** Lista de precios del proveedor (vacía si el usuario no puede ver costos) */
+  listaPrecios: IListaPrecioItem[]
   puedeVerCostos: boolean
   puedeAdministrar: boolean
   puedeEmitirOrden: boolean
@@ -64,6 +68,7 @@ export function ProveedorDetalleView({
   productosProvistos,
   ordenesCompra,
   catalogoProductos,
+  listaPrecios,
   puedeVerCostos,
   puedeAdministrar,
   puedeEmitirOrden,
@@ -216,6 +221,11 @@ export function ProveedorDetalleView({
           </div>
         </div>
       </div>
+
+      {/* ── LISTA DE PRECIOS (solo para quien puede ver costos) ── */}
+      {puedeVerCostos && listaPrecios.length > 0 && (
+        <ListaPreciosProveedor items={listaPrecios} puedeAdministrar={puedeAdministrar} />
+      )}
 
       {/* ── SECCIÓN 1: CATÁLOGO DE INSUMOS PROVISTOS ── */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">

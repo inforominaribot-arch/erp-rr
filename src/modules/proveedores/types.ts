@@ -202,3 +202,42 @@ export const ESTADOS_ORDEN_COMPRA_CONFIG: Record<
     descripcion: "Orden anulada sin ingreso de mercadería",
   },
 }
+
+// ─── Lista de Precios del Proveedor ──────────────────────────────────────────
+
+export type CategoriaListaPrecio =
+  | "SISTEMA"
+  | "ACCESORIO"
+  | "MOTORIZACION"
+  | "RIEL_MOTORIZADO"
+  | "TELA"
+  | "BANDAS_VERTICALES"
+  | "SERVICIO"
+
+export const CATEGORIAS_LISTA_PRECIO: Record<CategoriaListaPrecio, string> = {
+  SISTEMA: "Sistemas",
+  ACCESORIO: "Accesorios",
+  MOTORIZACION: "Motorización",
+  RIEL_MOTORIZADO: "Riel motorizado",
+  TELA: "Telas",
+  BANDAS_VERTICALES: "Bandas verticales",
+  SERVICIO: "Servicios",
+}
+
+export interface IListaPrecioItem {
+  id: string
+  proveedorId: string
+  categoria: CategoriaListaPrecio
+  seccion: string
+  descripcion: string
+  colores: string | null
+  unidad: string
+  precio: number
+  vendemos: boolean
+  orden: number
+  vigencia: string | null
+  nota: string | null
+  activo: boolean
+  actualizadoEn: Date | string
+}
+

@@ -15,6 +15,7 @@ import type {
   IFiltrosOrdenesCompra,
 } from "./types"
 import { formatearNumeroOC } from "./types"
+import type { IListaPrecioItem } from "./types"
 
 // ─── Helpers de Serialización ────────────────────────────────────────────────
 
@@ -631,3 +632,36 @@ export async function obtenerCatalogoProductosParaCompras(): Promise<
     return []
   }
 }
+
+// ─── Lista de precios del proveedor ──────────────────────────────────────────
+
+export async function obtenerListaPreciosProveedor(
+  proveedorId: string
+): Promise<IListaPrecioItem[]> {
+  try {
+    const items = await prisma.listaPrecioItem.findMany({
+      where: { proveedorId, activo: true },
+      orderBy: [{ orden: "asc" }, { descripcion: "asc" }],
+    })
+    return items.map((it) => ({
+      id: it.id,
+      proveedorId: it.proveedorId,
+      categoria: it.categoria,
+      seccion: it.seccion,
+      descripcion: it.descripcion,
+      colores: it.colores,
+      unidad: it.unidad,
+      precio: Number(it.precio),
+      vendemos: it.vendemos,
+      orden: it.orden,
+      vigencia: it.vigencia,
+      nota: it.nota,
+      activo: it.activo,
+      actualizadoEn: it.actualizadoEn,
+    }))
+  } catch (error) {
+    console.error("Error al obtener la lista de precios del proveedor:", error)
+    return []
+  }
+}
+

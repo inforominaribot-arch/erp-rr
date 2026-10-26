@@ -180,3 +180,22 @@ export const recepcionOrdenCompraSchema = z.object({
 })
 
 export type RecepcionOrdenCompraInput = z.infer<typeof recepcionOrdenCompraSchema>
+
+// ─── Edición de un ítem de la lista de precios ───────────────────────────────
+
+export const actualizarItemListaPrecioSchema = z
+  .object({
+    id: z.string().uuid("Ítem de lista de precios inválido"),
+    precio: z
+      .number({ message: "El precio debe ser un número" })
+      .min(0, "El precio no puede ser negativo")
+      .max(999999999, "El precio es demasiado alto")
+      .optional(),
+    vendemos: z.boolean().optional(),
+  })
+  .refine((d) => d.precio !== undefined || d.vendemos !== undefined, {
+    message: "No hay cambios para guardar",
+  })
+
+export type ActualizarItemListaPrecioInput = z.infer<typeof actualizarItemListaPrecioSchema>
+

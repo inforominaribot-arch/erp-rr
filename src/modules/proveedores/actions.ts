@@ -19,6 +19,7 @@ import {
   type CambioEstadoOrdenInput,
   type RecepcionOrdenCompraInput,
 } from "./schemas"
+import { actualizarItemListaPrecioSchema, type ActualizarItemListaPrecioInput } from "./schemas"
 import type { IProveedor, IOrdenCompra, IProductoProveedor } from "./types"
 import { formatearNumeroOC } from "./types"
 
@@ -639,3 +640,45 @@ export async function registrarRecepcionMercaderia(
     }
   }
 }
+
+// ─── Lista de precios: editar precio o "lo vendemos" de un ítem ──────────────
+
+export async function actualizarItemListaPrecio(
+  input: ActualizarItemListaPrecioInput
+): Promise<ActionResponse<{ id: string; precio: number; vendemos: boolean }>> {
+  try {
+    const auth = await tienePermisoModuloProveedores("administracion")
+    if (!auth.permitido || !auth.puedeAdministrar) {
+      return { success: false, error: auth.error || "No tenés permisos para editar la lista de precios." }
+    }
+
+    const validacion = actualizarItemListaPrecioSchema.safeParse(input)
+    if (!validacion.success) {
+      return { success: false, error: validacion.error.issues.map((e) => e.message).join(", ") }
+    }
+    const { id, precio, vendemos } = validacion.data
+
+    const existente = await prisma.listaPrecioItem.findUnique({ where: { id } })
+    if (!existente) {
+      return { success: false, error: "El ítem de la lista de precios no existe." }
+    }
+
+    const actualizado = await prisma.listaPrecioItem.update({
+      where: { id },
+      data: {
+        ...(precio !== undefined ? { precio: Math.round(precio * 100) / 100 } : {}),
+        ...(vendemos !== undefined ? { vendemos } : {}),
+      },
+    })
+
+    revalidatePath(`/proveedores/${existente.proveedorId}`)
+    return {
+      success: true,
+      data: { id, precio: Number(actualizado.precio), vendemos: actualizado.vendemos },
+    }
+  } catch (error) {
+    console.error("Error al actualizar ítem de lista de precios:", error)
+    return { success: false, error: "No se pudo guardar el cambio en la lista de precios." }
+  }
+}
+
