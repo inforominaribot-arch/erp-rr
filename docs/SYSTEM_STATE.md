@@ -639,7 +639,8 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 ### ✅ Implementado
 - [x] **Modelo `ListaPrecioItem`** (`lista_precios_items`) con enum `CategoriaListaPrecio` (SISTEMA, ACCESORIO, MOTORIZACION, RIEL_MOTORIZADO, TELA, BANDAS_VERTICALES, SERVICIO): proveedor, sección, descripción, colores, unidad, precio de lista (sin recargos), `vendemos`, orden, vigencia y nota de sección. Clave única proveedor + sección + descripción. Es independiente del stock (`Producto`) para no afectar el control de stock.
 - [x] **Proveedor Rollershade (marca RS)** cargado con contacto, 23 días de entrega y su lista de Septiembre 2026: 140 ítems verificados contra el PDF, 68 marcados "vendemos".
-- [x] **Importador** `scripts/importar-lista-precios.mjs <archivo de datos> [--aplicar]`: muestra los cambios y solo escribe con `--aplicar`; al recargar actualiza precios sin duplicar. Datos en `scripts/data/lista-rollershade-2026-09.mjs`.
+- [x] **Importador** `scripts/importar-lista-precios.mjs <archivo de datos> [--aplicar]`: muestra los cambios y solo escribe con `--aplicar`; al recargar actualiza precios sin duplicar y **conserva el "vendemos" marcado a mano**. Datos en `scripts/data/lista-rollershade-2026-09.mjs`.
+- [x] **Lista de accesorios Rieles y Cosas (Rollershade) Septiembre 2026:** 142 ítems verificados contra el PDF, categoría nueva `RIELES_BARRALES` ("Rieles, barrales y kits": barrales Black Point / Níquel-Bronce, Sabicort, visillos, rieles Cortimatic / Europeo / Deluxe, romanas, panel oriental, tensores, kits de madera). Cargados sin marcar "vendemos" (se marcan a mano). Datos en `scripts/data/lista-accesorios-rollershade-2026-09.mjs`.
 - [x] **Ficha del proveedor:** sección "Lista de Precios" (`lista-precios-proveedor.tsx`) con buscador, filtro por categoría, "Solo lo que vendemos" y edición de precio y "vendemos" (`actualizarItemListaPrecio`, Zod). Solo visible para roles que ven costos.
 
 ### ⏳ Pendiente

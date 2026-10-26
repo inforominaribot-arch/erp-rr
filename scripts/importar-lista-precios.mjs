@@ -8,6 +8,8 @@
 // - Cada ítem se identifica por proveedor + sección + descripción: si ya existe se
 //   actualiza el precio (al cargar la lista de un mes nuevo no se duplica).
 // - No borra ítems: los que ya no figuran en la lista se informan.
+// - "vendemos" solo se toma del archivo al crear el ítem; al actualizar se conserva
+//   lo que el usuario marcó a mano.
 
 import path from "path"
 import { pathToFileURL } from "url"
@@ -19,7 +21,7 @@ if (!archivo) {
   process.exit(1)
 }
 const aplicar = flag === "--aplicar"
-const { PROVEEDOR, VIGENCIA, SECCIONES } = await import(pathToFileURL(path.resolve(archivo)).href)
+const { PROVEEDOR, VIGENCIA, SECCIONES, ORDEN_BASE = 0 } = await import(pathToFileURL(path.resolve(archivo)).href)
 
 const prisma = new PrismaClient()
 const fmt = (n) => "$" + Number(n).toLocaleString("es-AR")
@@ -31,12 +33,16 @@ try {
   console.log(proveedor ? `Proveedor existente: ${proveedor.nombre}` : `Proveedor NUEVO: ${PROVEEDOR.nombre}`)
   console.log(`  ${PROVEEDOR.contacto} • ${PROVEEDOR.telefono} • ${PROVEEDOR.email} • marcas ${PROVEEDOR.marcas.join("/")} • ${PROVEEDOR.diasEntrega} días`)
 
+  // Solo se comparan las categorías de este archivo (un proveedor puede tener varias listas)
+  const categoriasArchivo = [...new Set(SECCIONES.map((s) => s.categoria))]
   const existentes = proveedor
-    ? await prisma.listaPrecioItem.findMany({ where: { proveedorId: proveedor.id } })
+    ? await prisma.listaPrecioItem.findMany({
+        where: { proveedorId: proveedor.id, categoria: { in: categoriasArchivo } },
+      })
     : []
   const porClave = new Map(existentes.map((e) => [`${e.seccion}|${e.descripcion}`, e]))
 
-  let orden = 0
+  let orden = ORDEN_BASE
   const operaciones = []
   for (const s of SECCIONES) {
     console.log(`\n[${s.categoria}] ${s.seccion}${s.nota ? `  (${s.nota})` : ""}`)
@@ -98,7 +104,8 @@ try {
               proveedorId_seccion_descripcion: { proveedorId: proveedor.id, ...op.clave },
             },
             create: { proveedorId: proveedor.id, ...op.clave, ...op.datos },
-            update: op.datos,
+            // "vendemos" se respeta: lo marca el usuario a mano en la ficha del proveedor
+            update: (({ vendemos, ...resto }) => resto)(op.datos),
           })
         }
       },

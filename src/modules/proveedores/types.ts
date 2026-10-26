@@ -213,6 +213,7 @@ export type CategoriaListaPrecio =
   | "TELA"
   | "BANDAS_VERTICALES"
   | "SERVICIO"
+  | "RIELES_BARRALES"
 
 export const CATEGORIAS_LISTA_PRECIO: Record<CategoriaListaPrecio, string> = {
   SISTEMA: "Sistemas",
@@ -222,6 +223,7 @@ export const CATEGORIAS_LISTA_PRECIO: Record<CategoriaListaPrecio, string> = {
   TELA: "Telas",
   BANDAS_VERTICALES: "Bandas verticales",
   SERVICIO: "Servicios",
+  RIELES_BARRALES: "Rieles, barrales y kits",
 }
 
 export interface IListaPrecioItem {

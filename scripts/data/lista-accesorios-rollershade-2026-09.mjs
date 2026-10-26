@@ -1,0 +1,256 @@
+// Lista de accesorios Rieles y Cosas (Rollershade) — Septiembre 2026
+// Transcripta de "LISTA ACCESORIOS SEPTIEMBRE 26.pdf". Precios de lista SIN recargos.
+// Se carga sin marcar "vendemos": lo marca Romina Ribot a mano desde la ficha del proveedor.
+// Formato de cada ítem: [descripcion, colores, unidad, precio, vendemos]
+
+export { PROVEEDOR } from "./lista-rollershade-2026-09.mjs"
+
+export const VIGENCIA = "Septiembre 2026"
+// Para que se ordene después de la lista de cortinas roller del mismo proveedor
+export const ORDEN_BASE = 1000
+
+const BP = "blanco/negro"
+const NB = "níquel mate/bronce viejo"
+const LUSTRE = "lustre claro/oscuro"
+const C = "RIELES_BARRALES"
+
+export const SECCIONES = [
+  {
+    categoria: C,
+    seccion: 'Línea Black Point 5/8"',
+    items: [
+      ['Barral B.P. liso hierro 5/8"', BP, "tira 6 m", 15000, false],
+      ['Soporte B.P. Kent / York simple 5/8"', BP, "u", 6700, false],
+      ['Soporte B.P. Kent / York doble 5/8"', BP, "u", 10000, false],
+      ['Soporte B.P. grampa simple 5/8"', BP, "u", 5800, false],
+      ['Soporte B.P. grampa doble 5/8"', BP, "u", 12500, false],
+      ['Soporte B.P. lateral 5/8"', BP, "u", 3600, false],
+      ['Argollas B.P. latón 5/8"', BP, "u", 900, false],
+      ['Terminal B.P. Kent liso / York 5/8"', BP, "u", 3300, false],
+      ['Terminal B.P. figuras (todos los modelos) 5/8"', BP, "u", 3300, false],
+      ['Terminal B.P. Bristol 5/8"', BP, "u", 3900, false],
+      ['Terminal B.P. Surrey 5/8"', BP, "u", 3900, false],
+    ],
+  },
+  {
+    categoria: C,
+    seccion: 'Línea Black Point 1"',
+    items: [
+      ['Barral B.P. liso hierro 1"', BP, "tira 6 m", 22000, false],
+      ['Soporte B.P. Kent / York simple 1"', BP, "u", 6600, false],
+      ['Soporte B.P. Kent / York doble 1"', BP, "u", 9300, false],
+      ['Soporte B.P. grampa simple 1"', BP, "u", 5800, false],
+      ['Soporte B.P. grampa doble 1"', BP, "u", 13000, false],
+      ['Soporte B.P. lateral 1"', BP, "u", 5000, false],
+      ['Argolla B.P. latón 1"', BP, "u", 1200, false],
+      ['Terminal B.P. Kent / York 1"', BP, "u", 5000, false],
+      ['Terminal B.P. figuras (todos los modelos) 1"', BP, "u", 5000, false],
+      ['Terminal B.P. Devon 1"', BP, "u", 5000, false],
+      ['Terminal B.P. Oxford 1"', BP, "u", 3900, false],
+    ],
+  },
+  {
+    categoria: C,
+    seccion: 'Línea Níquel mate - Bronce viejo 5/8"',
+    items: [
+      ['Barral 5/8"', NB, "tira 4 m", 36000, false],
+      ['Soporte grampa simple 5/8"', NB, "u", 5800, false],
+      ['Soporte grampa doble 5/8"', NB, "u", 12400, false],
+      ['Soporte Kent / York simple 5/8"', NB, "u", 7000, false],
+      ['Soporte Kent / York doble 5/8"', NB, "u", 11000, false],
+      ['Soporte lateral 5/8"', NB, "u", 4500, false],
+      ['Argolla 5/8"', NB, "u", 1600, false],
+      ['Terminal Kent / York 5/8"', NB, "u", 3500, false],
+      ['Terminal figuras (todos los modelos) 5/8"', NB, "u", 3500, false],
+      ['Terminal Bristol 5/8"', NB, "u", 4800, false],
+      ['Terminal Surrey 5/8"', NB, "u", 4800, false],
+    ],
+  },
+  {
+    categoria: C,
+    seccion: 'Línea Níquel mate - Bronce viejo 1"',
+    items: [
+      ['Barral 1"', NB, "tira 4 m", 40000, false],
+      ['Soporte grampa doble 1"', NB, "u", 12400, false],
+      ['Soporte grampa simple 1"', NB, "u", 6000, false],
+      ['Soporte Kent / York simple 1"', NB, "u", 7000, false],
+      ['Soporte Kent / York doble 1"', NB, "u", 11000, false],
+      ['Soporte lateral 1"', NB, "u", 5500, false],
+      ['Argolla 1"', NB, "u", 2600, false],
+      ['Terminal Kent / York 1"', NB, "u", 6500, false],
+      ['Terminal (todos los modelos) 1"', NB, "u", 6500, false],
+      ['Terminal Devon 1"', NB, "u", 5800, false],
+      ['Terminal Oxford 1"', NB, "u", 7900, false],
+    ],
+  },
+  {
+    categoria: C,
+    seccion: 'Línea Sabicort 1/2"',
+    items: [
+      ['Caño hierro 1/2" x 4,00 m', "blanco/dorado/plateado", "tira 4 m", 10000, false],
+      ['Soporte hierro abierto / cerrado 1/2" corto', null, "u", 800, false],
+      ['Soporte hierro abierto / cerrado 1/2" largo', null, "u", 800, false],
+      ['Soporte hierro abierto / cerrado 1/2" mediano', null, "u", 800, false],
+      ['Argolla de alambre 1/2"', null, "u", 1300, false],
+      ['Argolla de alambre 1"', null, "u", 1400, false],
+      ["Terminal plástico", null, "u", 700, false],
+    ],
+  },
+  {
+    categoria: C,
+    seccion: "Línea Visillos",
+    items: [
+      ["Soporte varilla visillo con tornillo", "blanco", "u", 1600, false],
+      ["Varilla visillo esmaltada x 2,20 m", "blanca", "u", 5500, false],
+    ],
+  },
+  {
+    categoria: C,
+    seccion: 'Riel "Cortimatic 2000" (curvable)',
+    items: [
+      ["Riel Cortimatic con 2 bastones y correderas metálicas", null, "ml", 43600, false],
+      ["Soporte techo simple Cortimatic", null, "u", 1000, false],
+      ["Terminal Cortimatic", null, "u", 730, false],
+      ["Perfil pintado Cortimatic", null, "ml", 21400, false],
+      ["Cruces simples Cortimatic", null, "u", 1300, false],
+      ["Cruces completas Cortimatic", null, "u", 2400, false],
+      ["Correderas metálicas Cortimatic", null, "u", 900, false],
+    ],
+  },
+  {
+    categoria: C,
+    seccion: "Riel Europeo blanco",
+    items: [
+      ["Riel Europeo SR c/ correderas giratorias (sin bastón), máx. 4 m", "blanco", "ml", 18000, false],
+      ["Terminales plásticos", "blanco", "u", 200, false],
+      ["Perfil SR esmaltado", "blanco", "ml", 10000, false],
+      ["Bastón metálico 0,65", "blanco", "u", 3200, false],
+      ["Bastón metálico 1,10", "blanco", "u", 3400, false],
+      ["Bastón metálico 1,50", "blanco", "u", 3800, false],
+      ["Cruces completo R.E.", "blanco", "u", 3000, false],
+      ["Cruces simple R.E.", "blanco", "u", 1400, false],
+      ["Correderas p/ R.E.", "blanco", "u", 300, false],
+      ["Ángulos simple", "blanco", "u", 6000, false],
+      ["Ángulos doble", "blanco", "u", 7000, false],
+    ],
+  },
+  {
+    categoria: C,
+    seccion: "Riel Europeo negro",
+    items: [
+      ["Riel Europeo SR c/ correderas giratorias (sin bastón), máx. 4 m", "negro", "ml", 21600, false],
+      ["Terminales plásticos", "negro", "u", 240, false],
+      ["Perfil SR esmaltado", "negro", "ml", 12000, false],
+      ["Bastón metálico 0,65", "negro", "u", 3900, false],
+      ["Bastón metálico 1,10", "negro", "u", 4100, false],
+      ["Bastón metálico 1,50", "negro", "u", 4600, false],
+      ["Cruces completo R.E.", "negro", "u", 3600, false],
+      ["Cruces simple R.E.", "negro", "u", 1700, false],
+      ["Correderas p/ R.E.", "negro", "u", 400, false],
+      ["Ángulos simple", "negro", "u", 7200, false],
+      ["Ángulos doble", "negro", "u", 8400, false],
+    ],
+  },
+  {
+    categoria: C,
+    seccion: "Riel Deluxe blanco",
+    items: [
+      ["Riel Deluxe c/ correderas y cruces (sin bastón), máx. 6 m", "blanco", "ml", 20000, false],
+      ["Perfil esmaltado R.D.", "blanco", "u", 17000, false],
+      ["Punteras plásticas R.D.", "blanco", "u", 500, false],
+      ["Cruces (completa y simple) plásticas R.D.", "blanco", "u", 3600, false],
+      ["Correderas plásticas R.D.", "blanco", "u", 500, false],
+    ],
+  },
+  {
+    categoria: C,
+    seccion: "Riel Deluxe negro",
+    items: [
+      ["Riel Deluxe c/ correderas y cruces (sin bastón), máx. 6 m", "negro", "ml", 24000, false],
+      ["Perfil esmaltado R.D.", "negro", "u", 20400, false],
+      ["Punteras plásticas R.D.", "negro", "u", 600, false],
+      ["Cruces (completa y simple) plásticas R.D.", "negro", "u", 4400, false],
+      ["Correderas plásticas R.D.", "negro", "u", 600, false],
+    ],
+  },
+  {
+    categoria: C,
+    seccion: "Sistema de romana con hilo",
+    items: [
+      ["Kit cortina romana con hilo 1,00", null, "u", 34100, false],
+      ["Soporte p/ techo-pared", null, "u", 1000, false],
+      ["Perfil velcrado", null, "ml", 14300, false],
+      ["Perfil ángulo velcrado", null, "ml", 11000, false],
+      ["Contrapeso aluminio recto 1,00 20x3 mm", null, "ml", 8300, false],
+      ["Cordón de perlón 1,4 (rollo 100 m)", null, "rollo", 44000, false],
+    ],
+  },
+  {
+    categoria: C,
+    seccion: "Romana RS",
+    items: [
+      ["Sistema Romana RS 1,00", null, "u", 44000, false],
+      ["Contrapeso aluminio recto 1,00 20x3 mm", null, "u", 8300, false],
+    ],
+  },
+  {
+    categoria: C,
+    seccion: "Panel oriental",
+    items: [
+      ["Panel oriental con cordón 3 vías", null, "ml", 63800, false],
+      ["Panel oriental con cordón 4 vías", null, "ml", 77900, false],
+      ["Panel oriental con cordón 5 vías", null, "ml", 86700, false],
+      ["Panel oriental con bastón 3 vías", null, "ml", 64100, false],
+      ["Panel oriental con bastón 4 vías", null, "ml", 70600, false],
+      ["Panel oriental con bastón 5 vías", null, "ml", 89300, false],
+      ["Panel oriental sin mando 3 vías", null, "ml", 58100, false],
+      ["Panel oriental sin mando 4 vías", null, "ml", 60600, false],
+      ["Panel oriental sin mando 5 vías", null, "ml", 76400, false],
+      ["Soporte techo/pared 3-4-5 vías", null, "u", 3000, false],
+      ["Terminal 3 vías derecho / izquierdo", null, "u", 1900, false],
+      ["Terminal 4-5 vías derecho / izquierdo", null, "u", 2600, false],
+      ["Perfil aluminio 3 vías", null, "ml", 15200, false],
+      ["Perfil aluminio 4 vías", null, "ml", 18600, false],
+      ["Perfil aluminio 5 vías", null, "ml", 22500, false],
+      ["Varilla aluminio pintada 38x3 mm", null, "ml", 25300, false],
+      ["Varilla aluminio natural", null, "ml", 12200, false],
+      ["Varilla aluminio porta-tela con velcro", null, "ml", 20000, false],
+      ["Corredera derecha / izquierda / simple", null, "u", 600, false],
+      ["Perillas sin fin con plomo panel oriental", null, "u", 3600, false],
+    ],
+  },
+  {
+    categoria: C,
+    seccion: "Tensores",
+    items: [
+      ["Kit tensor cono / bala", null, "u", 50000, false],
+      ["Clip común", null, "u", 1500, false],
+      ["Clip con argolla", null, "u", 2000, false],
+    ],
+  },
+  {
+    categoria: C,
+    seccion: "Línea madera lustrada (kit sin argollas)",
+    items: [
+      ["Kit 34 mm 1,60", LUSTRE, "u", 17100, false],
+      ["Kit 34 mm 1,80", LUSTRE, "u", 19000, false],
+      ["Kit 34 mm 2,00", LUSTRE, "u", 20000, false],
+      ["Kit 34 mm 2,20", LUSTRE, "u", 21000, false],
+      ["Kit 34 mm 2,40", LUSTRE, "u", 22300, false],
+      ["Kit 34 mm 2,60", LUSTRE, "u", 23700, false],
+      ["Kit 34 mm 2,80", LUSTRE, "u", 25300, false],
+      ["Kit 34 mm 3,00", LUSTRE, "u", 27000, false],
+      ["Kit 22 mm 1,40", LUSTRE, "u", 15000, false],
+      ["Kit 22 mm 1,60", LUSTRE, "u", 15500, false],
+      ["Kit 22 mm 1,80", LUSTRE, "u", 16000, false],
+      ["Kit 22 mm 2,00", LUSTRE, "u", 17400, false],
+      ["Kit 22 mm 2,20", LUSTRE, "u", 17800, false],
+      ["Kit 22 mm 2,40", LUSTRE, "u", 19400, false],
+      ["Kit 22 mm 2,60", LUSTRE, "u", 20600, false],
+      ["Kit 22 mm 2,80", LUSTRE, "u", 22000, false],
+      ["Kit 22 mm 3,00", LUSTRE, "u", 23400, false],
+      ["Argollas lustradas 34 mm", LUSTRE, "u", 1300, false],
+      ["Argollas lustradas 22 mm", LUSTRE, "u", 900, false],
+    ],
+  },
+]

@@ -393,6 +393,7 @@ enum CategoriaListaPrecio {
   TELA
   BANDAS_VERTICALES
   SERVICIO
+  RIELES_BARRALES // Lista de accesorios: barrales, rieles, romanas, panel oriental, kits
 }
 
 // Ítem de la lista de precios de un proveedor (precio de lista, sin recargos)
