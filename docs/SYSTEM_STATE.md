@@ -643,6 +643,30 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 - [x] **Lista de accesorios Rieles y Cosas (Rollershade) Septiembre 2026:** 142 ítems verificados contra el PDF, categoría nueva `RIELES_BARRALES` ("Rieles, barrales y kits": barrales Black Point / Níquel-Bronce, Sabicort, visillos, rieles Cortimatic / Europeo / Deluxe, romanas, panel oriental, tensores, kits de madera). Cargados sin marcar "vendemos" (se marcan a mano). Datos en `scripts/data/lista-accesorios-rollershade-2026-09.mjs`.
 - [x] **Ficha del proveedor:** sección "Lista de Precios" (`lista-precios-proveedor.tsx`) con buscador, filtro por categoría, "Solo lo que vendemos" y edición de precio y "vendemos" (`actualizarItemListaPrecio`, Zod). Solo visible para roles que ven costos.
 
-### ⏳ Pendiente
-- [ ] Usar la lista en el presupuesto: elegir sistema/tela/accesorios y calcular el precio con los recargos por categoría (Sistemas y Motorización +10%, Accesorios +80%, Telas y Bandas redondeo al segundo mil superior; precios fijos para Black Out FV 1,83/2,50/3,05 y PL Técnico).
+- [x] La lista ya se usa en el presupuesto (ver "Presupuesto por cortina física con la lista RS"). Los recargos por categoría que se habían hablado (+10% / +80% / redondeo de telas) quedaron descartados: se usa el precio de lista tal cual con los coeficientes de cada fórmula.
+
+---
+
+## Actualización — Presupuesto por cortina física con la lista RS (2026-10-26)
+
+### ✅ Implementado
+- [x] **Una fila por cortina física:** al importar una medición, cada capa (Gaza / B.O.) se separa en sus paños / tramos (`src/modules/mediciones/lib/cortinas-fisicas.ts`: `tipoDeCapa`, `cortinasFisicas`, `medidasCortinaFisica`). Tradicional, Tradicional Mot y Aluminio son una sola cortina por capa. `ItemPresupuesto` suma `capa` ("GAZA"/"BO"), `indiceCortina`, `tipoFila` ("CORTINA"/"CONTROL"/"CARGADOR") y `calculoPrecio` (Json: entrada, opciones elegidas, desglose, avisos y si se corrigió a mano). Cada fila tiene cantidad 1.
+- [x] **Fórmulas RS** (`src/modules/presupuestos/lib/lista-precios-rs.ts`, solo capas marca RS; precios de lista sin recargos). Ancho de cálculo con mínimo 1 m y m² con mínimo 1 m²:
+  - Roller: (m² × tela + ancho × sistema) × 1,16025 + instalación. Sistema por m²: < 3 Soft RS, 3 a < 6 Maxi, 6 a 9 Super Maxi (variante "zócalo Deco, cadena plástica"). Más de 9 m² no se calcula: avisa "debe ser motorizada".
+  - Solo tela: el zócalo (Decorativo por defecto, o Guía Liso) reemplaza al sistema. Solo riel: sin tela.
+  - Roller Mot: (ancho × caño + motor + m² × tela × 1,105) × 1,5 + instalación. Caño 40 / 50 mm a elección (sugerido según el motor); con motor Li-ion siempre el caño de batería. Motor según marca y modelo de la medición. Solo tela motorizada: el zócalo reemplaza caño + motor.
+  - Bandas RS: (ancho × Sistema BV Esmalte Blanco + m² × tela BV) × 1,16025 + instalación.
+  - Instalación $40.000 por cortina física (también solo tela / solo riel), editable.
+  - **Controles:** se suman todos los del cliente (capas Roller Mot RS con "control"), agrupados por marca y canales, en filas propias: lista × 1,5. **Cargadores Li-ion:** una fila por abertura con la cantidad cargada en la medición: lista × 1,5.
+- [x] **Tela por nombre:** en mediciones viejas (texto libre) se busca en la lista (`buscarTelaPorNombre`); si no es seguro, la fila queda sin precio con el aviso "Elegí la tela".
+- [x] **Calculadora:** pestaña "Lista RS" (`calculo-lista-rs.tsx`) con desglose y selectores (tela y color, zócalo, caño, motor, control/cargador, instalación). Cambiar ancho/alto recalcula; tocar el precio a mano lo marca "Precio corregido a mano".
+- [x] **Aprobación por capa:** una opción = todas las cortinas de la capa con el mismo nombre (`agruparCortinas` devuelve opciones con `filas` y subtotal sumado). Se acepta o rechaza la capa entera. Las alternativas ("+ Agregar alternativa (B.O.)") son por capa y regeneran sus cortinas con la especificación nueva. La ficha A4 y el WhatsApp muestran una línea por capa con sus medidas.
+- [x] **Comanda y stock por abertura** (`lib/filas-por-abertura.ts`, `unirFilasPorAbertura`): se unen las capas aceptadas de cada abertura en un ítem con las medidas de la medición; las capas no aceptadas quedan desactivadas (`capasExcluidas`) y se anota "Solo B.O." (+ cargadores) en observaciones. Al cambiar la medición no se reactivan.
+- [x] **Recálculo con la lista** (`lib/recalcular-con-lista.ts`): al cambiar un precio en la ficha del proveedor, y con el botón "Recalcular presupuestos abiertos" (después de importar una lista nueva). Actualiza Borradores, Enviados, Rechazados y las capas no aceptadas de los Aceptados parciales; los Aceptados totales y lo aceptado no se tocan. Las filas con precio corregido a mano quedan con el aviso "No se actualizó con la lista".
+- [x] **Selector de tela en la medición** (`selector-tela-lista.tsx`, contexto `TelasListaProvider`): en capas Roller / Roller Mot / Bandas RS la tela se elige de la lista (solo tildadas "vendemos"; "(BV)" para bandas) y el color de otro desplegable según la tela. Se guarda `telaId` y `colorTela` además de `nombreTela`. La tablet baja las telas al sincronizar (`GET /api/mediciones/telas`, sin precios) y las guarda en Preferences para usarlas sin señal. El resto de las capas sigue con texto libre.
+
+### ⏳ Pendiente / Limitaciones
+- [ ] Presupuesto con lista para HD (incluye motor Li-ion Somfy) y para Tradicional: siguen con la calculadora del Excel.
+- [ ] Los cambios de medida de una medición ya presupuestada actualizan las medidas de cada cortina, pero no recalculan el precio (queda el aviso "Medida modificada").
+- [ ] Presupuestos creados antes de este cambio siguen con una fila por abertura (se pueden reimportar).
 

@@ -1,5 +1,5 @@
 import { Preferences } from "@capacitor/preferences"
-import type { IMedicionOffline } from "@/modules/mediciones/types"
+import type { IMedicionOffline, ITelaMedicion } from "@/modules/mediciones/types"
 import type { IClienteCache } from "@/modules/mediciones/lib/offline-storage"
 
 const DB_NAME = "erp_rr_mediciones_mobile"
@@ -384,4 +384,24 @@ export async function guardarConfiguracion(
       value: config.ultimoSync || "",
     })
   }
+}
+
+// ─── Telas de la lista de precios (selector de tela en capas RS) ──────────────
+
+const KEY_TELAS = "telas_lista"
+
+/** Telas bajadas del ERP en la última sincronización (para elegir sin señal). */
+export async function obtenerTelasLocales(): Promise<ITelaMedicion[]> {
+  try {
+    const { value } = await Preferences.get({ key: KEY_TELAS })
+    const datos = value ? JSON.parse(value) : []
+    return Array.isArray(datos) ? (datos as ITelaMedicion[]) : []
+  } catch (err) {
+    console.error("Error al leer las telas locales:", err)
+    return []
+  }
+}
+
+export async function guardarTelasLocales(telas: ITelaMedicion[]): Promise<void> {
+  await Preferences.set({ key: KEY_TELAS, value: JSON.stringify(telas) })
 }

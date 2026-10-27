@@ -1,8 +1,9 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { ClienteSelectorMobile } from "./ClienteSelectorMobile"
 import { AmbienteManager } from "@/modules/mediciones/components/ambiente-manager"
-import { guardarMedicionLocal } from "../services/storage-service"
-import type { IMedicionOffline } from "@/modules/mediciones/types"
+import { guardarMedicionLocal, obtenerTelasLocales } from "../services/storage-service"
+import type { IMedicionOffline, ITelaMedicion } from "@/modules/mediciones/types"
+import { TelasListaProvider } from "@/modules/mediciones/components/selector-tela-lista"
 import type { IClienteCache } from "@/modules/mediciones/lib/offline-storage"
 import { ArrowLeft, Save, CheckCircle2, AlertCircle, FileText, Sparkles } from "lucide-react"
 
@@ -28,6 +29,12 @@ export function MedicionFormMobile({
         }
       : null
   )
+
+  // Telas de la lista bajadas en la última sincronización (selector de tela en capas RS)
+  const [telas, setTelas] = useState<ITelaMedicion[]>([])
+  useEffect(() => {
+    obtenerTelasLocales().then(setTelas)
+  }, [])
 
   const [ambientes, setAmbientes] = useState<any[]>(
     medicionExistente?.ambientes?.length
@@ -163,11 +170,13 @@ export function MedicionFormMobile({
 
       {/* Paso 2: Ambientes y Cortinas */}
       <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
-        <AmbienteManager
-          ambientes={ambientes}
-          onAmbientesChange={setAmbientes}
-          bloquearAltasBajas={Boolean(medicionExistente?.bloqueada)}
-        />
+        <TelasListaProvider telas={telas}>
+          <AmbienteManager
+            ambientes={ambientes}
+            onAmbientesChange={setAmbientes}
+            bloquearAltasBajas={Boolean(medicionExistente?.bloqueada)}
+          />
+        </TelasListaProvider>
       </div>
 
       {/* Paso 3: Observaciones Generales */}

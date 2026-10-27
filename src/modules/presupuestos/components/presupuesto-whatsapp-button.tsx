@@ -4,7 +4,7 @@ import { MessageCircle } from "lucide-react"
 import { formatearPrecio, formatearFecha } from "@/lib/utils"
 import { formatearNumeroPresupuesto } from "../types"
 import type { IPresupuestoDetalle } from "../types"
-import { agruparCortinas, calcularTotalesPorOpcion, etiquetaOpcion } from "../lib/alternativas"
+import { agruparCortinas, calcularTotalesPorOpcion, etiquetaOpcion, medidasOpcion } from "../lib/alternativas"
 
 interface PresupuestoWhatsappButtonProps {
   presupuesto: IPresupuestoDetalle
@@ -22,11 +22,12 @@ export function PresupuestoWhatsappButton({
     const numPresu = formatearNumeroPresupuesto(presupuesto.numero)
     const fecha = formatearFecha(presupuesto.creadoEn)
 
-    // Una línea por cortina; si tiene alternativas, sus opciones con precio
+    // Una línea por capa (con todas sus cortinas); si tiene alternativas, sus opciones con precio
     const cortinas = agruparCortinas(presupuesto.items)
     const itemsTexto = cortinas
       .map(({ principal: it, opciones }) => {
-        let linea = `• *${it.ambiente || "General"}*: ${it.descripcion} (${it.ancho}m × ${it.alto}m) - Cant: ${it.cantidad}`
+        let linea = `• *${it.ambiente || "General"}*: ${it.descripcion} (${medidasOpcion(it)})`
+        if (opciones.length <= 1) linea += ` - ${formatearPrecio(it.subtotal)}`
         if (opciones.length > 1) {
           linea += `\n   ↳ ${opciones
             .map((o, idx) => `${etiquetaOpcion(o, idx)} ${formatearPrecio(o.subtotal)}`)

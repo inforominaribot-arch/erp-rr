@@ -22,6 +22,7 @@ import {
   recalcularEstadoComanda,
 } from "./lib/pedidos-proveedor"
 import type { EstadoPedidoProveedor } from "@prisma/client"
+import { unirFilasPorAbertura } from "@/modules/presupuestos/lib/filas-por-abertura"
 
 // ─── 1. Generar Comanda desde Presupuesto Aceptado ───────────────────────────
 
@@ -108,15 +109,16 @@ export async function generarComandaDesdePresupuesto(
       })
     }
 
-    // Preparar ítems para la comanda
-    const itemsParaComanda = itemsAceptados.map((it) => {
-      const customClasif = clasificacionesMap.get(it.id)
+    // Preparar ítems para la comanda: el presupuesto va por cortina física, la comanda por abertura
+    // (se unen las capas aceptadas de cada abertura; las no aceptadas quedan desactivadas)
+    const itemsParaComanda = unirFilasPorAbertura(itemsAceptados).map((ab) => {
+      const it = ab.base
+      const customClasif = ab.filas.map((f) => clasificacionesMap.get(f.id)).find(Boolean)
       const tipoFinal: TipoItemComanda = customClasif?.tipo || "FABRICAR"
 
       // Especificaciones técnicas: las de la opción elegida (alternativa) o las de la medición
-      const caracteristicasJson =
-        ((it.caracteristicas ?? it.itemMedicion?.caracteristicas) as any) || null
-      const obsMedicion = it.itemMedicion?.observaciones
+      const caracteristicasJson = (ab.caracteristicas as any) || null
+      const obsMedicion = [ab.nota, it.itemMedicion?.observaciones].filter(Boolean).join(" · ")
       const obsCustom = customClasif?.observaciones
 
       let obsFinal = ""
@@ -132,13 +134,15 @@ export async function generarComandaDesdePresupuesto(
         productoId: it.itemMedicion?.productoId || null,
         itemMedicionId: it.itemMedicionId || null,
         descripcion:
-          it.grupoAlternativa && it.nombreOpcion
+          ab.filas.length > 1 || it.capa
+            ? ab.descripcion
+            : it.grupoAlternativa && it.nombreOpcion
             ? `${it.descripcion} (${it.nombreOpcion})`
             : it.descripcion,
         ambiente: it.ambiente || "General",
-        ancho: it.ancho,
-        alto: it.alto,
-        cantidad: it.cantidad,
+        ancho: ab.ancho,
+        alto: ab.alto,
+        cantidad: ab.cantidad,
         tipo: tipoFinal,
         caracteristicas: caracteristicasJson,
         observaciones: obsFinal.trim() !== "" ? obsFinal.trim() : null,

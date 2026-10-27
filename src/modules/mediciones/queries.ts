@@ -3,7 +3,7 @@
 
 import { prisma } from "@/lib/prisma"
 import type { FiltrosMedicionInput } from "./schemas"
-import type { IMedicion, IItemMedicion, IAmbiente } from "./types"
+import type { IMedicion, IItemMedicion, IAmbiente, ITelaMedicion } from "./types"
 
 // Helper para convertir Decimales de Prisma a numbers
 function serializarItem(item: any): IItemMedicion {
@@ -248,5 +248,33 @@ export async function obtenerMetricasMediciones() {
     sincronizadas,
     pendientes,
     totalAberturas: itemsCount,
+  }
+}
+
+// ─── Telas de la lista de precios RS para el selector de la medición ─────────
+
+/** Telas tildadas "vendemos" de la lista del proveedor RS (sin precios). */
+export async function obtenerTelasParaMedicion(): Promise<ITelaMedicion[]> {
+  try {
+    const items = await prisma.listaPrecioItem.findMany({
+      where: {
+        activo: true,
+        vendemos: true,
+        unidad: "m2",
+        categoria: { in: ["TELA", "BANDAS_VERTICALES"] },
+        proveedor: { activo: true, marcas: { has: "RS" } },
+      },
+      orderBy: [{ orden: "asc" }, { descripcion: "asc" }],
+      select: { id: true, descripcion: true, colores: true, categoria: true },
+    })
+    return items.map((it) => ({
+      id: it.id,
+      descripcion: it.descripcion,
+      colores: (it.colores || "").split("/").map((c) => c.trim()).filter(Boolean),
+      categoria: it.categoria === "BANDAS_VERTICALES" ? "BANDAS_VERTICALES" : "TELA",
+    }))
+  } catch (error) {
+    console.error("Error al obtener las telas de la lista para la medición:", error)
+    return []
   }
 }

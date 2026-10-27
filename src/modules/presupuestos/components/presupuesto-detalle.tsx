@@ -33,6 +33,9 @@ import { ComandaGenerarModal } from "@/modules/comandas/components/comanda-gener
 import type { IPresupuestoAceptadoResumen } from "@/modules/comandas/types"
 import { eliminarPresupuesto, verificarStockPresupuestoAction } from "../actions"
 import type { IReporteDisponibilidadStock } from "../lib/explosion-materiales"
+import { unirFilasPorAbertura } from "../lib/filas-por-abertura"
+import { sufijoCortina } from "../lib/filas-desde-medicion"
+import type { ICaracteristicasItem } from "@/modules/mediciones/types"
 import { Package, AlertTriangle, Check } from "lucide-react"
 import { formatearPrecio, formatearFecha, fmtMedida } from "@/lib/utils"
 import { AvisoMedidaModificada } from "@/components/shared/aviso-medida-modificada"
@@ -98,15 +101,16 @@ export function PresupuestoDetalle({
           direccion: presupuesto.cliente.direccion,
           localidad: presupuesto.cliente.localidad,
         },
-        itemsAceptados: itemsFiltrados.map((it) => ({
-          id: it.id,
-          itemMedicionId: it.itemMedicionId,
-          descripcion: descripcionConOpcion(it),
-          ambiente: it.ambiente || "General",
-          ancho: it.ancho,
-          alto: it.alto,
-          cantidad: it.cantidad,
-          caracteristicas: it.caracteristicas,
+        // Por abertura (como queda en la comanda): se unen las cortinas físicas aceptadas
+        itemsAceptados: unirFilasPorAbertura(itemsFiltrados).map((ab) => ({
+          id: ab.base.id,
+          itemMedicionId: ab.base.itemMedicionId,
+          descripcion: ab.base.capa ? ab.descripcion : descripcionConOpcion(ab.base),
+          ambiente: ab.base.ambiente || "General",
+          ancho: ab.ancho,
+          alto: ab.alto,
+          cantidad: ab.cantidad,
+          caracteristicas: ab.caracteristicas as unknown as ICaracteristicasItem | null,
         })),
       },
     ]
@@ -543,6 +547,11 @@ export function PresupuestoDetalle({
                             {esPrincipal(it) ? (
                               <span className="font-bold text-slate-900 block">
                                 {it.descripcion}
+                                {it.capa && grupo.items.filter((o) => o.grupoAlternativa === it.grupoAlternativa && esPrincipal(o)).length > 1 && (
+                                  <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
+                                    {sufijoCortina(it.capa, it.indiceCortina)}
+                                  </span>
+                                )}
                               </span>
                             ) : (
                               <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-500">

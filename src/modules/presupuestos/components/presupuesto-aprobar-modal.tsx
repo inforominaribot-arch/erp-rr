@@ -22,7 +22,7 @@ import type { IPresupuestoDetalle } from "../types"
 import { cambiarEstadoPresupuesto, verificarStockPresupuestoAction } from "../actions"
 import type { IReporteDisponibilidadStock } from "../lib/explosion-materiales"
 import { formatearPrecio } from "@/lib/utils"
-import { agruparCortinas, etiquetaOpcion } from "../lib/alternativas"
+import { agruparCortinas, etiquetaOpcion, medidasOpcion } from "../lib/alternativas"
 
 interface PresupuestoAprobarModalProps {
   abierto: boolean
@@ -69,9 +69,13 @@ export function PresupuestoAprobarModal({
       estadoSeleccionado === "ACEPTADO_PARCIAL"
         ? cortinasAceptadas
         : cortinas.map((c) => c.clave)
+    // Todas las cortinas de la opción elegida en cada capa aceptada
     return cortinas
       .filter((c) => claves.includes(c.clave))
-      .map((c) => opcionElegida[c.clave] ?? c.principal.id)
+      .flatMap((c) => {
+        const elegida = c.opciones.find((o) => o.id === opcionElegida[c.clave]) ?? c.principal
+        return elegida.filas.map((f) => f.id)
+      })
   }, [cortinas, cortinasAceptadas, opcionElegida, estadoSeleccionado])
   const claveIdsAceptados = itemsAceptados.join(",")
 
@@ -168,7 +172,7 @@ export function PresupuestoAprobarModal({
     setError(null)
 
     if (estadoSeleccionado === "ACEPTADO_PARCIAL" && itemsAceptados.length === 0) {
-      setError("Debés tildar al menos una cortina para la aceptación parcial.")
+      setError("Debés tildar al menos una capa o ítem para la aceptación parcial.")
       return
     }
 
@@ -332,7 +336,7 @@ export function PresupuestoAprobarModal({
                   Opción elegida por el cliente
                 </span>
                 <span className="text-[11px] text-slate-500">
-                  La comanda y el stock se calculan con la opción elegida en cada cortina
+                  La comanda y el stock se calculan con la opción elegida en cada capa
                 </span>
               </div>
               <div className="divide-y divide-emerald-100/80 rounded-xl border border-emerald-100 bg-white overflow-hidden max-h-56 overflow-y-auto">
@@ -370,10 +374,10 @@ export function PresupuestoAprobarModal({
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-xs font-bold text-indigo-950 block">
-                    Cortinas Aprobadas por el Cliente
+                    Capas Aprobadas por el Cliente
                   </span>
                   <span className="text-[11px] text-slate-500">
-                    Marcá qué ítems se fabricarán para la futura comanda
+                    Se acepta cada capa entera (todas sus cortinas). La comanda va por abertura.
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-[11px]">
@@ -421,7 +425,7 @@ export function PresupuestoAprobarModal({
                             {it.descripcion}
                           </span>
                           <span className="text-[11px] text-slate-500 font-mono">
-                            {it.ancho}m × {it.alto}m • Cant: {it.cantidad}
+                            {medidasOpcion(elegida)}
                           </span>
                           {check && renderSelectorOpcion(c)}
                         </div>
@@ -437,7 +441,7 @@ export function PresupuestoAprobarModal({
               {/* Total Parcial Calculado */}
               <div className="flex items-center justify-between pt-1 text-xs">
                 <span className="text-slate-600 font-medium">
-                  {itemsAceptados.length} de {cortinas.length} cortinas aprobadas:
+                  {cortinasAceptadas.length} de {cortinas.length} capas / ítems aprobados:
                 </span>
                 <div className="text-right">
                   <span className="text-sm font-black text-indigo-900 font-mono">

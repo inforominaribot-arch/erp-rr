@@ -2,7 +2,8 @@
 // Esquemas de validación Zod
 
 import { z } from "zod"
-import { MAX_OPCIONES_POR_CORTINA } from "./types"
+import { MAX_OPCIONES_POR_CORTINA, TIPOS_FILA } from "./types"
+import { calculoPrecioSchema } from "./lib/lista-precios-rs"
 
 // ─── Esquema de Ítem de Presupuesto ──────────────────────────────────────────
 
@@ -34,6 +35,11 @@ export const itemPresupuestoSchema = z.object({
     .nullable()
     .optional(),
   esOpcionPrincipal: z.boolean().default(true),
+  // Cortina física de la abertura y cálculo con la lista de precios
+  capa: z.enum(["GAZA", "BO"]).nullable().optional(),
+  indiceCortina: z.number().int().min(0).max(20).nullable().optional(),
+  tipoFila: z.enum(TIPOS_FILA).nullable().optional(),
+  calculoPrecio: calculoPrecioSchema.nullable().optional(),
 })
 
 export type ItemPresupuestoInput = z.infer<typeof itemPresupuestoSchema>
@@ -72,25 +78,31 @@ export const presupuestoFormSchema = z.object({
     lista.push(it)
     grupos.set(it.grupoAlternativa, lista)
   }
-  for (const opciones of grupos.values()) {
-    const desc = opciones[0]?.descripcion || "cortina"
-    if (opciones.length > MAX_OPCIONES_POR_CORTINA) {
+  for (const filas of grupos.values()) {
+    const desc = filas[0]?.descripcion || "cortina"
+    // Una opción = las filas (cortinas de la capa) con el mismo nombre; la principal es una sola
+    const opciones = new Map<string, ItemPresupuestoInput[]>()
+    for (const f of filas) {
+      const clave = f.esOpcionPrincipal !== false ? "__principal" : (f.nombreOpcion || "").trim().toLowerCase()
+      opciones.set(clave, [...(opciones.get(clave) ?? []), f])
+    }
+    if (opciones.size > MAX_OPCIONES_POR_CORTINA) {
       ctx.addIssue({
         code: "custom",
         message: `"${desc}" tiene más de ${MAX_OPCIONES_POR_CORTINA} opciones.`,
       })
     }
-    if (opciones.filter((o) => o.esOpcionPrincipal !== false).length !== 1) {
-      ctx.addIssue({ code: "custom", message: `"${desc}" debe tener una sola opción principal.` })
+    if (!opciones.has("__principal")) {
+      ctx.addIssue({ code: "custom", message: `"${desc}" debe tener una opción principal.` })
     }
-    if (opciones.length > 1 && opciones.some((o) => !o.nombreOpcion?.trim())) {
+    if (opciones.size > 1 && filas.some((o) => !o.nombreOpcion?.trim())) {
       ctx.addIssue({
         code: "custom",
         message: `Poné un nombre a cada opción de "${desc}" (ej: Riel / Barral).`,
       })
     }
-    const nombres = opciones.map((o) => o.nombreOpcion?.trim().toLowerCase() || "")
-    if (new Set(nombres).size !== nombres.length) {
+    const nombrePrincipal = (opciones.get("__principal")?.[0]?.nombreOpcion || "").trim().toLowerCase()
+    if (opciones.size > 1 && nombrePrincipal && opciones.has(nombrePrincipal)) {
       ctx.addIssue({ code: "custom", message: `Las opciones de "${desc}" tienen nombres repetidos.` })
     }
   }

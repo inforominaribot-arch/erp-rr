@@ -3,6 +3,7 @@
 
 import type { EstadoPresupuesto, EstadoCliente } from "@/types"
 import type { IAvisoMedidaModificada, ICaracteristicasItem } from "@/modules/mediciones/types"
+import type { CalculoPrecio } from "./lib/lista-precios-rs"
 
 // ─── Interfaces de Entidades ──────────────────────────────────────────────────
 
@@ -24,6 +25,21 @@ export interface IItemPresupuesto {
   grupoAlternativa: string | null
   nombreOpcion: string | null
   esOpcionPrincipal: boolean
+  /** Cortina física: capa ("GAZA" / "BO") y paño/tramo (null = fila libre o dato anterior) */
+  capa: string | null
+  indiceCortina: number | null
+  /** null / "CORTINA" | "CONTROL" | "CARGADOR" */
+  tipoFila: string | null
+  /** Cálculo con la lista de precios (null = precio cargado a mano / otra calculadora) */
+  calculoPrecio: CalculoPrecio | null
+  /** Abertura de la medición (solo en el detalle): la comanda se arma por abertura */
+  itemMedicion?: {
+    descripcion: string
+    ancho: number
+    alto: number
+    cantidad: number
+    caracteristicas: unknown
+  } | null
   avisoMedida: IAvisoMedidaModificada | null
   creadoEn: Date | string
 }
@@ -91,6 +107,8 @@ export interface IMetricasPresupuestos {
 // ─── Constantes del Módulo ───────────────────────────────────────────────────
 
 export const VALIDEZ_DIAS_DEFAULT = 14
+export const TIPOS_FILA = ["CORTINA", "CONTROL", "CARGADOR"] as const
+export type TipoFila = (typeof TIPOS_FILA)[number]
 export const MAX_OPCIONES_POR_CORTINA = 3
 export const CONDICIONES_PAGO_DEFAULT =
   "50% de seña y 50% contra entrega e instalación de la mercadería."

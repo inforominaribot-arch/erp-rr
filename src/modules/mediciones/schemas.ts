@@ -13,6 +13,8 @@ export const gazaConfigSchema = z.object({
   panos: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).default(1),
   anchosPanos: z.array(z.number().min(0)).default([]),
   nombreTela: z.string().default(""),
+  telaId: z.string().max(64).nullable().optional(),
+  colorTela: z.string().max(80).nullable().optional(),
 })
 
 export const boConfigSchema = z.object({
@@ -22,6 +24,8 @@ export const boConfigSchema = z.object({
   tramos: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).default(1),
   anchosTramos: z.array(z.number().min(0)).default([]),
   nombreTela: z.string().default(""),
+  telaId: z.string().max(64).nullable().optional(),
+  colorTela: z.string().max(80).nullable().optional(),
   mandosRoller: z
     .array(z.enum(["Izquierda", "Derecha", "Izquierdo", "Derecho", "Sin mando"]))
     .optional(),

@@ -5,6 +5,9 @@
 // Se usa desde la edición web (actualizarMedicion) y desde la sincronización de la tablet.
 
 import type { Prisma } from "@prisma/client"
+import type { ICaracteristicasItem } from "../types"
+import { medidasCortinaFisica, type CapaCortina } from "./cortinas-fisicas"
+import { excluirCapas } from "@/modules/presupuestos/lib/filas-por-abertura"
 
 type Tx = Prisma.TransactionClient
 
@@ -264,6 +267,11 @@ export async function aplicarCambiosMedicion(
           medidaAnterior: true,
           caracteristicas: true,
           aceptado: true,
+          capa: true,
+          indiceCortina: true,
+          tipoFila: true,
+          ancho: true,
+          alto: true,
           presupuesto: { select: { comanda: { select: { id: true } } } },
         },
       })
@@ -274,18 +282,30 @@ export async function aplicarCambiosMedicion(
           .map((ip) => ip.presupuesto.comanda!.id)
       )
       for (const ip of itemsPresupuesto) {
+        const caracOpcion =
+          ip.caracteristicas != null
+            ? fusionarMedidasCaracteristicas(ip.caracteristicas, item.caracteristicas)
+            : null
+        // Filas por cortina física: medidas de su paño / tramo; cargadores y controles no tienen medidas
+        const medidas =
+          ip.tipoFila === "CARGADOR" || ip.tipoFila === "CONTROL"
+            ? { ancho: Number(ip.ancho), alto: Number(ip.alto) }
+            : ip.capa
+            ? medidasCortinaFisica(
+                (caracOpcion ?? item.caracteristicas) as ICaracteristicasItem | null,
+                item.ancho,
+                item.alto,
+                ip.capa as CapaCortina,
+                ip.indiceCortina ?? 0
+              ) ?? { ancho: Number(ip.ancho), alto: Number(ip.alto) }
+            : { ancho: item.ancho, alto: item.alto }
         await tx.itemPresupuesto.update({
           where: { id: ip.id },
           data: {
-            ancho: item.ancho,
-            alto: item.alto,
-            ...(ip.caracteristicas != null
-              ? {
-                  caracteristicas: fusionarMedidasCaracteristicas(
-                    ip.caracteristicas,
-                    item.caracteristicas
-                  ) as Prisma.InputJsonValue,
-                }
+            ancho: medidas.ancho,
+            alto: medidas.alto,
+            ...(caracOpcion != null
+              ? { caracteristicas: caracOpcion as Prisma.InputJsonValue }
               : {}),
             ...(medidasCambiaron
               ? {
@@ -305,14 +325,17 @@ export async function aplicarCambiosMedicion(
         select: { id: true, comandaId: true, medidaAnterior: true, caracteristicas: true },
       })
       for (const ic of itemsComanda) {
+        const nuevaCarac = comandasConOpcionPropia.has(ic.comandaId)
+          ? fusionarMedidasCaracteristicas(ic.caracteristicas, item.caracteristicas)
+          : ((item.caracteristicas ?? {}) as Record<string, unknown>)
+        // Las capas que el cliente no aceptó siguen desactivadas en la comanda
+        const excluidas = ((ic.caracteristicas as { capasExcluidas?: CapaCortina[] } | null)?.capasExcluidas ?? [])
         await tx.itemComanda.update({
           where: { id: ic.id },
           data: {
             ancho: item.ancho,
             alto: item.alto,
-            caracteristicas: (comandasConOpcionPropia.has(ic.comandaId)
-              ? fusionarMedidasCaracteristicas(ic.caracteristicas, item.caracteristicas)
-              : (item.caracteristicas ?? {})) as Prisma.InputJsonValue,
+            caracteristicas: (excluirCapas(nuevaCarac, excluidas) ?? {}) as Prisma.InputJsonValue,
             ...(medidasCambiaron
               ? {
                   medidaAnterior: (ic.medidaAnterior ?? anterior) as Prisma.InputJsonValue,

@@ -18,6 +18,13 @@ import {
   VALORES_DEFECTO_PRECIOS,
 } from "../lib/calculadora-precios"
 import { formatearPrecio } from "@/lib/utils"
+import { CalculoListaRS } from "./calculo-lista-rs"
+import {
+  recalcularFila,
+  type CalculoPrecio,
+  type IItemListaCalculo,
+  type OpcionesCalculo,
+} from "../lib/lista-precios-rs"
 
 export type TipoCalculo =
   | "TRADICIONAL_ESTANDAR"
@@ -25,15 +32,20 @@ export type TipoCalculo =
   | "ROLLER_RS"
   | "HUNTER_DOUGLAS"
   | "DIRECTO_MG"
+  | "LISTA_RS"
 
 interface PresupuestoCalculadoraModalProps {
   abierto: boolean
   onCerrar: () => void
-  onAplicarPrecio: (precioUnitario: number) => void
+  /** calculo: el cálculo con la lista (pestaña Lista RS) o null si se usó otra fórmula */
+  onAplicarPrecio: (precioUnitario: number, calculo?: CalculoPrecio | null) => void
   anchoInicial?: number
   altoInicial?: number
   cantidadInicial?: number
   descripcionInicial?: string
+  /** Cálculo guardado de la fila (si la fila se calcula con la lista RS) */
+  calculoInicial?: CalculoPrecio | null
+  listaRS?: IItemListaCalculo[]
 }
 
 export function PresupuestoCalculadoraModal({
@@ -44,7 +56,10 @@ export function PresupuestoCalculadoraModal({
   altoInicial = 2.2,
   cantidadInicial = 1,
   descripcionInicial = "",
+  calculoInicial = null,
+  listaRS = [],
 }: PresupuestoCalculadoraModalProps) {
+  const conListaRS = Boolean(calculoInicial) && listaRS.length > 0
   // Dimensiones base
   const [ancho, setAncho] = useState<number>(anchoInicial)
   const [alto, setAlto] = useState<number>(altoInicial)
@@ -52,6 +67,7 @@ export function PresupuestoCalculadoraModal({
 
   // Determinar pestaña sugerida según descripción y medidas
   const sugerirTipo = (): TipoCalculo => {
+    if (conListaRS) return "LISTA_RS"
     const desc = descripcionInicial.toLowerCase()
     if (desc.includes("hd") || desc.includes("hunter")) return "HUNTER_DOUGLAS"
     if (desc.includes("mg")) return "DIRECTO_MG"
@@ -126,6 +142,13 @@ export function PresupuestoCalculadoraModal({
   // 5. Estado Directo MG / Manual
   const [precioDirecto, setPrecioDirecto] = useState(150000)
 
+  // 6. Lista de precios RS (opciones elegidas: tela, color, zócalo, caño, motor...)
+  const [opcionesRS, setOpcionesRS] = useState<OpcionesCalculo>(calculoInicial?.opciones ?? {})
+  const resultadoRS =
+    calculoInicial && conListaRS
+      ? recalcularFila({ ancho, alto, calculoPrecio: { ...calculoInicial, opciones: opcionesRS } }, listaRS)
+      : null
+
   // Cálculos reactivos
   let precioCalculadoUnitario = 0
   let desgloseTexto = ""
@@ -178,9 +201,31 @@ export function PresupuestoCalculadoraModal({
     })
     precioCalculadoUnitario = res.precioUnitario
     desgloseTexto = res.formulaTexto
+  } else if (tipo === "LISTA_RS") {
+    precioCalculadoUnitario = resultadoRS?.precio ?? 0
+    desgloseTexto =
+      resultadoRS?.precio === null || !resultadoRS
+        ? "Falta elegir algo para calcular el precio (ver avisos)."
+        : `${resultadoRS.formula} = ${formatearPrecio(resultadoRS.precio)}`
   } else {
     precioCalculadoUnitario = precioDirecto
     desgloseTexto = "Precio cargado directamente sin fórmula de cálculo."
+  }
+
+  /** Cálculo con la lista para guardar en la fila (al aplicar desde la pestaña Lista RS) */
+  function calculoParaAplicar(): CalculoPrecio | null {
+    if (tipo !== "LISTA_RS" || !calculoInicial || !resultadoRS) return null
+    return {
+      ...calculoInicial,
+      opciones: resultadoRS.opciones,
+      desglose: resultadoRS.desglose,
+      formula: resultadoRS.formula,
+      precioCalculado: resultadoRS.precio,
+      precioManual: false,
+      avisos: resultadoRS.avisos,
+      avisoActualizacion: null,
+      calculadoEn: new Date().toISOString(),
+    }
   }
 
   if (!abierto) return null
@@ -214,6 +259,19 @@ export function PresupuestoCalculadoraModal({
 
         {/* Pestañas de Fórmulas */}
         <div className="flex border-b border-slate-200 bg-slate-100/60 p-1.5 overflow-x-auto touch-scroll text-xs font-semibold shrink-0">
+          {conListaRS && (
+            <button
+              type="button"
+              onClick={() => setTipo("LISTA_RS")}
+              className={`flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-center transition ${
+                tipo === "LISTA_RS"
+                  ? "bg-white text-violet-700 shadow-xs font-bold"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Lista RS
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setTipo("TRADICIONAL_ESTANDAR")}
@@ -672,6 +730,17 @@ export function PresupuestoCalculadoraModal({
             </div>
           )}
 
+          {/* 6. LISTA DE PRECIOS RS */}
+          {tipo === "LISTA_RS" && calculoInicial && (
+            <CalculoListaRS
+              calculo={calculoInicial}
+              lista={listaRS}
+              opciones={opcionesRS}
+              onCambiarOpciones={setOpcionesRS}
+              resultado={resultadoRS}
+            />
+          )}
+
           {/* 5. DIRECTO / MG */}
           {tipo === "DIRECTO_MG" && (
             <div className="space-y-4">
@@ -728,11 +797,12 @@ export function PresupuestoCalculadoraModal({
             </button>
             <button
               type="button"
+              disabled={tipo === "LISTA_RS" && resultadoRS?.precio == null}
               onClick={() => {
-                onAplicarPrecio(precioCalculadoUnitario)
+                onAplicarPrecio(precioCalculadoUnitario, calculoParaAplicar())
                 onCerrar()
               }}
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-2.5 min-h-[44px] text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition"
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-2.5 min-h-[44px] text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition disabled:opacity-50"
             >
               <Check className="h-4 w-4 shrink-0" />
               <span>Aplicar al Ítem</span>

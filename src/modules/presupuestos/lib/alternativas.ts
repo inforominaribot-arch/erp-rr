@@ -1,6 +1,10 @@
 // Módulo: Presupuestos
-// Alternativas por cortina: agrupación de opciones ("Riel" / "Barral") y totales por opción.
+// Alternativas por capa de cortina: agrupación de opciones ("Riel" / "Barral") y totales por opción.
+// Cada capa de una abertura (Gaza / B.O.) es un grupo; una opción son todas sus cortinas físicas (paños / tramos)
+// con el mismo nombre. El cliente acepta o rechaza la capa entera, eligiendo una opción.
 // La opción principal es la que suma al total guardado del presupuesto.
+
+import { fmtMedida } from "@/lib/utils"
 
 export interface ItemConOpcion {
   id?: string
@@ -10,30 +14,42 @@ export interface ItemConOpcion {
   subtotal: number
 }
 
+/** Una opción de la capa: la primera fila con el subtotal de todas sus cortinas. */
+export type OpcionAgrupada<T> = T & { filas: T[] }
+
 export interface CortinaConOpciones<T> {
   clave: string
-  principal: T
+  principal: OpcionAgrupada<T>
   /** Todas las opciones, la principal primero */
-  opciones: T[]
+  opciones: OpcionAgrupada<T>[]
 }
 
 export const esPrincipal = (it: { esOpcionPrincipal?: boolean }) => it.esOpcionPrincipal !== false
 
-/** Agrupa los ítems por cortina respetando el orden de aparición. */
+const claveOpcion = (it: ItemConOpcion) =>
+  esPrincipal(it) ? "__principal" : `alt:${(it.nombreOpcion || "").trim().toLowerCase()}`
+
+/** Agrupa los ítems por capa (grupo) y opción, respetando el orden de aparición. */
 export function agruparCortinas<T extends ItemConOpcion>(items: T[]): CortinaConOpciones<T>[] {
-  const grupos = new Map<string, T[]>()
+  const grupos = new Map<string, Map<string, T[]>>()
   items.forEach((it, idx) => {
     const clave = it.grupoAlternativa || `__solo_${it.id ?? idx}`
-    const lista = grupos.get(clave) ?? []
-    lista.push(it)
-    grupos.set(clave, lista)
+    const opciones = grupos.get(clave) ?? new Map<string, T[]>()
+    const k = claveOpcion(it)
+    opciones.set(k, [...(opciones.get(k) ?? []), it])
+    grupos.set(clave, opciones)
   })
-  return [...grupos.entries()].map(([clave, lista]) => {
-    const principal = lista.find(esPrincipal) ?? lista[0]
+  return [...grupos.entries()].map(([clave, mapa]) => {
+    const opciones: OpcionAgrupada<T>[] = [...mapa.values()].map((filas) => ({
+      ...filas[0],
+      subtotal: Math.round(filas.reduce((acc, f) => acc + (f.subtotal || 0), 0) * 100) / 100,
+      filas,
+    }))
+    const principal = opciones.find(esPrincipal) ?? opciones[0]
     return {
       clave,
       principal,
-      opciones: [principal, ...lista.filter((o) => o !== principal)],
+      opciones: [principal, ...opciones.filter((o) => o !== principal)],
     }
   })
 }
@@ -110,4 +126,15 @@ export function itemsAprobados<T extends { aceptado: boolean; esOpcionPrincipal?
 ): T[] {
   const marcados = items.filter((it) => it.aceptado)
   return estado === "ACEPTADO_TOTAL" && marcados.length === 0 ? items.filter(esPrincipal) : marcados
+}
+
+/** Medidas de las cortinas de una opción: "1.20 × 2.00 m" o "2 cortinas: 1.20 × 2.00 · 1.30 × 2.00 m". */
+export function medidasOpcion(o: {
+  filas: Array<{ ancho: number; alto: number; cantidad?: number; tipoFila?: string | null }>
+}): string {
+  const f0 = o.filas[0]
+  if (!f0) return ""
+  if (f0.tipoFila === "CONTROL" || f0.tipoFila === "CARGADOR") return `Cant: ${f0.cantidad ?? 1}`
+  const medidas = o.filas.map((f) => `${fmtMedida(f.ancho)} × ${fmtMedida(f.alto)}`)
+  return o.filas.length > 1 ? `${o.filas.length} cortinas: ${medidas.join(" · ")} m` : `${medidas[0]} m`
 }

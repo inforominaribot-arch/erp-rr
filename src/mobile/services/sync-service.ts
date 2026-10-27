@@ -8,6 +8,7 @@ import {
   guardarClientesLocales,
   obtenerClientesPendientesSync,
   marcarClientesSincronizados,
+  guardarTelasLocales,
 } from "./storage-service"
 import type { IMedicionOffline } from "@/modules/mediciones/types"
 import type { IClienteCache } from "@/modules/mediciones/lib/offline-storage"
@@ -156,6 +157,19 @@ export async function sincronizarTodo(): Promise<ResultadoSync> {
         await guardarClientesLocales(formateados)
         clientesDescargados = formateados.length
       }
+    }
+
+    // ── 2b. Telas de la lista de precios (selector de tela en capas RS) ──
+    try {
+      const respTelas = await fetch(`${erpBaseUrl}/api/mediciones/telas`, { method: "GET", headers })
+      if (respTelas.ok) {
+        const dataTelas = await respTelas.json()
+        if (dataTelas.success && Array.isArray(dataTelas.telas)) {
+          await guardarTelasLocales(dataTelas.telas)
+        }
+      }
+    } catch (err) {
+      console.warn("No se pudieron bajar las telas de la lista:", err)
     }
 
     // ── 3. Actualizar Timestamp del Último Sync ──

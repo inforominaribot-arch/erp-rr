@@ -12,7 +12,7 @@ import {
 } from "../types"
 import type { IPresupuestoDetalle, IAmbientePresupuestoGrupo } from "../types"
 import { PresupuestoWhatsappButton } from "./presupuesto-whatsapp-button"
-import { calcularTotalesPorOpcion, esPrincipal, itemsAprobados } from "../lib/alternativas"
+import { agruparCortinas, calcularTotalesPorOpcion, esPrincipal, itemsAprobados } from "../lib/alternativas"
 
 interface PresupuestoImprimibleProps {
   presupuesto: IPresupuestoDetalle
@@ -294,7 +294,8 @@ export function PresupuestoImprimible({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {grupo.items.map((it, idx) => (
+                    {/* Una línea por capa (todas sus cortinas) y opción */}
+                    {agruparCortinas(grupo.items).flatMap((c) => c.opciones).map((it, idx) => (
                       <tr
                         key={it.id || idx}
                         className={esPrincipal(it) ? "hover:bg-slate-50/50" : "bg-indigo-50/30"}
@@ -316,15 +317,23 @@ export function PresupuestoImprimible({
                           )}
                         </td>
                         <td className="py-1.5 px-3 text-center text-slate-600 font-mono">
-                          {it.ancho > 0 && it.alto > 0
-                            ? `${fmtMedida(it.ancho)} × ${fmtMedida(it.alto)}`
-                            : "—"}
+                          {it.filas.map((f) => (
+                            <span key={f.id} className="block">
+                              {f.ancho > 0 && f.alto > 0
+                                ? `${fmtMedida(f.ancho)} × ${fmtMedida(f.alto)}`
+                                : "—"}
+                            </span>
+                          ))}
                         </td>
                         <td className="py-1.5 px-3 text-center font-bold text-slate-800">
-                          {it.cantidad}
+                          {it.filas.reduce((acc, f) => acc + f.cantidad, 0)}
                         </td>
                         <td className="py-1.5 px-3 text-right text-slate-700 font-mono">
-                          {formatearPrecio(it.precioUnitario)}
+                          {it.filas.map((f) => (
+                            <span key={f.id} className="block">
+                              {formatearPrecio(f.precioUnitario)}
+                            </span>
+                          ))}
                         </td>
                         <td className="py-1.5 px-3 text-right font-bold text-slate-900 font-mono">
                           {formatearPrecio(it.subtotal)}

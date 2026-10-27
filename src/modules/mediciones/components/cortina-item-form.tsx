@@ -56,6 +56,8 @@ import {
 } from "lucide-react"
 import { fmtMedida } from "@/lib/utils"
 import { marcaPrincipalCortina } from "../lib/marcas"
+import { tipoDeCapa } from "../lib/cortinas-fisicas"
+import { SelectorTelaLista, type ValorTela } from "./selector-tela-lista"
 
 interface CortinaItemFormProps {
   itemInicial?: Partial<IItemMedicion> | null
@@ -180,6 +182,8 @@ export function CortinaItemForm({
   const [anchosPanos, setAnchosPanos] = useState<(number | "")[]>(
     caracInicial?.gaza?.anchosPanos || []
   )
+  const [telaIdGaza, setTelaIdGaza] = useState<string | null>(caracInicial?.gaza?.telaId ?? null)
+  const [colorTelaGaza, setColorTelaGaza] = useState<string | null>(caracInicial?.gaza?.colorTela ?? null)
   const [nombreTelaGaza, setNombreTelaGaza] = useState(
     caracInicial?.gaza?.nombreTela || ""
   )
@@ -199,6 +203,8 @@ export function CortinaItemForm({
   const [anchosTramos, setAnchosTramos] = useState<(number | "")[]>(
     caracInicial?.bo?.anchosTramos || []
   )
+  const [telaIdBO, setTelaIdBO] = useState<string | null>(caracInicial?.bo?.telaId ?? null)
+  const [colorTelaBO, setColorTelaBO] = useState<string | null>(caracInicial?.bo?.colorTela ?? null)
   const [nombreTelaBO, setNombreTelaBO] = useState(
     caracInicial?.bo?.nombreTela || ""
   )
@@ -748,6 +754,8 @@ export function CortinaItemForm({
                 panos: panosGaza,
                 anchosPanos: anchosPanos.slice(0, panosGaza).map((v) => (typeof v === "number" ? v : 0)),
                 nombreTela: nombreTelaGaza,
+                telaId: telaIdGaza,
+                colorTela: telaIdGaza ? colorTelaGaza : null,
               }
             : undefined,
         bo:
@@ -761,6 +769,8 @@ export function CortinaItemForm({
                 tramos: tramosBO,
                 anchosTramos: anchosTramos.slice(0, tramosBO).map((v) => (typeof v === "number" ? v : 0)),
                 nombreTela: tipo === "Mosquera" ? "Tela Mosquera" : nombreTelaBO,
+                telaId: tipo === "Mosquera" ? null : telaIdBO,
+                colorTela: tipo === "Mosquera" || !telaIdBO ? null : colorTelaBO,
                 mandosRoller:
                   capaBOEsRoller
                     ? (mandosRollerBO.slice(0, tramosBO).filter(Boolean) as LadoMando[])
@@ -780,6 +790,36 @@ export function CortinaItemForm({
   // Marca general según las capas activas (antes quedaba fija en HD, el default del B.O.)
   if (caracteristicasActuales) {
     caracteristicasActuales.marca = marcaPrincipalCortina(caracteristicasActuales)
+  }
+
+  // Tela de la lista de precios: solo en capas RS que se calculan con la lista (Roller, Roller Mot, Bandas)
+  const tipoFisicoGaza = caracteristicasActuales ? tipoDeCapa(caracteristicasActuales, "GAZA") : null
+  const tipoFisicoBO = caracteristicasActuales ? tipoDeCapa(caracteristicasActuales, "BO") : null
+  const capaConLista = (t: string | null) => t === "Roller" || t === "Roller Mot" || t === "Bandas verticales"
+  const usarListaGaza = marcaGaza === "RS" && capaConLista(tipoFisicoGaza)
+  const usarListaBO = marcaBO === "RS" && capaConLista(tipoFisicoBO)
+  const gazaEsBandas = tipoFisicoGaza === "Bandas verticales"
+  const boEsBandas = tipoFisicoBO === "Bandas verticales"
+  // Si la capa deja de ser RS, la tela vuelve a ser texto libre
+  if (caracteristicasActuales?.gaza && !usarListaGaza) {
+    caracteristicasActuales.gaza.telaId = null
+    caracteristicasActuales.gaza.colorTela = null
+  }
+  if (caracteristicasActuales?.bo && !usarListaBO) {
+    caracteristicasActuales.bo.telaId = null
+    caracteristicasActuales.bo.colorTela = null
+  }
+
+  function cambiarTelaGaza(v: ValorTela) {
+    setNombreTelaGaza(v.nombreTela)
+    setTelaIdGaza(v.telaId)
+    setColorTelaGaza(v.colorTela)
+  }
+
+  function cambiarTelaBO(v: ValorTela) {
+    setNombreTelaBO(v.nombreTela)
+    setTelaIdBO(v.telaId)
+    setColorTelaBO(v.colorTela)
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -1675,10 +1715,11 @@ export function CortinaItemForm({
                       <label className="block text-xs font-bold text-slate-700">
                         Nombre de la Tela (Gaza)
                       </label>
-                      <input
-                        type="text"
-                        value={nombreTelaGaza}
-                        onChange={(e) => setNombreTelaGaza(e.target.value)}
+                      <SelectorTelaLista
+                        usarLista={usarListaGaza}
+                        esBandas={gazaEsBandas}
+                        valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
+                        onCambiar={cambiarTelaGaza}
                         placeholder="Ej: Gasa de Lino Blanco, Gasa Pañalera"
                         className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
                       />
@@ -1945,10 +1986,11 @@ export function CortinaItemForm({
                       <label className="block text-xs font-bold text-slate-700">
                         Nombre de la Tela (Gaza)
                       </label>
-                      <input
-                        type="text"
-                        value={nombreTelaGaza}
-                        onChange={(e) => setNombreTelaGaza(e.target.value)}
+                      <SelectorTelaLista
+                        usarLista={usarListaGaza}
+                        esBandas={gazaEsBandas}
+                        valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
+                        onCambiar={cambiarTelaGaza}
                         placeholder="Ej: Gasa de Lino Blanco, Screen 5%"
                         className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
                       />
@@ -2169,10 +2211,11 @@ export function CortinaItemForm({
                       <label className="block text-xs font-bold text-slate-700">
                         Nombre de la Tela (Gaza)
                       </label>
-                      <input
-                        type="text"
-                        value={nombreTelaGaza}
-                        onChange={(e) => setNombreTelaGaza(e.target.value)}
+                      <SelectorTelaLista
+                        usarLista={usarListaGaza}
+                        esBandas={gazaEsBandas}
+                        valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
+                        onCambiar={cambiarTelaGaza}
                         placeholder="Ej: Screen 5%, Sunscreen Blanco"
                         className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
                       />
@@ -2337,10 +2380,11 @@ export function CortinaItemForm({
                       <label className="block text-xs font-bold text-slate-700">
                         Nombre de la Tela (Gaza)
                       </label>
-                      <input
-                        type="text"
-                        value={nombreTelaGaza}
-                        onChange={(e) => setNombreTelaGaza(e.target.value)}
+                      <SelectorTelaLista
+                        usarLista={usarListaGaza}
+                        esBandas={gazaEsBandas}
+                        valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
+                        onCambiar={cambiarTelaGaza}
                         placeholder="Ej: Gasa de Lino Blanco, Gasa Pañalera"
                         className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
                       />
@@ -3117,13 +3161,14 @@ export function CortinaItemForm({
                             <label className="block text-xs font-bold text-slate-700">
                               Nombre de la Tela (Gaza)
                             </label>
-                            <input
-                              type="text"
-                              value={nombreTelaGaza}
-                              onChange={(e) => setNombreTelaGaza(e.target.value)}
-                              placeholder="Ej: Gasa de Lino Blanco, Gasa Pañalera"
-                              className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
-                            />
+                            <SelectorTelaLista
+                        usarLista={usarListaGaza}
+                        esBandas={gazaEsBandas}
+                        valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
+                        onCambiar={cambiarTelaGaza}
+                        placeholder="Ej: Gasa de Lino Blanco, Gasa Pañalera"
+                        className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                      />
                           </div>
                         </div>
                       )}
@@ -3387,13 +3432,14 @@ export function CortinaItemForm({
                             <label className="block text-xs font-bold text-slate-700">
                               Nombre de la Tela (Gaza)
                             </label>
-                            <input
-                              type="text"
-                              value={nombreTelaGaza}
-                              onChange={(e) => setNombreTelaGaza(e.target.value)}
-                              placeholder="Ej: Gasa de Lino Blanco, Screen 5%"
-                              className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
-                            />
+                            <SelectorTelaLista
+                        usarLista={usarListaGaza}
+                        esBandas={gazaEsBandas}
+                        valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
+                        onCambiar={cambiarTelaGaza}
+                        placeholder="Ej: Gasa de Lino Blanco, Screen 5%"
+                        className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                      />
                           </div>
                         </div>
                       )}
@@ -3611,13 +3657,14 @@ export function CortinaItemForm({
                             <label className="block text-xs font-bold text-slate-700">
                               Nombre de la Tela (Gaza)
                             </label>
-                            <input
-                              type="text"
-                              value={nombreTelaGaza}
-                              onChange={(e) => setNombreTelaGaza(e.target.value)}
-                              placeholder="Ej: Screen 5%, Sunscreen Blanco"
-                              className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
-                            />
+                            <SelectorTelaLista
+                        usarLista={usarListaGaza}
+                        esBandas={gazaEsBandas}
+                        valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
+                        onCambiar={cambiarTelaGaza}
+                        placeholder="Ej: Screen 5%, Sunscreen Blanco"
+                        className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                      />
                           </div>
                         </div>
                       )}
@@ -3781,13 +3828,14 @@ export function CortinaItemForm({
                             <label className="block text-xs font-bold text-slate-700">
                               Nombre de la Tela (Gaza)
                             </label>
-                            <input
-                              type="text"
-                              value={nombreTelaGaza}
-                              onChange={(e) => setNombreTelaGaza(e.target.value)}
-                              placeholder="Ej: Gasa de Lino Blanco, Gasa Pañalera"
-                              className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
-                            />
+                            <SelectorTelaLista
+                        usarLista={usarListaGaza}
+                        esBandas={gazaEsBandas}
+                        valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
+                        onCambiar={cambiarTelaGaza}
+                        placeholder="Ej: Gasa de Lino Blanco, Gasa Pañalera"
+                        className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                      />
                           </div>
                         </div>
                       )}
@@ -4173,13 +4221,14 @@ export function CortinaItemForm({
                         <label className="block text-xs font-bold text-slate-700">
                           Nombre de la Tela (Gaza)
                         </label>
-                        <input
-                          type="text"
-                          value={nombreTelaGaza}
-                          onChange={(e) => setNombreTelaGaza(e.target.value)}
-                          placeholder="Ej: Gasa de Lino Blanco, Gasa Pañalera"
-                          className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
-                        />
+                        <SelectorTelaLista
+                        usarLista={usarListaGaza}
+                        esBandas={gazaEsBandas}
+                        valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
+                        onCambiar={cambiarTelaGaza}
+                        placeholder="Ej: Gasa de Lino Blanco, Gasa Pañalera"
+                        className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                      />
                       </div>
                     </div>
                   )}
@@ -4636,10 +4685,11 @@ export function CortinaItemForm({
                         <label className="block text-xs font-bold text-slate-700">
                           Nombre de la Tela (B.O.)
                         </label>
-                        <input
-                          type="text"
-                          value={nombreTelaBO}
-                          onChange={(e) => setNombreTelaBO(e.target.value)}
+                        <SelectorTelaLista
+                          usarLista={usarListaBO}
+                          esBandas={boEsBandas}
+                          valor={{ nombreTela: nombreTelaBO, telaId: telaIdBO, colorTela: colorTelaBO }}
+                          onCambiar={cambiarTelaBO}
                           placeholder="Ej: Black Out Texturado Gris, Vinílico Blanco"
                           className="mt-1 block w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-medium text-slate-900 focus:border-slate-500 focus:outline-none"
                         />

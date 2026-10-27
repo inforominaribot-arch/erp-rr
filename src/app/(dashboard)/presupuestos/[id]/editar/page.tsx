@@ -4,6 +4,7 @@ import { PresupuestoForm } from "@/modules/presupuestos/components/presupuesto-f
 import {
   obtenerPresupuestoPorId,
   obtenerClientesParaPresupuesto,
+  obtenerListaCalculoRS,
 } from "@/modules/presupuestos/queries"
 import { formatearNumeroPresupuesto } from "@/modules/presupuestos/types"
 
@@ -15,9 +16,10 @@ export default async function EditarPresupuestoPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const [presupuesto, clientes] = await Promise.all([
+  const [presupuesto, clientes, listaRS] = await Promise.all([
     obtenerPresupuestoPorId(id),
     obtenerClientesParaPresupuesto(),
+    obtenerListaCalculoRS(),
   ])
 
   if (!presupuesto) {
@@ -36,6 +38,7 @@ export default async function EditarPresupuestoPage({
       <PresupuestoForm
         presupuestoInicial={presupuesto}
         clientes={clientes}
+        listaRS={listaRS}
       />
     </div>
   )

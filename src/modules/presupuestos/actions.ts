@@ -18,6 +18,8 @@ import {
   type INecesidadMaterial,
 } from "./lib/explosion-materiales"
 import { agruparCortinas, esPrincipal, subtotalPrincipales } from "./lib/alternativas"
+import { unirFilasPorAbertura } from "./lib/filas-por-abertura"
+import { recalcularPresupuestosConLista, type ResultadoRecalculo } from "./lib/recalcular-con-lista"
 
 // ─── Helper: normalizar ítems (incluye alternativas) antes de guardar ─────────
 
@@ -44,6 +46,12 @@ function prepararItemsParaGuardar(items: PresupuestoFormInput["items"]) {
       grupoAlternativa: conGrupo ? it.grupoAlternativa! : null,
       nombreOpcion: conGrupo ? it.nombreOpcion?.trim() || null : null,
       esOpcionPrincipal: conGrupo ? it.esOpcionPrincipal !== false : true,
+      capa: it.capa ?? null,
+      indiceCortina: it.capa ? (it.indiceCortina ?? 0) : null,
+      tipoFila: it.tipoFila ?? null,
+      calculoPrecio: it.calculoPrecio
+        ? (it.calculoPrecio as Prisma.InputJsonValue)
+        : Prisma.JsonNull,
       creadoEn: new Date(base + idx),
     }
   })
@@ -250,25 +258,25 @@ export async function cambiarEstadoPresupuesto(
       return { success: false, error: "El presupuesto no existe." }
     }
 
-    // Opción elegida por cortina: como máximo una por cortina con alternativas.
-    // En la aceptación total, las cortinas sin opción indicada toman su principal.
+    // Se acepta por capa: la opción elegida con todas sus cortinas (como máximo una opción por capa).
+    // En la aceptación total, las capas sin opción indicada toman su principal.
     const idsSolicitados = new Set(itemsAceptadosIds || [])
     const cortinas = agruparCortinas(presupuesto.items.map((it) => ({ ...it, subtotal: Number(it.subtotal) })))
     const idsAceptados: string[] = []
     if (estado === "ACEPTADO_TOTAL" || estado === "ACEPTADO_PARCIAL") {
       for (const c of cortinas) {
-        const elegidas = c.opciones.filter((o) => idsSolicitados.has(o.id))
+        const elegidas = c.opciones.filter((o) => o.filas.some((f) => idsSolicitados.has(f.id)))
         if (elegidas.length > 1) {
           return {
             success: false,
             error: `En "${c.principal.descripcion}" se eligió más de una opción. Elegí solo una.`,
           }
         }
-        if (elegidas.length === 1) idsAceptados.push(elegidas[0].id)
-        else if (estado === "ACEPTADO_TOTAL") idsAceptados.push(c.principal.id)
+        const elegida = elegidas[0] ?? (estado === "ACEPTADO_TOTAL" ? c.principal : null)
+        if (elegida) idsAceptados.push(...elegida.filas.map((f) => f.id))
       }
       if (estado === "ACEPTADO_PARCIAL" && idsAceptados.length === 0) {
-        return { success: false, error: "Debés aceptar al menos una cortina." }
+        return { success: false, error: "Debés aceptar al menos una capa o ítem." }
       }
     }
 
@@ -496,12 +504,19 @@ export async function verificarStockPresupuestoAction(
     const resumenRieles: string[] = []
     const resumenTelas: string[] = []
 
-    for (const it of itemsAEvaluar) {
-      const ancho = Number(it.ancho) || 0
-      const alto = Number(it.alto) || 0
-      const cantidad = it.cantidad || 1
-      // Especificación de la opción (alternativa) o, si no tiene, la de la medición
-      const carac = (it.caracteristicas ?? it.itemMedicion?.caracteristicas) as any
+    // Las cortinas de una misma abertura se evalúan juntas (como en la comanda); controles y cargadores no llevan riel ni tela
+    const aberturas = unirFilasPorAbertura(
+      itemsAEvaluar.filter((it) => it.tipoFila !== "CONTROL" && it.tipoFila !== "CARGADOR")
+    )
+    for (const ab of aberturas) {
+      // El tipo va en la descripción (como al importar antes): el análisis de rieles lo usa para descartar roller, etc.
+      const tipo = (ab.caracteristicas as { tipo?: string } | null)?.tipo
+      const it = { descripcion: tipo && ab.base.capa ? `${tipo} - ${ab.descripcion}` : ab.descripcion }
+      const ancho = ab.ancho
+      const alto = ab.alto
+      const cantidad = ab.cantidad
+      // Especificación de la opción (alternativa) o la de la medición, sin las capas no aceptadas
+      const carac = ab.caracteristicas as any
 
       // 1. Análisis de Rieles
       const rielesCalculados = analizarRielesItem(it.descripcion, ancho, cantidad, carac)
@@ -619,4 +634,19 @@ export async function verificarStockPresupuestoAction(
   }
 }
 
+// ─── 8. Recalcular presupuestos abiertos con la lista de precios vigente ──────
 
+export async function recalcularPresupuestosConListaAction(): Promise<ActionResponse<ResultadoRecalculo>> {
+  try {
+    const auth = await tienePermisoModuloPresupuestos(true)
+    if (!auth.permitido) {
+      return { success: false, error: auth.error || "No autorizado" }
+    }
+    const resultado = await recalcularPresupuestosConLista()
+    revalidatePath("/presupuestos")
+    return { success: true, data: resultado }
+  } catch (error) {
+    console.error("Error al recalcular presupuestos con la lista:", error)
+    return { success: false, error: "No se pudieron recalcular los presupuestos." }
+  }
+}

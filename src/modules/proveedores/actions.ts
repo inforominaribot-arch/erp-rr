@@ -19,6 +19,7 @@ import {
   type CambioEstadoOrdenInput,
   type RecepcionOrdenCompraInput,
 } from "./schemas"
+import { recalcularPresupuestosConLista } from "@/modules/presupuestos/lib/recalcular-con-lista"
 import { actualizarItemListaPrecioSchema, type ActualizarItemListaPrecioInput } from "./schemas"
 import type { IProveedor, IOrdenCompra, IProductoProveedor } from "./types"
 import { formatearNumeroOC } from "./types"
@@ -645,7 +646,9 @@ export async function registrarRecepcionMercaderia(
 
 export async function actualizarItemListaPrecio(
   input: ActualizarItemListaPrecioInput
-): Promise<ActionResponse<{ id: string; precio: number; vendemos: boolean }>> {
+): Promise<
+  ActionResponse<{ id: string; precio: number; vendemos: boolean; filasActualizadas: number; filasManuales: number }>
+> {
   try {
     const auth = await tienePermisoModuloProveedores("administracion")
     if (!auth.permitido || !auth.puedeAdministrar) {
@@ -672,9 +675,30 @@ export async function actualizarItemListaPrecio(
     })
 
     revalidatePath(`/proveedores/${existente.proveedorId}`)
+
+    // Si cambió el precio, se actualizan los presupuestos abiertos calculados con la lista
+    let filasActualizadas = 0
+    let filasManuales = 0
+    if (Number(actualizado.precio) !== Number(existente.precio)) {
+      try {
+        const r = await recalcularPresupuestosConLista()
+        filasActualizadas = r.filasActualizadas
+        filasManuales = r.filasManuales
+        if (r.presupuestos > 0) revalidatePath("/presupuestos")
+      } catch (err) {
+        console.error("Error al recalcular presupuestos con la lista:", err)
+      }
+    }
+
     return {
       success: true,
-      data: { id, precio: Number(actualizado.precio), vendemos: actualizado.vendemos },
+      data: {
+        id,
+        precio: Number(actualizado.precio),
+        vendemos: actualizado.vendemos,
+        filasActualizadas,
+        filasManuales,
+      },
     }
   } catch (error) {
     console.error("Error al actualizar ítem de lista de precios:", error)

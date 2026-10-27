@@ -1,6 +1,10 @@
 import { PageHeader } from "@/components/shared/layout/PageHeader"
 import { MedicionForm } from "@/modules/mediciones/components/medicion-form"
-import { obtenerClientesParaMedicion } from "@/modules/mediciones/queries"
+import {
+  obtenerClientesParaMedicion,
+  obtenerTelasParaMedicion,
+} from "@/modules/mediciones/queries"
+import { TelasListaProvider } from "@/modules/mediciones/components/selector-tela-lista"
 import { tienePermisoModuloMediciones } from "@/lib/auth"
 import { redirect } from "next/navigation"
 
@@ -19,7 +23,10 @@ export default async function NuevaMedicionPage({
   const params = await searchParams
   const clienteIdParam = params?.clienteId
 
-  const clientes = await obtenerClientesParaMedicion()
+  const [clientes, telas] = await Promise.all([
+    obtenerClientesParaMedicion(),
+    obtenerTelasParaMedicion(),
+  ])
 
   // Si vino un clienteId por URL, preparar objeto inicial con ese cliente
   const clienteInicial = clienteIdParam
@@ -40,11 +47,13 @@ export default async function NuevaMedicionPage({
         descripcion="Relevá aberturas, ambientes, telas y especificaciones técnicas para presupuesto y confección"
       />
 
+      <TelasListaProvider telas={telas}>
       <MedicionForm
         clientesIniciales={clientes}
         medicionExistente={medicionInicial}
         modo="crear"
       />
+      </TelasListaProvider>
     </div>
   )
 }

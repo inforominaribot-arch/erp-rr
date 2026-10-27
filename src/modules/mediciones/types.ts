@@ -142,6 +142,16 @@ export type TipoModeloSoporte = "Grampa" | "Kent"
 export type VarianteSoporte = "Simple" | "Doble"
 export type TipoSoporteRoller = "Común" | "Extendido"
 
+// ─── Telas de la lista de precios (selector en capas RS) ──────────────────────
+
+/** Tela de la lista de precios para elegir al medir (sin precios: la tablet no ve costos) */
+export interface ITelaMedicion {
+  id: string
+  descripcion: string
+  colores: string[]
+  categoria: "TELA" | "BANDAS_VERTICALES"
+}
+
 // ─── Estructuras para Capas de Telas ──────────────────────────────────────────
 
 export interface IGazaConfig {
@@ -151,6 +161,9 @@ export interface IGazaConfig {
   panos: 1 | 2 | 3 | 4 | 5
   anchosPanos: number[]
   nombreTela: string
+  /** Tela elegida de la lista de precios (null = texto libre o medición anterior) */
+  telaId?: string | null
+  colorTela?: string | null
 }
 
 export interface IBOConfig {
@@ -160,6 +173,9 @@ export interface IBOConfig {
   tramos: 1 | 2 | 3 | 4 | 5
   anchosTramos: number[]
   nombreTela: string
+  /** Tela elegida de la lista de precios (null = texto libre o medición anterior) */
+  telaId?: string | null
+  colorTela?: string | null
   mandosRoller?: LadoMando[]
 }
 

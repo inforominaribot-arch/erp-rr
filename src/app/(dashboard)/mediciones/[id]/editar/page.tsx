@@ -4,7 +4,9 @@ import { MedicionForm } from "@/modules/mediciones/components/medicion-form"
 import {
   obtenerMedicionPorId,
   obtenerClientesParaMedicion,
+  obtenerTelasParaMedicion,
 } from "@/modules/mediciones/queries"
+import { TelasListaProvider } from "@/modules/mediciones/components/selector-tela-lista"
 import { tienePermisoModuloMediciones } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { medicionTienePresupuestoAceptado } from "@/modules/mediciones/lib/aplicar-cambios-medicion"
@@ -23,10 +25,11 @@ export default async function EditarMedicionPage({
 
   const { id } = await params
 
-  const [medicion, clientes, bloqueada] = await Promise.all([
+  const [medicion, clientes, bloqueada, telas] = await Promise.all([
     obtenerMedicionPorId(id),
     obtenerClientesParaMedicion(),
     medicionTienePresupuestoAceptado(prisma, id),
+    obtenerTelasParaMedicion(),
   ])
 
   if (!medicion) {
@@ -40,12 +43,14 @@ export default async function EditarMedicionPage({
         descripcion="Modificá las aberturas, ambientes o especificaciones técnicas del relevamiento"
       />
 
+      <TelasListaProvider telas={telas}>
       <MedicionForm
         clientesIniciales={clientes}
         medicionExistente={medicion}
         modo="editar"
         bloquearAltasBajas={bloqueada}
       />
+      </TelasListaProvider>
     </div>
   )
 }

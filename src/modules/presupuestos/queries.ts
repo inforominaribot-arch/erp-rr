@@ -6,6 +6,7 @@ import type { Prisma, ItemPresupuesto, Presupuesto, Cliente, Comanda } from "@pr
 import type { FiltrosPresupuestoInput } from "./schemas"
 import { serializarAvisoMedida } from "@/modules/mediciones/types"
 import type { ICaracteristicasItem } from "@/modules/mediciones/types"
+import { leerCalculoPrecio, type IItemListaCalculo } from "./lib/lista-precios-rs"
 import type {
   IPresupuesto,
   IItemPresupuesto,
@@ -16,13 +17,23 @@ import type {
 
 type PresupuestoConRelaciones = Presupuesto & {
   cliente?: Cliente | null
-  items?: ItemPresupuesto[]
+  items?: ItemConMedicion[]
   comanda?: Pick<Comanda, "id" | "numero" | "estado"> | null
 }
 
 // ─── Helpers de Serialización (Decimal -> number) ────────────────────────────
 
-function serializarItemPresupuesto(item: ItemPresupuesto): IItemPresupuesto {
+type ItemConMedicion = ItemPresupuesto & {
+  itemMedicion?: {
+    descripcion: string
+    ancho: Prisma.Decimal
+    alto: Prisma.Decimal
+    cantidad: number
+    caracteristicas: Prisma.JsonValue
+  } | null
+}
+
+function serializarItemPresupuesto(item: ItemConMedicion): IItemPresupuesto {
   return {
     id: item.id,
     presupuestoId: item.presupuestoId,
@@ -39,6 +50,21 @@ function serializarItemPresupuesto(item: ItemPresupuesto): IItemPresupuesto {
     grupoAlternativa: item.grupoAlternativa || null,
     nombreOpcion: item.nombreOpcion || null,
     esOpcionPrincipal: item.esOpcionPrincipal ?? true,
+    capa: item.capa || null,
+    indiceCortina: item.indiceCortina ?? null,
+    tipoFila: item.tipoFila || null,
+    calculoPrecio: leerCalculoPrecio(item.calculoPrecio),
+    ...(item.itemMedicion
+      ? {
+          itemMedicion: {
+            descripcion: item.itemMedicion.descripcion,
+            ancho: Number(item.itemMedicion.ancho),
+            alto: Number(item.itemMedicion.alto),
+            cantidad: item.itemMedicion.cantidad,
+            caracteristicas: item.itemMedicion.caracteristicas ?? null,
+          },
+        }
+      : {}),
     avisoMedida: serializarAvisoMedida(item.medidaAnterior, item.medidaModificadaEn),
     creadoEn: item.creadoEn,
   }
@@ -166,6 +192,11 @@ export async function obtenerPresupuestoPorId(
       cliente: true,
       items: {
         orderBy: { creadoEn: "asc" },
+        include: {
+          itemMedicion: {
+            select: { descripcion: true, ancho: true, alto: true, cantidad: true, caracteristicas: true },
+          },
+        },
       },
       comanda: {
         select: { id: true, numero: true, estado: true },
@@ -333,3 +364,34 @@ export async function obtenerConteoMedicionesPendientes(): Promise<number> {
   return conteo
 }
 
+
+// ─── Lista de precios RS para calcular el presupuesto ────────────────────────
+
+/** Ítems activos de la lista del proveedor de la marca RS (Rollershade). */
+export async function obtenerListaCalculoRS(): Promise<IItemListaCalculo[]> {
+  try {
+    const proveedor = await prisma.proveedor.findFirst({
+      where: { activo: true, marcas: { has: "RS" }, listaPrecios: { some: { activo: true } } },
+      orderBy: { nombre: "asc" },
+      select: { id: true },
+    })
+    if (!proveedor) return []
+    const items = await prisma.listaPrecioItem.findMany({
+      where: { proveedorId: proveedor.id, activo: true },
+      orderBy: [{ orden: "asc" }, { descripcion: "asc" }],
+    })
+    return items.map((it) => ({
+      id: it.id,
+      categoria: it.categoria,
+      seccion: it.seccion,
+      descripcion: it.descripcion,
+      colores: it.colores,
+      unidad: it.unidad,
+      precio: Number(it.precio),
+      vendemos: it.vendemos,
+    }))
+  } catch (error) {
+    console.error("Error al obtener la lista de precios RS:", error)
+    return []
+  }
+}

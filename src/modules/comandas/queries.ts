@@ -18,6 +18,7 @@ import type {
 } from "./types"
 import type { ICaracteristicasItem } from "@/modules/mediciones/types"
 import { serializarAvisoMedida } from "@/modules/mediciones/types"
+import { unirFilasPorAbertura } from "@/modules/presupuestos/lib/filas-por-abertura"
 
 // ─── Helpers de Serialización ────────────────────────────────────────────────
 
@@ -549,12 +550,16 @@ export async function obtenerPresupuestosAceptadosSinComanda(): Promise<
           include: {
             itemMedicion: {
               select: {
+                descripcion: true,
+                ancho: true,
+                alto: true,
+                cantidad: true,
                 caracteristicas: true,
                 observaciones: true,
               },
             },
           },
-          orderBy: { ambiente: "asc" },
+          orderBy: [{ ambiente: "asc" }, { creadoEn: "asc" }],
         },
       },
       orderBy: { creadoEn: "desc" },
@@ -576,21 +581,25 @@ export async function obtenerPresupuestosAceptadosSinComanda(): Promise<
         total: Number(p.total),
         creadoEn: p.creadoEn,
         cliente: p.cliente,
-        itemsAceptados: itemsAceptadosFiltrados.map((it) => ({
-          id: it.id,
-          itemMedicionId: it.itemMedicionId,
-          descripcion:
-            it.grupoAlternativa && it.nombreOpcion
-              ? `${it.descripcion} (${it.nombreOpcion})`
-              : it.descripcion,
-          ambiente: it.ambiente || "General",
-          ancho: Number(it.ancho),
-          alto: Number(it.alto),
-          cantidad: it.cantidad,
-          caracteristicas:
-            ((it.caracteristicas ?? it.itemMedicion?.caracteristicas) as unknown as ICaracteristicasItem) ||
-            null,
-        })),
+        // Por abertura (como queda en la comanda): se unen las cortinas físicas aceptadas
+        itemsAceptados: unirFilasPorAbertura(itemsAceptadosFiltrados).map((ab) => {
+          const it = ab.base
+          return {
+            id: it.id,
+            itemMedicionId: it.itemMedicionId,
+            descripcion:
+              ab.filas.length > 1 || it.capa
+                ? ab.descripcion
+                : it.grupoAlternativa && it.nombreOpcion
+                ? `${it.descripcion} (${it.nombreOpcion})`
+                : it.descripcion,
+            ambiente: it.ambiente || "General",
+            ancho: ab.ancho,
+            alto: ab.alto,
+            cantidad: ab.cantidad,
+            caracteristicas: (ab.caracteristicas as unknown as ICaracteristicasItem) || null,
+          }
+        }),
       }
     })
   } catch (error) {

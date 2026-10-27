@@ -4,9 +4,10 @@
 "use client"
 
 import { useMemo, useState, useTransition } from "react"
-import { Search, Tags, Check, Loader2, AlertCircle, Info } from "lucide-react"
+import { Search, Tags, Check, Loader2, AlertCircle, Info, RefreshCw } from "lucide-react"
 import { formatearPrecio } from "@/lib/utils"
 import { actualizarItemListaPrecio } from "../actions"
+import { recalcularPresupuestosConListaAction } from "@/modules/presupuestos/actions"
 import {
   CATEGORIAS_LISTA_PRECIO,
   type CategoriaListaPrecio,
@@ -29,7 +30,33 @@ export function ListaPreciosProveedor({ items: itemsIniciales, puedeAdministrar 
   const [precioEditado, setPrecioEditado] = useState("")
   const [guardandoId, setGuardandoId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [mensaje, setMensaje] = useState<string | null>(null)
+  const [recalculando, setRecalculando] = useState(false)
   const [, startTransition] = useTransition()
+
+  /** Texto del resultado del recálculo de presupuestos */
+  function textoRecalculo(filas: number, manuales = 0) {
+    const base =
+      filas === 0
+        ? "Ningún presupuesto abierto cambió de precio."
+        : `Se actualizó el precio de ${filas} cortina(s) / ítem(s) en presupuestos abiertos.`
+    return manuales > 0 ? `${base} ${manuales} fila(s) con precio corregido a mano no se tocaron.` : base
+  }
+
+  function recalcularPresupuestos() {
+    setError(null)
+    setMensaje(null)
+    setRecalculando(true)
+    startTransition(async () => {
+      const res = await recalcularPresupuestosConListaAction()
+      setRecalculando(false)
+      if (!res.success) {
+        setError(res.error || "No se pudieron recalcular los presupuestos.")
+        return
+      }
+      setMensaje(textoRecalculo(res.data.filasActualizadas, res.data.filasManuales))
+    })
+  }
 
   const categoriasPresentes = useMemo(
     () => (Object.keys(CATEGORIAS_LISTA_PRECIO) as CategoriaListaPrecio[]).filter((c) =>
@@ -75,9 +102,10 @@ export function ListaPreciosProveedor({ items: itemsIniciales, puedeAdministrar 
         setError(res.error || "No se pudo guardar el cambio.")
         return
       }
-      const { precio, vendemos } = res.data
+      const { precio, vendemos, filasActualizadas, filasManuales } = res.data
       setItems((prev) => prev.map((it) => (it.id === id ? { ...it, precio, vendemos } : it)))
       setEditandoId(null)
+      if (cambios.precio !== undefined) setMensaje(textoRecalculo(filasActualizadas, filasManuales))
     })
   }
 
@@ -104,10 +132,29 @@ export function ListaPreciosProveedor({ items: itemsIniciales, puedeAdministrar 
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {items.length} ítems • {totalVendemos} que vendemos. Precios de lista, sin recargos (los
-            porcentajes se aplican al presupuestar).
+            coeficientes se aplican al presupuestar).
           </p>
         </div>
+        {items.length > 0 && (
+          <button
+            type="button"
+            onClick={recalcularPresupuestos}
+            disabled={recalculando}
+            title="Actualiza los presupuestos no aceptados con los precios de esta lista (después de importar una lista nueva)"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition shadow-2xs disabled:opacity-50 shrink-0"
+          >
+            {recalculando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Recalcular presupuestos abiertos
+          </button>
+        )}
       </div>
+
+      {mensaje && (
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-700">
+          <Check className="h-4 w-4 shrink-0" />
+          <span>{mensaje}</span>
+        </div>
+      )}
 
       {items.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center bg-slate-50/50">

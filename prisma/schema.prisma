@@ -231,6 +231,14 @@ model ItemPresupuesto {
   grupoAlternativa   String?   @map("grupo_alternativa")
   nombreOpcion       String?   @map("nombre_opcion")
   esOpcionPrincipal  Boolean   @default(true) @map("es_opcion_principal")
+  // Cortina física de la abertura (una fila por paño/tramo de cada capa)
+  // capa: "GAZA" | "BO" (null = fila libre o dato anterior); indiceCortina: paño/tramo (desde 0)
+  capa               String?
+  indiceCortina      Int?      @map("indice_cortina")
+  // "CORTINA" (null) | "CONTROL" | "CARGADOR": filas propias de controles y cargadores
+  tipoFila           String?   @map("tipo_fila")
+  // Cálculo con la lista de precios: opciones elegidas, desglose y si se corrigió a mano
+  calculoPrecio      Json?     @map("calculo_precio")
   // Aviso para administración cuando la medición cambia después de presupuestar
   medidaAnterior     Json?     @map("medida_anterior")
   medidaModificadaEn DateTime? @map("medida_modificada_en")
