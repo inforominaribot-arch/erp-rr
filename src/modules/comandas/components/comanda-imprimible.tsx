@@ -230,8 +230,11 @@ export function ComandaImprimible({
                       const anchosTramos = c?.bo?.anchosTramos || []
 
                       const anchoEfectivo = tieneGaza ? anchoGaza : tieneBO ? anchoBO : it.ancho
+                      // Las argollas van solo en barral (en riel van ganchos)
                       const argollas =
-                        !esProveedor && tieneGaza && tipo === "Tradicional" ? calcularArgollasGaza(anchoGaza) : 0
+                        !esProveedor && tieneGaza && tipo === "Tradicional" && c?.sistema === "Barral"
+                          ? calcularArgollasGaza(anchoGaza)
+                          : 0
                       const cantidadSoportes = calcularCantidadSoportes(anchoEfectivo)
                       const varianteSoporte = determinarVarianteSoporte(tieneGaza, tieneBO, c?.formatoBO)
                       const detallesCapas = detalleCapasComanda(c)
@@ -280,7 +283,7 @@ export function ComandaImprimible({
                                   </span>
                                   {/* MEDIDA DE RIEL O BARRAL REMARCADA */}
                                   <div className="flex items-center gap-2 mt-0.5">
-                                    <span className="inline-block rounded-md bg-slate-900 px-2 py-0.5 text-[11px] font-black text-white font-mono shadow-2xs">
+                                    <span className="text-[11px] font-black text-slate-900">
                                       {textoMedidaSoporte}
                                     </span>
                                     <span className="text-[10px] text-slate-900 font-bold">

@@ -711,7 +711,7 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 
 ### ✅ Implementado
 - [x] **Comanda (ficha A4 y vista digital):**
-  - "GANCHOS: ____" para escribir a mano en las cortinas con Tradicional común con riel (`comandas/lib/detalle-capas.ts`, `llevaGanchos`).
+  - "GANCHOS: ____" para escribir a mano en las cortinas con Tradicional común con riel (`comandas/lib/detalle-capas.ts`, `llevaGanchos`). Las argollas se muestran solo en barral. La medida de riel / barral / sistema va como texto en negrita (sin recuadro).
   - Caída, posición y mando de cada capa (`detalleCapasComanda`): ej. "B.O. (Roller): Caída por delante · Posición atrás · Mando C1 Izq · C2 Der".
   - Sin el recuadro "Corte (+10cm)": el dibujo (`CortinaDibujoDidactico` con `medidasConfeccion`) muestra la Gasa y el B.O. tradicionales con los 10 cm sumados (total + 0,10 y cada paño + 0,10 / paños), con los números al doble de tamaño.
   - Encabezado solo "ROMINA RIBOT"; el número de comanda y el nombre del cliente en recuadro oscuro; teléfono y dirección en negrita. Textos de la comanda con "Gasa".
