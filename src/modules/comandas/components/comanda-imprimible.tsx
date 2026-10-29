@@ -286,7 +286,7 @@ export function ComandaImprimible({
                                     <span className="text-[11px] font-black text-slate-900">
                                       {textoMedidaSoporte}
                                     </span>
-                                    <span className="text-[10px] text-slate-900 font-bold">
+                                    <span className="text-[11px] font-black text-slate-900">
                                       Cant: {it.cantidad}
                                     </span>
                                   </div>
