@@ -57,6 +57,13 @@ export function ComandaImprimible({
               .comanda-hoja { width: 100% !important; max-width: 100% !important; padding: 0 !important; }
               .comanda-tarjeta { break-inside: avoid !important; page-break-inside: avoid !important; }
               .comanda-ambiente { break-after: avoid !important; page-break-after: avoid !important; }
+              /* En papel todo en negro: los grises claros, naranjas y violetas salen lavados */
+              .comanda-hoja, .comanda-hoja * { color: #000 !important; }
+              .comanda-hoja [class*="border-"] { border-color: #000 !important; }
+              .comanda-hoja .bg-slate-900, .comanda-hoja .bg-amber-600 { background-color: #000 !important; }
+              .comanda-hoja .bg-slate-900, .comanda-hoja .bg-slate-900 *,
+              .comanda-hoja .bg-amber-600, .comanda-hoja .bg-amber-600 * { color: #fff !important; }
+              .comanda-hoja .bg-amber-50, .comanda-hoja .bg-indigo-50 { background-color: #fff !important; }
             }
           `,
         }}
