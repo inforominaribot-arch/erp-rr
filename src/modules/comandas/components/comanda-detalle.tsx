@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { textoMosquitero } from "@/modules/mediciones/lib/mosquiteros"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -681,6 +682,11 @@ export function ComandaDetalle({
                                   {c.perfileria && (
                                     <span>
                                       Perfilería: <strong>{c.perfileria}</strong>
+                                    </span>
+                                  )}
+                                  {c.mosquitero?.modelo && (
+                                    <span>
+                                      Mosquitero: <strong>{textoMosquitero(c.mosquitero)}</strong>
                                     </span>
                                   )}
                                 </div>

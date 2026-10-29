@@ -5,6 +5,7 @@
 // (agrupados por marca y canales).
 
 import type { ICaracteristicasItem, IConfigMotor } from "@/modules/mediciones/types"
+import { textoMosquitero } from "@/modules/mediciones/lib/mosquiteros"
 import {
   cortinasFisicas,
   etiquetaCortinaFisica,
@@ -18,7 +19,9 @@ import {
   buscarControl,
   calcularAccesorioMotorizado,
   calcularCortinaRS,
+  calcularMosquiteroMG,
   metodoParaCapa,
+  type ICeldaPrecioMedida,
   type IItemListaCalculo,
   type OpcionesCalculo,
 } from "./lista-precios-rs"
@@ -74,13 +77,34 @@ export function calcularFilaCortina(
   }
 }
 
+/** Mosquitero MagicRoll: precio de la tabla por medida (modelo y puertas de la medición). */
+export function calcularFilaMosquitero(
+  carac: ICaracteristicasItem | null,
+  ancho: number,
+  alto: number,
+  tablaMG: ICeldaPrecioMedida[],
+  opciones: OpcionesCalculo = {}
+): Pick<ItemPresupuestoInput, "precioUnitario" | "calculoPrecio"> {
+  if (tablaMG.length === 0) return { precioUnitario: 0, calculoPrecio: null }
+  const entrada = {
+    modelo: carac?.mosquitero?.modelo,
+    puertas: carac?.mosquitero?.puertas,
+  }
+  const resultado = calcularMosquiteroMG({ ...entrada, ancho, alto }, opciones, tablaMG)
+  return {
+    precioUnitario: resultado.precio ?? 0,
+    calculoPrecio: armarCalculoPrecio("MG_MOSQUITERO", entrada, resultado),
+  }
+}
+
 /** Filas de una abertura (una por cortina física). Si la medición no tiene capas, una sola fila como antes. */
 export function filasDeAbertura(
   it: { id: string; descripcion: string; ancho: number; alto: number; cantidad: number; caracteristicas: unknown },
   ambiente: string,
   lista: IItemListaCalculo[],
   opcion?: { caracteristicas: Record<string, unknown> | null; nombreOpcion: string; esOpcionPrincipal: boolean },
-  soloCapa?: string | null
+  soloCapa?: string | null,
+  tablaMG: ICeldaPrecioMedida[] = []
 ): ItemPresupuestoInput[] {
   const carac = (opcion?.caracteristicas ?? it.caracteristicas) as ICaracteristicasItem | null
   const cortinas = cortinasFisicas(carac, it.ancho, it.alto).filter((k) => !soloCapa || k.capa === soloCapa)
@@ -104,10 +128,15 @@ export function filasDeAbertura(
   }
 
   return cortinas.map((k) => {
-    const calculo = calcularFilaCortina(k, k.ancho, k.alto, lista)
+    const esMosquiteroMG = k.tipoCapa === "Mosquera" && k.marca === "MG"
+    const calculo = esMosquiteroMG
+      ? calcularFilaMosquitero(carac, k.ancho, k.alto, tablaMG)
+      : calcularFilaCortina(k, k.ancho, k.alto, lista)
     return {
       itemMedicionId: it.id,
-      descripcion: descripcionCortina(it.descripcion, k),
+      descripcion: esMosquiteroMG && carac?.mosquitero?.modelo
+        ? `${it.descripcion || "Mosquitero"} – ${textoMosquitero(carac.mosquitero)}`.slice(0, 250)
+        : descripcionCortina(it.descripcion, k),
       ambiente,
       ancho: k.ancho,
       alto: k.alto,
@@ -130,7 +159,8 @@ export function filasDeAbertura(
 /** Importa toda la medición: cortinas físicas, cargadores por abertura y controles del cliente. */
 export function filasDesdeMedicion(
   medicion: MedicionImportable,
-  lista: IItemListaCalculo[]
+  lista: IItemListaCalculo[],
+  tablaMG: ICeldaPrecioMedida[] = []
 ): ItemPresupuestoInput[] {
   const filas: ItemPresupuestoInput[] = []
   const controles = new Map<string, { marca: string; canales: number; cantidad: number }>()
@@ -138,7 +168,7 @@ export function filasDesdeMedicion(
   for (const amb of medicion.ambientes) {
     const ambiente = amb.nombre || "General"
     for (const it of amb.items) {
-      const deAbertura = filasDeAbertura(it, ambiente, lista)
+      const deAbertura = filasDeAbertura(it, ambiente, lista, undefined, null, tablaMG)
       // Cada capa es un grupo (se acepta entera y puede tener alternativas)
       const grupos = new Map<string, string>()
       for (const f of deAbertura) {

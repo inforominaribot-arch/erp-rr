@@ -7,15 +7,34 @@
 
 import { createContext, useContext, type ReactNode } from "react"
 import type { ITelaMedicion } from "../types"
+import type { ICeldaMosquitero } from "../lib/mosquiteros"
 
 const TelasListaContext = createContext<ITelaMedicion[]>([])
+// Medidas de los mosquiteros MagicRoll (sin precios) para ofrecer solo los modelos que se fabrican
+const CeldasMosquiteroContext = createContext<ICeldaMosquitero[]>([])
 
-export function TelasListaProvider({ telas, children }: { telas: ITelaMedicion[]; children: ReactNode }) {
-  return <TelasListaContext.Provider value={telas}>{children}</TelasListaContext.Provider>
+export function TelasListaProvider({
+  telas,
+  celdasMosquitero = [],
+  children,
+}: {
+  telas: ITelaMedicion[]
+  celdasMosquitero?: ICeldaMosquitero[]
+  children: ReactNode
+}) {
+  return (
+    <TelasListaContext.Provider value={telas}>
+      <CeldasMosquiteroContext.Provider value={celdasMosquitero}>{children}</CeldasMosquiteroContext.Provider>
+    </TelasListaContext.Provider>
+  )
 }
 
 export function useTelasLista(): ITelaMedicion[] {
   return useContext(TelasListaContext)
+}
+
+export function useCeldasMosquitero(): ICeldaMosquitero[] {
+  return useContext(CeldasMosquiteroContext)
 }
 
 export interface ValorTela {

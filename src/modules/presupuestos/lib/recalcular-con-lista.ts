@@ -6,7 +6,7 @@
 
 import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
-import { obtenerListaCalculoRS } from "../queries"
+import { obtenerListaCalculoRS, obtenerTablaMedidaMG } from "../queries"
 import { subtotalPrincipales } from "./alternativas"
 import { leerCalculoPrecio, recalcularFila, type CalculoPrecio } from "./lista-precios-rs"
 
@@ -20,9 +20,9 @@ export interface ResultadoRecalculo {
 }
 
 export async function recalcularPresupuestosConLista(): Promise<ResultadoRecalculo> {
-  const lista = await obtenerListaCalculoRS()
+  const [lista, tablaMG] = await Promise.all([obtenerListaCalculoRS(), obtenerTablaMedidaMG()])
   const resultado: ResultadoRecalculo = { presupuestos: 0, filasActualizadas: 0, filasManuales: 0 }
-  if (lista.length === 0) return resultado
+  if (lista.length === 0 && tablaMG.length === 0) return resultado
 
   const presupuestos = await prisma.presupuesto.findMany({
     where: {
@@ -39,7 +39,11 @@ export async function recalcularPresupuestosConLista(): Promise<ResultadoRecalcu
       if (p.estado === "ACEPTADO_PARCIAL" && it.aceptado) continue
       const calc = leerCalculoPrecio(it.calculoPrecio)
       if (!calc) continue
-      const nuevo = recalcularFila({ ancho: Number(it.ancho), alto: Number(it.alto), calculoPrecio: calc }, lista)
+      const nuevo = recalcularFila(
+        { ancho: Number(it.ancho), alto: Number(it.alto), calculoPrecio: calc },
+        lista,
+        tablaMG
+      )
       if (!nuevo) continue
       const precioActual = Number(it.precioUnitario)
 

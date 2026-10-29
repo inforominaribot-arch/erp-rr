@@ -3,6 +3,7 @@
 
 import { z } from "zod"
 import { clienteSchema } from "@/modules/clientes/schemas"
+import { CODIGOS_MODELO_MOSQUITERO } from "./lib/mosquiteros"
 
 // ─── Telas: Gaza y Black Out ──────────────────────────────────────────────────
 
@@ -153,6 +154,17 @@ export const caracteristicasItemSchema = z.object({
   // Roller "Sólo tela" individual (legado)
   soloTelaPanosGaza: z.array(z.boolean()).optional(),
   soloTelaTramosBO: z.array(z.boolean()).optional(),
+
+  // Mosquitero MagicRoll
+  mosquitero: z
+    .object({
+      modelo: z.enum(CODIGOS_MODELO_MOSQUITERO),
+      cajon: z.string().max(10).nullable(),
+      mando: z.enum(["Izquierda", "Derecha"]).optional(),
+      sentidoApertura: z.enum(["Izquierda", "Derecha"]).optional(),
+      puertas: z.enum(["Simple", "Doble"]).optional(),
+    })
+    .optional(),
 
   // Capas de tela
   gaza: gazaConfigSchema.optional(),

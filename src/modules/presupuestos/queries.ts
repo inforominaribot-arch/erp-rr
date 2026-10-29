@@ -6,7 +6,7 @@ import type { Prisma, ItemPresupuesto, Presupuesto, Cliente, Comanda } from "@pr
 import type { FiltrosPresupuestoInput } from "./schemas"
 import { serializarAvisoMedida } from "@/modules/mediciones/types"
 import type { ICaracteristicasItem } from "@/modules/mediciones/types"
-import { leerCalculoPrecio, type IItemListaCalculo } from "./lib/lista-precios-rs"
+import { leerCalculoPrecio, type ICeldaPrecioMedida, type IItemListaCalculo } from "./lib/lista-precios-rs"
 import type {
   IPresupuesto,
   IItemPresupuesto,
@@ -392,6 +392,29 @@ export async function obtenerListaCalculoRS(): Promise<IItemListaCalculo[]> {
     }))
   } catch (error) {
     console.error("Error al obtener la lista de precios RS:", error)
+    return []
+  }
+}
+
+/** Tablas por medida activas del proveedor de la marca MG (MagicRoll), con precios. */
+export async function obtenerTablaMedidaMG(): Promise<ICeldaPrecioMedida[]> {
+  try {
+    const celdas = await prisma.precioMedidaItem.findMany({
+      where: { activo: true, proveedor: { activo: true, marcas: { has: "MG" } } },
+    })
+    return celdas.map((c) => ({
+      id: c.id,
+      modelo: c.modelo,
+      tabla: c.tabla,
+      cajon: c.cajon,
+      anchoDesde: c.anchoDesde,
+      anchoHasta: c.anchoHasta,
+      altoDesde: c.altoDesde,
+      altoHasta: c.altoHasta,
+      precio: Number(c.precio),
+    }))
+  } catch (error) {
+    console.error("Error al obtener las tablas por medida MG:", error)
     return []
   }
 }

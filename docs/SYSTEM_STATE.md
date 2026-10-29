@@ -670,3 +670,20 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 - [ ] Los cambios de medida de una medición ya presupuestada actualizan las medidas de cada cortina, pero no recalculan el precio (queda el aviso "Medida modificada").
 - [ ] Presupuestos creados antes de este cambio siguen con una fila por abertura (se pueden reimportar).
 
+
+---
+
+## Actualización — Mosquiteros MagicRoll (MG) con tablas de precios por medida (2026-10-29)
+
+### ✅ Implementado
+- [x] **Modelo `PrecioMedidaItem`** (`precios_por_medida`): cada celda de una tabla ancho × alto del proveedor (modelo, tabla de origen, cajón, ancho desde/hasta, alto desde/hasta en mm con extremos incluidos, precio con IVA, vigencia). Clave única proveedor + modelo + tabla + ancho desde + alto desde.
+- [x] **Proveedor MagicRoll (marca MG)** e importador `scripts/importar-tablas-medida.mjs <datos> [--aplicar]` (muestra los cambios; desactiva las celdas que ya no figuran). Datos: `scripts/data/tablas-magicroll-mosquiteros-2026-10.mjs` (págs. 13 a 20 de la lista N° 26/10, 710 celdas, verificadas por el usuario).
+- [x] **Medición de Mosquera** (`src/modules/mediciones/lib/mosquiteros.ts`): un mosquitero por abertura. Orden: ancho y alto → modelo (solo los que se fabrican en esa medida; en el Vertical a resorte, si entra en las tablas del cajón 40 y del 54, se toma el 40) → mando (a Cadena) / "Sentido de Apertura (donde va el cajón)" (horizontales) / Simple o Doble (Plegable Importado, con cartel si el alto no supera en 120 mm al ancho de cada puerta) → perfilería (Plegable Importado: anodizado natural fijo; Nacional: blanco fijo) → sujeción → Gaza. Se guarda en `caracteristicas.mosquitero` (modelo, cajón según la celda, mando, sentidoApertura, puertas).
+- [x] **Tablet:** baja las medidas disponibles (sin precios) junto con las telas (`GET /api/mediciones/telas` → `mosquiteros`) y las guarda para filtrar los modelos sin señal. Sin tablas sincronizadas muestra todos los modelos.
+- [x] **Presupuesto:** la Mosquera se importa como una fila con precio = celda × 1,25 (instalación incluida). Plegable Importado doble: se entra a la tabla con la mitad del ancho y el precio va × 2. Calculadora: pestaña "Lista MG" (modelo y puertas, desglose con la celda usada). Si la medida no se fabrica o falta el modelo, la fila queda sin precio con aviso. El recálculo de presupuestos abiertos incluye MG.
+- [x] **Ficha del proveedor:** sección "Tablas de Precios por Medida" (resumen por tabla) con el botón "Recalcular presupuestos abiertos".
+- [x] El modelo del mosquitero se ve en el dibujo de la medición y en el detalle de la comanda.
+
+### ⏳ Pendiente
+- [ ] Roller Noche Total MagicRoll (otra tabla por medida, "Línea Premium").
+- [ ] Mosqueras medidas antes de este cambio: no tienen modelo; al presupuestarlas se elige en la calculadora (pestaña "Lista MG").

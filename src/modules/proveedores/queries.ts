@@ -15,7 +15,7 @@ import type {
   IFiltrosOrdenesCompra,
 } from "./types"
 import { formatearNumeroOC } from "./types"
-import type { IListaPrecioItem } from "./types"
+import type { IListaPrecioItem, IResumenTablaMedida } from "./types"
 
 // ─── Helpers de Serialización ────────────────────────────────────────────────
 
@@ -665,3 +665,49 @@ export async function obtenerListaPreciosProveedor(
   }
 }
 
+
+// ─── Tablas de precios por medida (ej: MagicRoll) ─────────────────────────────
+
+export async function obtenerResumenTablasMedida(proveedorId: string): Promise<IResumenTablaMedida[]> {
+  try {
+    const celdas = await prisma.precioMedidaItem.findMany({
+      where: { proveedorId, activo: true },
+      orderBy: [{ tabla: "asc" }],
+    })
+    const porTabla = new Map<string, IResumenTablaMedida>()
+    for (const c of celdas) {
+      const clave = `${c.modelo}|${c.tabla}`
+      const precio = Number(c.precio)
+      const r = porTabla.get(clave) ?? {
+        modelo: c.modelo,
+        nombreModelo: c.nombreModelo,
+        tabla: c.tabla,
+        celdas: 0,
+        anchoMin: c.anchoDesde,
+        anchoMax: c.anchoHasta,
+        altoMin: c.altoDesde,
+        altoMax: c.altoHasta,
+        precioMin: precio,
+        precioMax: precio,
+        cajones: [],
+        vigencia: c.vigencia,
+      }
+      r.celdas++
+      r.anchoMin = Math.min(r.anchoMin, c.anchoDesde)
+      r.anchoMax = Math.max(r.anchoMax, c.anchoHasta)
+      r.altoMin = Math.min(r.altoMin, c.altoDesde)
+      r.altoMax = Math.max(r.altoMax, c.altoHasta)
+      r.precioMin = Math.min(r.precioMin, precio)
+      r.precioMax = Math.max(r.precioMax, precio)
+      if (c.cajon && !r.cajones.includes(c.cajon)) r.cajones.push(c.cajon)
+      porTabla.set(clave, r)
+    }
+    // Orden por número de página ("Pág. 13" antes que "Pág. 14")
+    return [...porTabla.values()].sort(
+      (a, b) => (parseInt(a.tabla.replace(/\D/g, "")) || 0) - (parseInt(b.tabla.replace(/\D/g, "")) || 0)
+    )
+  } catch (error) {
+    console.error("Error al obtener las tablas por medida del proveedor:", error)
+    return []
+  }
+}

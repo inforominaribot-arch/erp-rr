@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from "react"
 import { ClienteSelectorMobile } from "./ClienteSelectorMobile"
 import { AmbienteManager } from "@/modules/mediciones/components/ambiente-manager"
-import { guardarMedicionLocal, obtenerTelasLocales } from "../services/storage-service"
+import {
+  guardarMedicionLocal,
+  obtenerCeldasMosquiteroLocales,
+  obtenerTelasLocales,
+} from "../services/storage-service"
+import type { ICeldaMosquitero } from "@/modules/mediciones/lib/mosquiteros"
 import type { IMedicionOffline, ITelaMedicion } from "@/modules/mediciones/types"
 import { TelasListaProvider } from "@/modules/mediciones/components/selector-tela-lista"
 import type { IClienteCache } from "@/modules/mediciones/lib/offline-storage"
@@ -32,8 +37,10 @@ export function MedicionFormMobile({
 
   // Telas de la lista bajadas en la última sincronización (selector de tela en capas RS)
   const [telas, setTelas] = useState<ITelaMedicion[]>([])
+  const [celdasMosquitero, setCeldasMosquitero] = useState<ICeldaMosquitero[]>([])
   useEffect(() => {
     obtenerTelasLocales().then(setTelas)
+    obtenerCeldasMosquiteroLocales().then(setCeldasMosquitero)
   }, [])
 
   const [ambientes, setAmbientes] = useState<any[]>(
@@ -170,7 +177,7 @@ export function MedicionFormMobile({
 
       {/* Paso 2: Ambientes y Cortinas */}
       <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
-        <TelasListaProvider telas={telas}>
+        <TelasListaProvider telas={telas} celdasMosquitero={celdasMosquitero}>
           <AmbienteManager
             ambientes={ambientes}
             onAmbientesChange={setAmbientes}

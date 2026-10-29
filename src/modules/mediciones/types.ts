@@ -1,6 +1,8 @@
 // Módulo: App Medición (PWA)
 // Tipos específicos del módulo de mediciones
 
+import type { IMosquiteroConfig } from "./lib/mosquiteros"
+
 export type TipoCortina =
   | "Tradicional"
   | "Roller"
@@ -232,6 +234,9 @@ export interface ICaracteristicasItem {
   // Legado: "Sólo tela" booleano (se sigue escribiendo para compatibilidad)
   soloTelaPanosGaza?: boolean[]
   soloTelaTramosBO?: boolean[]
+
+  // Mosquitero MagicRoll (tipo "Mosquera"): modelo según la tabla de medidas, cajón, mando / sentido, puertas
+  mosquitero?: IMosquiteroConfig
 
   // Telas
   gaza?: IGazaConfig

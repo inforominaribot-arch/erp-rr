@@ -1,5 +1,6 @@
 import { Preferences } from "@capacitor/preferences"
 import type { IMedicionOffline, ITelaMedicion } from "@/modules/mediciones/types"
+import type { ICeldaMosquitero } from "@/modules/mediciones/lib/mosquiteros"
 import type { IClienteCache } from "@/modules/mediciones/lib/offline-storage"
 
 const DB_NAME = "erp_rr_mediciones_mobile"
@@ -404,4 +405,23 @@ export async function obtenerTelasLocales(): Promise<ITelaMedicion[]> {
 
 export async function guardarTelasLocales(telas: ITelaMedicion[]): Promise<void> {
   await Preferences.set({ key: KEY_TELAS, value: JSON.stringify(telas) })
+}
+
+// ─── Medidas de los mosquiteros MagicRoll (modelos disponibles según la medida) ─
+
+const KEY_MOSQUITEROS = "mosquiteros_medidas"
+
+export async function obtenerCeldasMosquiteroLocales(): Promise<ICeldaMosquitero[]> {
+  try {
+    const { value } = await Preferences.get({ key: KEY_MOSQUITEROS })
+    const datos = value ? JSON.parse(value) : []
+    return Array.isArray(datos) ? (datos as ICeldaMosquitero[]) : []
+  } catch (err) {
+    console.error("Error al leer las medidas de mosquiteros locales:", err)
+    return []
+  }
+}
+
+export async function guardarCeldasMosquiteroLocales(celdas: ICeldaMosquitero[]): Promise<void> {
+  await Preferences.set({ key: KEY_MOSQUITEROS, value: JSON.stringify(celdas) })
 }

@@ -243,3 +243,19 @@ export interface IListaPrecioItem {
   actualizadoEn: Date | string
 }
 
+
+/** Resumen de una tabla de precios por medida (ancho × alto) del proveedor */
+export interface IResumenTablaMedida {
+  modelo: string
+  nombreModelo: string
+  tabla: string
+  celdas: number
+  anchoMin: number
+  anchoMax: number
+  altoMin: number
+  altoMax: number
+  precioMin: number
+  precioMax: number
+  cajones: string[]
+  vigencia: string | null
+}

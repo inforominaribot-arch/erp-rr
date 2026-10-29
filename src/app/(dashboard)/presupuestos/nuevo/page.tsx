@@ -3,6 +3,7 @@ import { PresupuestoForm } from "@/modules/presupuestos/components/presupuesto-f
 import {
   obtenerClientesParaPresupuesto,
   obtenerListaCalculoRS,
+  obtenerTablaMedidaMG,
 } from "@/modules/presupuestos/queries"
 
 export const dynamic = "force-dynamic"
@@ -13,9 +14,10 @@ export default async function NuevoPresupuestoPage({
   searchParams?: Promise<{ clienteId?: string; medicionId?: string }>
 }) {
   const params = await searchParams
-  const [clientes, listaRS] = await Promise.all([
+  const [clientes, listaRS, tablaMG] = await Promise.all([
     obtenerClientesParaPresupuesto(),
     obtenerListaCalculoRS(),
+    obtenerTablaMedidaMG(),
   ])
 
   return (
@@ -30,6 +32,7 @@ export default async function NuevoPresupuestoPage({
         clientePreseleccionadoId={params?.clienteId}
         medicionPreseleccionadaId={params?.medicionId}
         listaRS={listaRS}
+        tablaMG={tablaMG}
       />
     </div>
   )

@@ -4,6 +4,7 @@
 import { prisma } from "@/lib/prisma"
 import type { FiltrosMedicionInput } from "./schemas"
 import type { IMedicion, IItemMedicion, IAmbiente, ITelaMedicion } from "./types"
+import type { ICeldaMosquitero } from "./lib/mosquiteros"
 
 // Helper para convertir Decimales de Prisma a numbers
 function serializarItem(item: any): IItemMedicion {
@@ -275,6 +276,21 @@ export async function obtenerTelasParaMedicion(): Promise<ITelaMedicion[]> {
     }))
   } catch (error) {
     console.error("Error al obtener las telas de la lista para la medición:", error)
+    return []
+  }
+}
+
+// ─── Medidas de los mosquiteros MagicRoll (sin precios) ──────────────────────
+
+/** Celdas activas de las tablas por medida del proveedor MG: qué medidas se fabrican en cada modelo. */
+export async function obtenerCeldasMosquitero(): Promise<ICeldaMosquitero[]> {
+  try {
+    return await prisma.precioMedidaItem.findMany({
+      where: { activo: true, proveedor: { activo: true, marcas: { has: "MG" } } },
+      select: { modelo: true, cajon: true, anchoDesde: true, anchoHasta: true, altoDesde: true, altoHasta: true },
+    })
+  } catch (error) {
+    console.error("Error al obtener las medidas de los mosquiteros:", error)
     return []
   }
 }

@@ -41,7 +41,12 @@ import {
   nuevoGrupoId,
   sufijoCortina,
 } from "../lib/filas-desde-medicion"
-import { coloresDe, recalcularFila, type IItemListaCalculo } from "../lib/lista-precios-rs"
+import {
+  coloresDe,
+  recalcularFila,
+  type ICeldaPrecioMedida,
+  type IItemListaCalculo,
+} from "../lib/lista-precios-rs"
 
 /** Editor de alternativa: nueva (a partir de la cortina principal) o edición de una existente */
 type EditorAlternativa =
@@ -84,6 +89,8 @@ interface PresupuestoFormProps {
   medicionPreseleccionadaId?: string
   /** Lista de precios RS para calcular las cortinas RS */
   listaRS?: IItemListaCalculo[]
+  /** Tablas por medida MagicRoll (MG) para calcular los mosquiteros */
+  tablaMG?: ICeldaPrecioMedida[]
 }
 
 export function PresupuestoForm({
@@ -92,6 +99,7 @@ export function PresupuestoForm({
   clientePreseleccionadoId,
   medicionPreseleccionadaId,
   listaRS = [],
+  tablaMG = [],
 }: PresupuestoFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -192,7 +200,7 @@ export function PresupuestoForm({
   // Importar la medición: una fila por cortina física (paño / tramo de cada capa) con su precio de lista,
   // más los cargadores Li-ion por abertura y los controles remotos del cliente
   function aplicarImportacionMedicion(medicion: MedicionImportable) {
-    const nuevosItems = filasDesdeMedicion(medicion, listaRS)
+    const nuevosItems = filasDesdeMedicion(medicion, listaRS, tablaMG)
     if (nuevosItems.length > 0) {
       setItems(nuevosItems)
     }
@@ -202,8 +210,8 @@ export function PresupuestoForm({
   /** Recalcula con la lista una fila calculada con ella (salvo que tenga el precio corregido a mano). */
   function conPrecioDeLista(it: ItemPresupuestoInput): ItemPresupuestoInput {
     const calc = it.calculoPrecio
-    if (!calc || calc.precioManual || listaRS.length === 0) return it
-    const r = recalcularFila({ ancho: it.ancho, alto: it.alto, calculoPrecio: calc }, listaRS)
+    if (!calc || calc.precioManual || (listaRS.length === 0 && tablaMG.length === 0)) return it
+    const r = recalcularFila({ ancho: it.ancho, alto: it.alto, calculoPrecio: calc }, listaRS, tablaMG)
     if (!r) return it
     return conSubtotal({
       ...it,
@@ -448,7 +456,8 @@ export function PresupuestoForm({
       principal.ambiente || "General",
       listaRS,
       { caracteristicas: carac, nombreOpcion: nombre, esOpcionPrincipal: false },
-      principal.capa
+      principal.capa,
+      tablaMG
     ).map((f) => ({ ...f, itemMedicionId: principal.itemMedicionId ?? null, grupoAlternativa: grupo }))
   }
 
@@ -991,7 +1000,9 @@ export function PresupuestoForm({
                             className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-bold text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 disabled:hover:bg-transparent"
                           >
                             <Plus className="h-3 w-3" />
-                            {it.capa ? `Agregar alternativa (${NOMBRE_CAPA[it.capa]})` : "Agregar alternativa"}
+                            {it.capa && it.calculoPrecio?.metodo !== "MG_MOSQUITERO"
+                              ? `Agregar alternativa (${NOMBRE_CAPA[it.capa]})`
+                              : "Agregar alternativa"}
                           </button>
                         )
                       })()}
@@ -1267,6 +1278,7 @@ export function PresupuestoForm({
           }}
           calculoInicial={items[calculadoraIndex].calculoPrecio ?? null}
           listaRS={listaRS}
+          tablaMG={tablaMG}
           anchoInicial={items[calculadoraIndex].ancho}
           altoInicial={items[calculadoraIndex].alto}
           cantidadInicial={items[calculadoraIndex].cantidad}

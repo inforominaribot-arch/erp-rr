@@ -9,6 +9,7 @@ import {
   obtenerClientesPendientesSync,
   marcarClientesSincronizados,
   guardarTelasLocales,
+  guardarCeldasMosquiteroLocales,
 } from "./storage-service"
 import type { IMedicionOffline } from "@/modules/mediciones/types"
 import type { IClienteCache } from "@/modules/mediciones/lib/offline-storage"
@@ -159,13 +160,16 @@ export async function sincronizarTodo(): Promise<ResultadoSync> {
       }
     }
 
-    // ── 2b. Telas de la lista de precios (selector de tela en capas RS) ──
+    // ── 2b. Telas de la lista de precios (selector de tela en capas RS) y medidas de mosquiteros MG ──
     try {
       const respTelas = await fetch(`${erpBaseUrl}/api/mediciones/telas`, { method: "GET", headers })
       if (respTelas.ok) {
         const dataTelas = await respTelas.json()
         if (dataTelas.success && Array.isArray(dataTelas.telas)) {
           await guardarTelasLocales(dataTelas.telas)
+        }
+        if (dataTelas.success && Array.isArray(dataTelas.mosquiteros)) {
+          await guardarCeldasMosquiteroLocales(dataTelas.mosquiteros)
         }
       }
     } catch (err) {

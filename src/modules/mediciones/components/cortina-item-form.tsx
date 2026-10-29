@@ -57,7 +57,19 @@ import {
 import { fmtMedida } from "@/lib/utils"
 import { marcaPrincipalCortina } from "../lib/marcas"
 import { tipoDeCapa } from "../lib/cortinas-fisicas"
-import { SelectorTelaLista, type ValorTela } from "./selector-tela-lista"
+import { SelectorTelaLista, useCeldasMosquitero, type ValorTela } from "./selector-tela-lista"
+import {
+  MODELOS_MOSQUITERO as MODELOS_MOSQUITERO_TODOS,
+  PERFIL_FIJO_MOSQUITERO,
+  avisoAlturaPlegableImportado,
+  celdaParaMedida,
+  esMosquiteroACadena,
+  esMosquiteroHorizontal,
+  modelosDisponibles,
+  type LadoMosquitero,
+  type ModeloMosquitero,
+  type PuertasMosquitero,
+} from "../lib/mosquiteros"
 
 interface CortinaItemFormProps {
   itemInicial?: Partial<IItemMedicion> | null
@@ -131,6 +143,17 @@ export function CortinaItemForm({
   )
 
   // ─── Campos Comunes (sin preselección) ───
+  // ─── Mosquitero MagicRoll (tipo Mosquera) ───
+  const celdasMosquitero = useCeldasMosquitero()
+  const [mosqModelo, setMosqModelo] = useState<ModeloMosquitero | null>(
+    caracInicial?.mosquitero?.modelo ?? null
+  )
+  const [mosqMando, setMosqMando] = useState<LadoMosquitero | null>(caracInicial?.mosquitero?.mando ?? null)
+  const [mosqSentido, setMosqSentido] = useState<LadoMosquitero | null>(
+    caracInicial?.mosquitero?.sentidoApertura ?? null
+  )
+  const [mosqPuertas, setMosqPuertas] = useState<PuertasMosquitero>(caracInicial?.mosquitero?.puertas ?? "Simple")
+
   const [sujecion, setSujecion] = useState<TipoSujecion | null>(
     caracInicial?.sujecion || null
   )
@@ -606,6 +629,24 @@ export function CortinaItemForm({
     return cant > 0 ? cant : 1
   })()
 
+  // Mosquitero: modelos que se fabrican en la medida cargada (si la tablet no tiene las tablas, todos)
+  const anchoMosquitero = typeof anchosTramos[0] === "number" ? anchosTramos[0] : 0
+  const altoMosquitero = typeof altoBO === "number" ? altoBO : 0
+  const hayTablasMosquitero = celdasMosquitero.length > 0
+  const modelosMosquitero =
+    anchoMosquitero > 0 && altoMosquitero > 0
+      ? hayTablasMosquitero
+        ? modelosDisponibles(celdasMosquitero, anchoMosquitero, altoMosquitero)
+        : MODELOS_MOSQUITERO_TODOS
+      : []
+  const celdaMosquiteroElegida = mosqModelo
+    ? celdaParaMedida(celdasMosquitero, mosqModelo, anchoMosquitero, altoMosquitero, mosqPuertas)
+    : null
+  const avisoAlturaMosquitero =
+    mosqModelo === "PLEGABLE_IMPORTADO"
+      ? avisoAlturaPlegableImportado(anchoMosquitero, altoMosquitero, mosqPuertas)
+      : null
+
   // Objeto de características en tiempo real
   const caracteristicasActuales: ICaracteristicasItem | null = tipo
     ? {
@@ -647,8 +688,20 @@ export function CortinaItemForm({
             ? colorBarral || undefined
             : undefined,
         perfileria:
-          hayAlgunaRoller || tipo === "Bandas verticales" || tipo === "Mosquera"
+          tipo === "Mosquera" && mosqModelo && PERFIL_FIJO_MOSQUITERO[mosqModelo]
+            ? PERFIL_FIJO_MOSQUITERO[mosqModelo]
+            : hayAlgunaRoller || tipo === "Bandas verticales" || tipo === "Mosquera"
             ? perfileria || undefined
+            : undefined,
+        mosquitero:
+          tipo === "Mosquera" && mosqModelo
+            ? {
+                modelo: mosqModelo,
+                cajon: celdaMosquiteroElegida?.cajon ?? null,
+                ...(esMosquiteroACadena(mosqModelo) && mosqMando ? { mando: mosqMando } : {}),
+                ...(esMosquiteroHorizontal(mosqModelo) && mosqSentido ? { sentidoApertura: mosqSentido } : {}),
+                ...(mosqModelo === "PLEGABLE_IMPORTADO" ? { puertas: mosqPuertas } : {}),
+              }
             : undefined,
         sujecion:
           tipo === "Aluminio"
@@ -810,6 +863,146 @@ export function CortinaItemForm({
     caracteristicasActuales.bo.colorTela = null
   }
 
+  const claseOpcion = (activa: boolean) =>
+    `rounded-lg border px-3.5 py-2 text-xs font-bold transition ${
+      activa
+        ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+    }`
+
+  /** Mosquera: modelo según la medida → mando / sentido / puertas → perfilería → sujeción */
+  function renderPasosMosquitero() {
+    const perfilFijo = mosqModelo ? PERFIL_FIJO_MOSQUITERO[mosqModelo] : undefined
+    const modeloNoDisponible =
+      Boolean(mosqModelo) && hayTablasMosquitero && anchoMosquitero > 0 && altoMosquitero > 0 && !celdaMosquiteroElegida
+    return (
+      <div className="pt-3 border-t border-indigo-100 space-y-4">
+        {/* Modelo */}
+        <div className="space-y-2">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+            Modelo de Mosquitero
+          </label>
+          {anchoMosquitero <= 0 || altoMosquitero <= 0 ? (
+            <p className="text-[11px] text-slate-500">Cargá el ancho y el alto para ver los modelos disponibles.</p>
+          ) : modelosMosquitero.length === 0 ? (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs font-semibold text-amber-800">
+              No hay ningún modelo que se fabrique en {fmtMedida(anchoMosquitero)} × {fmtMedida(altoMosquitero)} m.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {modelosMosquitero.map((m) => (
+                <button
+                  key={m.modelo}
+                  type="button"
+                  onClick={() => setMosqModelo(m.modelo)}
+                  className={`${claseOpcion(mosqModelo === m.modelo)} text-left`}
+                >
+                  {m.nombre}
+                </button>
+              ))}
+            </div>
+          )}
+          {!hayTablasMosquitero && anchoMosquitero > 0 && altoMosquitero > 0 && (
+            <p className="text-[11px] text-amber-700">
+              Sin tablas de medidas cargadas (sincronizá la tablet): se muestran todos los modelos.
+            </p>
+          )}
+          {modeloNoDisponible && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs font-semibold text-amber-800">
+              El modelo elegido no se fabrica en esta medida: elegí otro.
+            </p>
+          )}
+          {celdaMosquiteroElegida?.cajon && (
+            <p className="text-[11px] font-semibold text-indigo-700">Lleva cajón de {celdaMosquiteroElegida.cajon} mm.</p>
+          )}
+        </div>
+
+        {/* Plegable Importado: simple o doble */}
+        {mosqModelo === "PLEGABLE_IMPORTADO" && (
+          <div className="space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">Puerta</label>
+            <div className="flex gap-2">
+              {(["Simple", "Doble"] as const).map((p) => (
+                <button key={p} type="button" onClick={() => setMosqPuertas(p)} className={claseOpcion(mosqPuertas === p)}>
+                  {p}
+                </button>
+              ))}
+            </div>
+            {avisoAlturaMosquitero && (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs font-semibold text-amber-800">
+                {avisoAlturaMosquitero}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* A Cadena: mando */}
+        {esMosquiteroACadena(mosqModelo) && (
+          <div className="space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">Mando</label>
+            <div className="flex gap-2">
+              {(["Izquierda", "Derecha"] as const).map((l) => (
+                <button key={l} type="button" onClick={() => setMosqMando(l)} className={claseOpcion(mosqMando === l)}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Horizontales: sentido de apertura */}
+        {esMosquiteroHorizontal(mosqModelo) && (
+          <div className="space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+              Sentido de Apertura (donde va el cajón)
+            </label>
+            <div className="flex gap-2">
+              {(["Derecha", "Izquierda"] as const).map((l) => (
+                <button key={l} type="button" onClick={() => setMosqSentido(l)} className={claseOpcion(mosqSentido === l)}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Perfilería */}
+        {mosqModelo && (
+          <div className="space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">Perfilería</label>
+            {perfilFijo ? (
+              <p className="rounded-lg border border-slate-200 bg-white p-2.5 text-xs font-semibold text-slate-700">
+                Perfil {perfilFijo.toLowerCase()} (único color de este modelo).
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {PERFILERIA_NOCHE_TOTAL.map((perf) => (
+                  <button key={perf} type="button" onClick={() => setPerfileria(perf)} className={claseOpcion(perfileria === perf)}>
+                    {perf}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Sujeción */}
+        {mosqModelo && (
+          <div className="space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">Sujeción</label>
+            <div className="flex flex-wrap gap-2">
+              {TIPOS_SUJECION.map((s) => (
+                <button key={s} type="button" onClick={() => setSujecion(s)} className={claseOpcion(sujecion === s)}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   function cambiarTelaGaza(v: ValorTela) {
     setNombreTelaGaza(v.nombreTela)
     setTelaIdGaza(v.telaId)
@@ -886,6 +1079,24 @@ export function CortinaItemForm({
       if (!altoBO || altoBO <= 0) {
         setErrorValidacion(`Ingresá el Alto de la cortina (${tipo}).`)
         return
+      }
+      if (tipo === "Mosquera") {
+        if (!mosqModelo) {
+          setErrorValidacion("Elegí el modelo de mosquitero.")
+          return
+        }
+        if (hayTablasMosquitero && !celdaMosquiteroElegida) {
+          setErrorValidacion("Ese modelo de mosquitero no se fabrica en la medida cargada.")
+          return
+        }
+        if (esMosquiteroACadena(mosqModelo) && !mosqMando) {
+          setErrorValidacion("Elegí el mando del mosquitero (Izquierda o Derecha).")
+          return
+        }
+        if (esMosquiteroHorizontal(mosqModelo) && !mosqSentido) {
+          setErrorValidacion("Elegí el Sentido de Apertura (donde va el cajón).")
+          return
+        }
       }
       for (let i = 0; i < tramosBO; i++) {
         if (!anchosTramos[i] || (anchosTramos[i] as number) <= 0) {
@@ -2565,7 +2776,7 @@ export function CortinaItemForm({
           )}
 
           {/* ── PASO: Perfilería General si hay Roller o Roller Mot ── */}
-          {(hayAlgunaRoller || tipo === "Bandas verticales" || tipo === "Mosquera") && (
+          {(hayAlgunaRoller || tipo === "Bandas verticales") && (
             <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
                 Perfilería de Cortina {tipo === "Roller Noche total" ? "(Noche Total)" : "(Roller / Bandas)"}
@@ -2574,7 +2785,7 @@ export function CortinaItemForm({
                 Aplica a todas las capas roller de la abertura
               </p>
               <div className="flex flex-wrap gap-2">
-                {(tipo === "Roller Noche total" || tipo === "Noche total" || tipo === "Mosquera"
+                {(tipo === "Roller Noche total" || tipo === "Noche total"
                   ? PERFILERIA_NOCHE_TOTAL
                   : (caracteristicasActuales?.marcaBO === "RS" || caracteristicasActuales?.marcaGaza === "RS")
                   ? (["Blanco", "Negro", "Gris", "Beige"] as const)
@@ -2597,7 +2808,8 @@ export function CortinaItemForm({
             </div>
           )}
 
-          {/* ── PASO: Sujeción de la Cortina ── */}
+          {/* ── PASO: Sujeción de la Cortina (la Mosquera la elige en su sección) ── */}
+          {tipo !== "Mosquera" && (
           <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-2">
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
               Sujeción de la Cortina:
@@ -2619,6 +2831,7 @@ export function CortinaItemForm({
               ))}
             </div>
           </div>
+          )}
 
           {/* ── Soportes: Grampa o Kent SOLO SI HAY BARRAL (En Riel no llevan soportes) ── */}
           {((tipo === "Tradicional" || hayTradicionalComun) && sistemaTradicional === "Barral") && (
@@ -2697,7 +2910,9 @@ export function CortinaItemForm({
                     Medidas de Cortina ({tipo === "Roller Noche total" ? "Roller Noche Total" : tipo})
                   </h4>
                   <p className="mt-0.5 text-xs text-slate-500">
-                    {tramosBO === 1
+                    {tipo === "Mosquera" && tramosBO === 1
+                      ? "1 mosquitero por abertura."
+                      : tramosBO === 1
                       ? "1 cortina en esta abertura. Si necesitás más, podés agregar hasta 5."
                       : `${tramosBO} cortinas independientes en esta abertura con el mismo alto.`}
                   </p>
@@ -2705,7 +2920,7 @@ export function CortinaItemForm({
 
                 {/* Botón o selector para agregar más cortinas */}
                 <div className="flex items-center gap-2">
-                  {maxTramosBOVisibles < 5 && (
+                  {tipo !== "Mosquera" && maxTramosBOVisibles < 5 && (
                     <button
                       type="button"
                       onClick={() => {
@@ -2857,6 +3072,8 @@ export function CortinaItemForm({
                     </div>
                   </div>
                 )}
+
+                {tipo === "Mosquera" && renderPasosMosquitero()}
 
                 {/* Opción de Gaza delantera en Roller Noche Total */}
                 <div className="pt-3 border-t border-indigo-100 space-y-3 animate-in fade-in duration-100">

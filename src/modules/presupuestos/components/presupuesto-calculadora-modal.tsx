@@ -22,6 +22,7 @@ import { CalculoListaRS } from "./calculo-lista-rs"
 import {
   recalcularFila,
   type CalculoPrecio,
+  type ICeldaPrecioMedida,
   type IItemListaCalculo,
   type OpcionesCalculo,
 } from "../lib/lista-precios-rs"
@@ -46,6 +47,7 @@ interface PresupuestoCalculadoraModalProps {
   /** Cálculo guardado de la fila (si la fila se calcula con la lista RS) */
   calculoInicial?: CalculoPrecio | null
   listaRS?: IItemListaCalculo[]
+  tablaMG?: ICeldaPrecioMedida[]
 }
 
 export function PresupuestoCalculadoraModal({
@@ -58,8 +60,10 @@ export function PresupuestoCalculadoraModal({
   descripcionInicial = "",
   calculoInicial = null,
   listaRS = [],
+  tablaMG = [],
 }: PresupuestoCalculadoraModalProps) {
-  const conListaRS = Boolean(calculoInicial) && listaRS.length > 0
+  const esMG = calculoInicial?.metodo === "MG_MOSQUITERO"
+  const conListaRS = Boolean(calculoInicial) && (esMG ? tablaMG.length > 0 : listaRS.length > 0)
   // Dimensiones base
   const [ancho, setAncho] = useState<number>(anchoInicial)
   const [alto, setAlto] = useState<number>(altoInicial)
@@ -146,7 +150,7 @@ export function PresupuestoCalculadoraModal({
   const [opcionesRS, setOpcionesRS] = useState<OpcionesCalculo>(calculoInicial?.opciones ?? {})
   const resultadoRS =
     calculoInicial && conListaRS
-      ? recalcularFila({ ancho, alto, calculoPrecio: { ...calculoInicial, opciones: opcionesRS } }, listaRS)
+      ? recalcularFila({ ancho, alto, calculoPrecio: { ...calculoInicial, opciones: opcionesRS } }, listaRS, tablaMG)
       : null
 
   // Cálculos reactivos
@@ -269,7 +273,7 @@ export function PresupuestoCalculadoraModal({
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              Lista RS
+              {esMG ? "Lista MG" : "Lista RS"}
             </button>
           )}
           <button
@@ -735,6 +739,9 @@ export function PresupuestoCalculadoraModal({
             <CalculoListaRS
               calculo={calculoInicial}
               lista={listaRS}
+              tablaMG={tablaMG}
+              ancho={ancho}
+              alto={alto}
               opciones={opcionesRS}
               onCambiarOpciones={setOpcionesRS}
               resultado={resultadoRS}

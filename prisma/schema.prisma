@@ -388,6 +388,7 @@ model Proveedor {
   ordenesCompra  OrdenCompra[]
   pedidosCortina PedidoProveedorItem[]
   listaPrecios   ListaPrecioItem[]
+  preciosMedida  PrecioMedidaItem[]
 
   @@map("proveedores")
 }
@@ -427,6 +428,32 @@ model ListaPrecioItem {
   @@unique([proveedorId, seccion, descripcion])
   @@index([proveedorId, categoria])
   @@map("lista_precios_items")
+}
+
+// Precios por medida (tablas ancho × alto del proveedor, ej: mosquiteros MagicRoll).
+// Cada registro es una celda: el precio para un rango de ancho y de alto (mm, extremos incluidos).
+model PrecioMedidaItem {
+  id            String   @id @default(uuid())
+  proveedorId   String   @map("proveedor_id")
+  modelo        String // Código del modelo (ej: "VERTICAL_RESORTE")
+  nombreModelo  String   @map("nombre_modelo")
+  tabla         String // Tabla de origen (ej: "Pág. 13"): un modelo puede tener varias (cajón 40 / 54)
+  cajon         String? // Cajón que lleva esa medida (ej: "40", "54", "62,5")
+  anchoDesde    Int      @map("ancho_desde")
+  anchoHasta    Int      @map("ancho_hasta")
+  altoDesde     Int      @map("alto_desde")
+  altoHasta     Int      @map("alto_hasta")
+  precio        Decimal  @db.Decimal(12, 2) // Precio de la tabla (IVA incluido, sin recargos)
+  vigencia      String?
+  activo        Boolean  @default(true)
+  creadoEn      DateTime @default(now()) @map("creado_en")
+  actualizadoEn DateTime @updatedAt @map("actualizado_en")
+
+  proveedor Proveedor @relation(fields: [proveedorId], references: [id], onDelete: Cascade)
+
+  @@unique([proveedorId, modelo, tabla, anchoDesde, altoDesde])
+  @@index([proveedorId, modelo])
+  @@map("precios_por_medida")
 }
 
 model ProductoProveedor {

@@ -31,8 +31,10 @@ import type {
   IProductoProveedor,
   IOrdenCompra,
   IListaPrecioItem,
+  IResumenTablaMedida,
 } from "../types"
 import { ListaPreciosProveedor } from "./lista-precios-proveedor"
+import { TablasMedidaProveedor } from "./tablas-medida-proveedor"
 import { ProveedorEstadoBadge } from "./proveedor-estado-badge"
 import { OrdenCompraEstadoBadge } from "./orden-compra-estado-badge"
 import { OrdenCompraWhatsAppButton } from "./orden-compra-whatsapp-button"
@@ -57,6 +59,7 @@ interface ProveedorDetalleViewProps {
   }>
   /** Lista de precios del proveedor (vacía si el usuario no puede ver costos) */
   listaPrecios: IListaPrecioItem[]
+  tablasMedida?: IResumenTablaMedida[]
   puedeVerCostos: boolean
   puedeAdministrar: boolean
   puedeEmitirOrden: boolean
@@ -69,6 +72,7 @@ export function ProveedorDetalleView({
   ordenesCompra,
   catalogoProductos,
   listaPrecios,
+  tablasMedida = [],
   puedeVerCostos,
   puedeAdministrar,
   puedeEmitirOrden,
@@ -226,6 +230,9 @@ export function ProveedorDetalleView({
       {puedeVerCostos && listaPrecios.length > 0 && (
         <ListaPreciosProveedor items={listaPrecios} puedeAdministrar={puedeAdministrar} />
       )}
+
+      {/* ── TABLAS DE PRECIOS POR MEDIDA (ej: MagicRoll) ── */}
+      {puedeVerCostos && tablasMedida.length > 0 && <TablasMedidaProveedor tablas={tablasMedida} />}
 
       {/* ── SECCIÓN 1: CATÁLOGO DE INSUMOS PROVISTOS ── */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">

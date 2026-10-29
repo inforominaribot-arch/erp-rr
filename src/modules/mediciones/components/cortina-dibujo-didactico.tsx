@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { textoMosquitero } from "../lib/mosquiteros"
 import type { ICaracteristicasItem } from "../types"
 import {
   calcularArgollasGaza,
@@ -1176,6 +1177,13 @@ export function CortinaDibujoDidactico({
               </span>
             )}
           </div>
+
+          {/* Mosquitero MagicRoll: modelo, cajón, mando / sentido, puertas */}
+          {caracteristicas?.mosquitero?.modelo && (
+            <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-2.5 py-1.5 text-[11px] font-semibold text-indigo-900">
+              {textoMosquitero(caracteristicas.mosquitero)}
+            </div>
+          )}
 
           {/* Posición de Telas y Caídas de Rollo */}
           <div className="flex flex-col gap-2 pt-1 text-[11px]">

@@ -7,6 +7,7 @@ import {
   obtenerProveedorPorId,
   obtenerCatalogoProductosParaCompras,
   obtenerListaPreciosProveedor,
+  obtenerResumenTablasMedida,
 } from "@/modules/proveedores/queries"
 import { ProveedorDetalleView } from "@/modules/proveedores/components/proveedor-detalle-view"
 import { ShieldAlert } from "lucide-react"
@@ -51,11 +52,12 @@ export default async function ProveedorDetallePage({
     )
   }
 
-  const [detalle, catalogoProductos, listaPrecios] = await Promise.all([
+  const [detalle, catalogoProductos, listaPrecios, tablasMedida] = await Promise.all([
     obtenerProveedorPorId(id, !auth.puedeVerCostos),
     obtenerCatalogoProductosParaCompras(),
-    // La lista de precios son costos: solo para quien puede verlos
+    // La lista de precios y las tablas por medida son costos: solo para quien puede verlos
     auth.puedeVerCostos ? obtenerListaPreciosProveedor(id) : Promise.resolve([]),
+    auth.puedeVerCostos ? obtenerResumenTablasMedida(id) : Promise.resolve([]),
   ])
 
   if (!detalle) {
@@ -70,6 +72,7 @@ export default async function ProveedorDetallePage({
         ordenesCompra={detalle.ordenesCompra}
         catalogoProductos={catalogoProductos}
         listaPrecios={listaPrecios}
+        tablasMedida={tablasMedida}
         puedeVerCostos={auth.puedeVerCostos}
         puedeAdministrar={auth.puedeAdministrar}
         puedeEmitirOrden={auth.puedeEmitirOrden}

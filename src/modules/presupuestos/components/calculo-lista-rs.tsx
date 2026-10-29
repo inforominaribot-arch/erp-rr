@@ -5,6 +5,7 @@
 
 import { AlertTriangle } from "lucide-react"
 import { formatearPrecio } from "@/lib/utils"
+import { modelosDisponibles } from "@/modules/mediciones/lib/mosquiteros"
 import {
   buscarPorId,
   canoBateria,
@@ -15,6 +16,7 @@ import {
   telasParaCapa,
   zocalosOpciones,
   type CalculoPrecio,
+  type ICeldaPrecioMedida,
   type IItemListaCalculo,
   type OpcionesCalculo,
   type ResultadoCalculoRS,
@@ -23,6 +25,9 @@ import {
 interface CalculoListaRSProps {
   calculo: CalculoPrecio
   lista: IItemListaCalculo[]
+  tablaMG?: ICeldaPrecioMedida[]
+  ancho?: number
+  alto?: number
   opciones: OpcionesCalculo
   onCambiarOpciones: (opciones: OpcionesCalculo) => void
   resultado: ResultadoCalculoRS | null
@@ -31,13 +36,24 @@ interface CalculoListaRSProps {
 const claseSelect =
   "mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:border-indigo-500 focus:outline-hidden"
 
-export function CalculoListaRS({ calculo, lista, opciones, onCambiarOpciones, resultado }: CalculoListaRSProps) {
+export function CalculoListaRS({
+  calculo,
+  lista,
+  tablaMG = [],
+  ancho = 0,
+  alto = 0,
+  opciones,
+  onCambiarOpciones,
+  resultado,
+}: CalculoListaRSProps) {
   const { metodo, entrada } = calculo
   const modo = entrada.modo || "Normal"
   const efectivas = resultado?.opciones ?? opciones
   const cambiar = (parcial: Partial<OpcionesCalculo>) => onCambiarOpciones({ ...opciones, ...parcial })
 
   const esAccesorio = metodo === "RS_CONTROL" || metodo === "RS_CARGADOR"
+  const esMosquitero = metodo === "MG_MOSQUITERO"
+  const modelosMG = esMosquitero ? modelosDisponibles(tablaMG, ancho, alto) : []
   const telas = telasParaCapa(lista, entrada.tipoCapa)
   const telaElegida = buscarPorId(lista, efectivas.telaId)
   const colores = coloresDe(telaElegida)
@@ -51,17 +67,52 @@ export function CalculoListaRS({ calculo, lista, opciones, onCambiarOpciones, re
     <div className="space-y-4">
       <div className="rounded-lg bg-violet-50 p-3 border border-violet-100 text-xs text-violet-900 space-y-0.5">
         <p className="font-bold">
-          {esAccesorio
+          {esMosquitero
+            ? "Mosquitero MagicRoll (tabla × 1,25, instalación incluida)"
+            : esAccesorio
             ? metodo === "RS_CONTROL"
               ? "Control remoto (lista × 1,5)"
               : "Cargador Li-ion (lista × 1,5)"
             : `${entrada.tipoCapa} RS${modo !== "Normal" ? ` · ${modo}` : ""}`}
         </p>
         {resultado?.formula && <p>{resultado.formula}</p>}
-        {!esAccesorio && <p className="text-violet-700">Ancho mínimo 1 m y mínimo 1 m² de tela.</p>}
+        {!esAccesorio && !esMosquitero && (
+          <p className="text-violet-700">Ancho mínimo 1 m y mínimo 1 m² de tela.</p>
+        )}
       </div>
 
-      {esAccesorio ? (
+      {esMosquitero ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-bold text-slate-700">Modelo (los que se fabrican en esta medida)</label>
+            <select
+              value={efectivas.modelo || ""}
+              onChange={(e) => cambiar({ modelo: e.target.value || null })}
+              className={claseSelect}
+            >
+              <option value="">-- Elegir modelo --</option>
+              {modelosMG.map((m) => (
+                <option key={m.modelo} value={m.modelo}>
+                  {m.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          {efectivas.modelo === "PLEGABLE_IMPORTADO" && (
+            <div>
+              <label className="text-xs font-bold text-slate-700">Puerta</label>
+              <select
+                value={efectivas.puertas || "Simple"}
+                onChange={(e) => cambiar({ puertas: e.target.value === "Doble" ? "Doble" : "Simple" })}
+                className={claseSelect}
+              >
+                <option value="Simple">Simple</option>
+                <option value="Doble">Doble (× 2)</option>
+              </select>
+            </div>
+          )}
+        </div>
+      ) : esAccesorio ? (
         <div>
           <label className="text-xs font-bold text-slate-700">Ítem de la lista</label>
           <select

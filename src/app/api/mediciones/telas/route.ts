@@ -1,12 +1,13 @@
 // Telas de la lista de precios RS para el selector de la tablet (sentido web → tablet).
-// GET /api/mediciones/telas → { success, telas: ITelaMedicion[] } (sin precios)
+// GET /api/mediciones/telas → { success, telas: ITelaMedicion[], mosquiteros: ICeldaMosquitero[] } (sin precios)
+// "mosquiteros": medidas que se fabrican en cada modelo MagicRoll (para ofrecer solo los modelos posibles).
 
 import {
   autenticarPeticionApi,
   handleCorsPreflight,
   jsonResponse,
 } from "@/lib/api-auth"
-import { obtenerTelasParaMedicion } from "@/modules/mediciones/queries"
+import { obtenerCeldasMosquitero, obtenerTelasParaMedicion } from "@/modules/mediciones/queries"
 
 export async function OPTIONS() {
   return handleCorsPreflight()
@@ -21,8 +22,8 @@ export async function GET(req: Request) {
         { status: 401 }
       )
     }
-    const telas = await obtenerTelasParaMedicion()
-    return jsonResponse({ success: true, telas })
+    const [telas, mosquiteros] = await Promise.all([obtenerTelasParaMedicion(), obtenerCeldasMosquitero()])
+    return jsonResponse({ success: true, telas, mosquiteros })
   } catch (error) {
     console.error("Error al descargar las telas para la tablet:", error)
     return jsonResponse(

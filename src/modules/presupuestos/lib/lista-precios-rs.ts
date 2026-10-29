@@ -11,10 +11,18 @@
 //    Caño 40 / 50 mm a elección (Li-ion: siempre el caño de batería). Solo tela: el zócalo reemplaza caño + motor.
 //  - Bandas RS:      (ancho × Sistema BV Esmalte Blanco + m² × tela BV) × 1,16025 + instalación
 //  - Controles (por cliente, agrupados por marca y canales) y cargadores Li-ion (por abertura): lista × 1,5
+//  - Mosquitero MagicRoll (MG): precio de la tabla ancho × alto (IVA incluido) × 1,25 (instalación incluida).
+//    Plegable Importado doble: se entra a la tabla con la mitad del ancho y el precio va × 2.
 
 import { z } from "zod"
 import type { IConfigMotor, ModoCortina } from "@/modules/mediciones/types"
 import type { TipoCapaFisica } from "@/modules/mediciones/lib/cortinas-fisicas"
+import {
+  celdaParaMedida,
+  nombreModeloMosquitero,
+  type ICeldaMosquitero,
+  type PuertasMosquitero,
+} from "@/modules/mediciones/lib/mosquiteros"
 import { VALORES_DEFECTO_PRECIOS } from "./calculadora-precios"
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
@@ -25,6 +33,7 @@ export const FACTOR_MOTORIZADA = 1.5
 export const FACTOR_CONTROL_CARGADOR = 1.5
 export const INSTALACION_RS_DEFECTO = VALORES_DEFECTO_PRECIOS.precioInstalacionRS
 export const M2_MAXIMO_ROLLER_MANUAL = 9
+export const FACTOR_MOSQUITERO_MG = 1.25
 
 const SECCION_SISTEMA = { RS: "Sistema Soft RS", MAXI: "Sistema Soft MAXI", SUPER_MAXI: "Sistema Soft SUPER MAXI" } as const
 const VARIANTE_SISTEMA = "zocalo deco, cadena plastica"
@@ -52,7 +61,20 @@ export interface IItemListaCalculo {
   vendemos: boolean
 }
 
-export type MetodoCalculoRS = "RS_ROLLER" | "RS_ROLLER_MOT" | "RS_BANDAS" | "RS_CONTROL" | "RS_CARGADOR"
+export type MetodoCalculoRS =
+  | "RS_ROLLER"
+  | "RS_ROLLER_MOT"
+  | "RS_BANDAS"
+  | "RS_CONTROL"
+  | "RS_CARGADOR"
+  | "MG_MOSQUITERO"
+
+/** Celda de una tabla por medida con su precio (MagicRoll) */
+export interface ICeldaPrecioMedida extends ICeldaMosquitero {
+  id: string
+  tabla: string
+  precio: number
+}
 
 export const opcionesCalculoSchema = z.object({
   telaId: z.string().max(64).nullable().optional(),
@@ -61,6 +83,8 @@ export const opcionesCalculoSchema = z.object({
   canoId: z.string().max(64).nullable().optional(),
   motorId: z.string().max(64).nullable().optional(),
   itemId: z.string().max(64).nullable().optional(), // control o cargador
+  modelo: z.string().max(40).nullable().optional(), // mosquitero MG
+  puertas: z.enum(["Simple", "Doble"]).nullable().optional(),
   instalacion: z.number().min(0).max(100_000_000).optional(),
 })
 export type OpcionesCalculo = z.infer<typeof opcionesCalculoSchema>
@@ -76,6 +100,9 @@ export const entradaCalculoSchema = z.object({
     .optional(),
   marcaMotor: z.string().max(20).optional(),
   canales: z.number().int().optional(),
+  // Mosquitero MG: modelo y puertas de la medición
+  modelo: z.string().max(40).optional(),
+  puertas: z.enum(["Simple", "Doble"]).optional(),
 })
 export type EntradaCalculo = z.infer<typeof entradaCalculoSchema>
 
@@ -87,7 +114,7 @@ export const lineaDesgloseSchema = z.object({
 export type LineaDesglose = z.infer<typeof lineaDesgloseSchema>
 
 export const calculoPrecioSchema = z.object({
-  metodo: z.enum(["RS_ROLLER", "RS_ROLLER_MOT", "RS_BANDAS", "RS_CONTROL", "RS_CARGADOR"]),
+  metodo: z.enum(["RS_ROLLER", "RS_ROLLER_MOT", "RS_BANDAS", "RS_CONTROL", "RS_CARGADOR", "MG_MOSQUITERO"]),
   entrada: entradaCalculoSchema.default({}),
   opciones: opcionesCalculoSchema.default({}),
   desglose: z.array(lineaDesgloseSchema).max(30).default([]),
@@ -529,6 +556,53 @@ export function calcularAccesorioMotorizado(item: IItemListaCalculo | null): Res
   }
 }
 
+/** Precio de un mosquitero MagicRoll: celda de la tabla × 1,25 (× 2 si es Plegable Importado doble). */
+export function calcularMosquiteroMG(
+  entrada: { modelo?: string | null; puertas?: PuertasMosquitero | null; ancho: number; alto: number },
+  opcionesElegidas: OpcionesCalculo,
+  tabla: ICeldaPrecioMedida[]
+): ResultadoCalculoRS {
+  const modelo = opcionesElegidas.modelo ?? entrada.modelo ?? null
+  const puertas: PuertasMosquitero | null =
+    modelo === "PLEGABLE_IMPORTADO" ? (opcionesElegidas.puertas ?? entrada.puertas ?? "Simple") : null
+  const opciones: OpcionesCalculo = { ...opcionesElegidas, modelo, puertas }
+  const formula = "precio de la tabla (IVA incluido) × 1,25"
+  if (!modelo) {
+    return { precio: null, desglose: [], formula, avisos: ["Elegí el modelo de mosquitero."], opciones }
+  }
+  const celda = celdaParaMedida(tabla, modelo, entrada.ancho, entrada.alto, puertas)
+  if (!celda) {
+    return {
+      precio: null,
+      desglose: [],
+      formula,
+      avisos: [`${nombreModeloMosquitero(modelo)}: no se fabrica en esa medida.`],
+      opciones,
+    }
+  }
+  const multiplicador = puertas === "Doble" ? 2 : 1
+  const base = celda.precio * multiplicador
+  const precio = Math.round(base * FACTOR_MOSQUITERO_MG)
+  const desglose: LineaDesglose[] = [
+    {
+      concepto: "Tabla",
+      detalle: `${nombreModeloMosquitero(modelo)} (${celda.tabla}): ancho ${celda.anchoDesde}–${celda.anchoHasta} × alto ${celda.altoDesde}–${celda.altoHasta} mm${celda.cajon ? `, cajón ${celda.cajon}` : ""}`,
+      importe: celda.precio,
+    },
+  ]
+  if (multiplicador === 2) {
+    desglose.push({ concepto: "Puerta doble", detalle: `${fmt$(celda.precio)} × 2 (mitad del ancho por puerta)`, importe: celda.precio })
+  }
+  desglose.push({ concepto: "Recargo", detalle: `${fmt$(base)} × 1,25 (instalación incluida)`, importe: r2(precio - base) })
+  return {
+    precio,
+    desglose,
+    formula: multiplicador === 2 ? "precio de la tabla × 2 puertas × 1,25" : formula,
+    avisos: [],
+    opciones,
+  }
+}
+
 /** Arma el JSON de cálculo que se guarda en la fila. */
 export function armarCalculoPrecio(
   metodo: MetodoCalculoRS,
@@ -563,9 +637,17 @@ export function leerCalculoPrecio(valor: unknown): CalculoPrecio | null {
  */
 export function recalcularFila(
   fila: { ancho: number; alto: number; calculoPrecio: CalculoPrecio },
-  lista: IItemListaCalculo[]
+  lista: IItemListaCalculo[],
+  tablaMG: ICeldaPrecioMedida[] = []
 ): ResultadoCalculoRS | null {
   const calc = fila.calculoPrecio
+  if (calc.metodo === "MG_MOSQUITERO") {
+    return calcularMosquiteroMG(
+      { modelo: calc.entrada.modelo, puertas: calc.entrada.puertas, ancho: fila.ancho, alto: fila.alto },
+      calc.opciones,
+      tablaMG
+    )
+  }
   if (calc.metodo === "RS_CONTROL" || calc.metodo === "RS_CARGADOR") {
     let item = buscarPorId(lista, calc.opciones.itemId)
     if (!item && calc.metodo === "RS_CONTROL" && calc.entrada.marcaMotor && calc.entrada.canales) {
