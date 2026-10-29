@@ -118,7 +118,7 @@ export const PLAZO_ENTREGA_DEFAULT = "25 días a partir de la aprobación."
 
 export const DATOS_EMPRESA_DEFAULT = {
   nombre: "ROMINA RIBOT",
-  subtitulo: "Fábrica de cortinas, toldos y afines a medida",
+  subtitulo: "Fábrica de cortinas, toldos y afines",
   direccion: "P. Marcos Sastre 823",
   localidad: "Santa Fe, Argentina",
   telefono: "0342-154-064334",
