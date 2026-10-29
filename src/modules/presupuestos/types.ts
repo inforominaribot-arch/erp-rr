@@ -122,6 +122,7 @@ export const DATOS_EMPRESA_DEFAULT = {
   direccion: "P. Marcos Sastre 823",
   localidad: "Santa Fe, Argentina",
   telefono: "0342-154-064334",
+  instagram: "ribotromina",
   email: "ventas@cortinadosrr.com.ar",
 }
 

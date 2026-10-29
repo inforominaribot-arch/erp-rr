@@ -713,11 +713,11 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 - [x] **Comanda (ficha A4 y vista digital):**
   - "GANCHOS: ____" para escribir a mano en las cortinas con Tradicional común con riel (`comandas/lib/detalle-capas.ts`, `llevaGanchos`).
   - Caída, posición y mando de cada capa (`detalleCapasComanda`): ej. "B.O. (Roller): Caída por delante · Posición atrás · Mando C1 Izq · C2 Der".
-  - Sin el recuadro "Corte (+10cm)": el dibujo (`CortinaDibujoDidactico` con `medidasConfeccion`) muestra la Gasa tradicional con los 10 cm sumados (total + 0,10 y cada paño + 0,10 / paños).
-  - Encabezado solo "ROMINA RIBOT". Textos de la comanda con "Gasa".
+  - Sin el recuadro "Corte (+10cm)": el dibujo (`CortinaDibujoDidactico` con `medidasConfeccion`) muestra la Gasa y el B.O. tradicionales con los 10 cm sumados (total + 0,10 y cada paño + 0,10 / paños), con los números al doble de tamaño.
+  - Encabezado solo "ROMINA RIBOT"; el número de comanda y el nombre del cliente en recuadro oscuro; teléfono y dirección en negrita. Textos de la comanda con "Gasa".
   - Impresión: estilos A4 propios, cada cortina entera en una hoja; el layout (`DashboardShell`) se imprime como bloque (antes se cortaban las últimas cortinas).
   - **Fecha de entrega:** `Presupuesto.fechaAceptacion` (se guarda al aceptar total o parcial; la primera aceptación se conserva). Al generar la comanda la entrega es aceptación + 25 días corridos (`comandas/lib/fecha-entrega.ts`), editable en el modal.
-- [x] **Hoja PDF del presupuesto:** sin columna de medidas ni "Opción … ✓ elegida"; cada línea muestra la tela y su color (`presupuestos/lib/texto-presupuesto.ts`, `telaDeFila`). Membrete "ROMINA RIBOT — Fábrica de cortinas, toldos y afines a medida", sin la dirección de la empresa ni los datos bancarios.
+- [x] **Hoja PDF del presupuesto:** sin columna de medidas ni "Opción … ✓ elegida"; cada línea muestra la tela y su color (`presupuestos/lib/texto-presupuesto.ts`, `telaDeFila`). Membrete "ROMINA RIBOT — Fábrica de cortinas, toldos y afines a medida" con teléfono e Instagram (@ribotromina, con link) en negrita, sin la dirección de la empresa ni los datos bancarios.
 - [x] **"Gasa" con s** en todo el presupuesto (hoja, detalle, aprobación, calculadora, descripciones nuevas; `conGasa`). En los datos la capa sigue siendo "GAZA"; la medición sigue diciendo "Gaza".
 - [x] **WhatsApp:** el botón abre WhatsApp con "Hola, te envío el presupuesto" y la ficha A4 con el diálogo de impresión para guardar el PDF y adjuntarlo (un link de WhatsApp no puede llevar archivos).
 

@@ -198,6 +198,14 @@ export function CortinaDibujoDidactico({
     caracteristicas?.tipoCapaGaza === "Tradicional Mot" ||
     (tipo === "Motorizada" && Boolean(caracteristicas?.subtipoMotorizada?.startsWith("Tradicional Mot")))
   const conConfeccionGaza = medidasConfeccion && tieneGaza && gazaEsTradicional
+  // B.O. tradicional: también con los +10 cm
+  const conConfeccionBO =
+    medidasConfeccion && tieneBO && (boEsTradicionalComun || caracteristicas?.tipoCapaBO === "Tradicional Mot")
+  /** Ancho de una capa con los +10 cm de confección (repartidos entre sus paños) */
+  const conConfeccion = (anchoM: number, aplica: boolean, partes = 1) =>
+    aplica && anchoM > 0 ? anchoM + 0.1 / Math.max(1, partes) : anchoM
+  // En la comanda los números del dibujo van al doble de tamaño
+  const tam = (normal: string, grande: string) => (medidasConfeccion ? grande : normal)
 
   // ¿Lleva mando la capa Gaza? Solo si NO es tradicional común
   const gazaLlevaMando = tieneGaza && !gazaEsTradicionalComun
@@ -444,14 +452,14 @@ export function CortinaDibujoDidactico({
         {/* Columna de Cortina (Cota superior perfectamente sobre el marco) */}
         <div className="flex flex-col items-center" style={{ width: `${boxWidth}px` }}>
           {/* Cota Superior Ancho Gaza (o total) */}
-          <div className="flex w-full items-center justify-between text-[8px] font-bold text-slate-700 mb-0.5">
+          <div className={`flex w-full items-center justify-between ${tam("text-[8px]", "text-[16px]")} font-bold text-slate-700 mb-0.5`}>
             <span>|</span>
             <div className="flex flex-1 items-center px-0.5">
               <div className="h-[1px] flex-1 bg-slate-400" />
-              <span className="px-0.5 text-[8px] font-extrabold text-slate-900 bg-white">
+              <span className={`px-0.5 ${tam("text-[8px]", "text-[16px]")} font-extrabold text-slate-900 bg-white whitespace-nowrap`}>
                 {tieneGaza && tieneBO ? "Gasa: " : ""}
                 {anchoEfectivo > 0
-                  ? fmtMedida(conConfeccionGaza ? calcularAnchoConfeccionGaza(anchoEfectivo) : anchoEfectivo)
+                  ? fmtMedida(conConfeccion(anchoEfectivo, tieneGaza ? conConfeccionGaza : conConfeccionBO))
                   : "0.00"}m
               </span>
               <div className="h-[1px] flex-1 bg-slate-400" />
@@ -483,17 +491,19 @@ export function CortinaDibujoDidactico({
                         style={{ flex: `${peso} 1 0%` }}
                         className="flex flex-col justify-between p-0.5 bg-slate-50 text-center"
                       >
-                        <span className="text-[7px] font-bold text-slate-600">
+                        <span className={`${tam("text-[7px]", "text-[11px]")} font-bold text-slate-600`}>
                           {p.etiqueta
                             .replace("Cortina", "C")
                             .replace("Paño", "P")
                             .replace("Tramo", "T")}
                         </span>
-                        <span className="text-[9px] font-extrabold text-slate-950">
+                        <span className={`${tam("text-[9px]", "text-[18px]")} font-extrabold text-slate-950 whitespace-nowrap`}>
                           {fmtMedida(
-                            conConfeccionGaza && p.tipoTela === "Gaza" && p.ancho > 0
-                              ? p.ancho + 0.1 / Math.max(1, divisiones.length)
-                              : p.ancho
+                            conConfeccion(
+                              p.ancho,
+                              p.tipoTela === "Gaza" ? conConfeccionGaza : conConfeccionBO,
+                              divisiones.length
+                            )
                           )}
                           m
                         </span>
@@ -523,12 +533,12 @@ export function CortinaDibujoDidactico({
 
           {/* Cota Inferior BO si conviven ambas */}
           {tieneGaza && tieneBO && (
-            <div className="flex w-full items-center justify-between text-[7px] font-bold text-slate-700 mt-0.5">
+            <div className={`flex w-full items-center justify-between ${tam("text-[7px]", "text-[14px]")} font-bold text-slate-700 mt-0.5`}>
               <span>|</span>
               <div className="flex flex-1 items-center px-0.5">
                 <div className="h-[1px] flex-1 bg-slate-500 border-b border-dashed" />
-                <span className="px-0.5 text-[7px] font-extrabold text-slate-900 bg-white">
-                  B.O.: {anchoBO > 0 ? fmtMedida(anchoBO) : "0.00"}m
+                <span className={`px-0.5 ${tam("text-[7px]", "text-[14px]")} font-extrabold text-slate-900 bg-white whitespace-nowrap`}>
+                  B.O.: {anchoBO > 0 ? fmtMedida(conConfeccion(anchoBO, conConfeccionBO)) : "0.00"}m
                 </span>
                 <div className="h-[1px] flex-1 bg-slate-500 border-b border-dashed" />
               </div>
@@ -539,11 +549,11 @@ export function CortinaDibujoDidactico({
 
         {/* Cota Lateral Alto */}
         <div
-          className="flex flex-col items-center justify-between text-[8px] font-bold text-slate-700 pt-[14px]"
-          style={{ height: `${boxHeight + 14}px` }}
+          className={`flex flex-col items-center justify-between ${tam("text-[8px] pt-[14px]", "text-[16px] pt-[26px]")} font-bold text-slate-700`}
+          style={{ height: `${boxHeight + (medidasConfeccion ? 26 : 14)}px` }}
         >
           <span>─</span>
-          <span className="text-[8px] font-extrabold text-slate-900 -rotate-90 whitespace-nowrap">
+          <span className={`${tam("text-[8px]", "text-[16px]")} font-extrabold text-slate-900 -rotate-90 whitespace-nowrap`}>
             {altoEfectivo > 0 ? fmtMedida(altoEfectivo) : "0.00"}m
           </span>
           <span>─</span>

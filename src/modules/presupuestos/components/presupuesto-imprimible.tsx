@@ -15,6 +15,17 @@ import { PresupuestoWhatsappButton } from "./presupuesto-whatsapp-button"
 import { agruparCortinas, calcularTotalesPorOpcion, esPrincipal, itemsAprobados } from "../lib/alternativas"
 import { conGasa, telaDeFila } from "../lib/texto-presupuesto"
 
+/** Logo de Instagram (lucide ya no trae íconos de marcas) */
+function IconoInstagram({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" />
+    </svg>
+  )
+}
+
 interface PresupuestoImprimibleProps {
   presupuesto: IPresupuestoDetalle
   onVolver?: () => void
@@ -190,10 +201,18 @@ export function PresupuestoImprimible({
               {DATOS_EMPRESA_DEFAULT.nombre}
             </h1>
             <div className="mt-1 space-y-0.5 text-xs text-slate-500">
-              <p className="flex items-center gap-1.5">
-                <Phone className="h-3.5 w-3.5 text-slate-400" />
+              <p className="flex items-center gap-1.5 font-bold text-slate-800">
+                <Phone className="h-3.5 w-3.5 text-slate-500" />
                 {DATOS_EMPRESA_DEFAULT.telefono}
               </p>
+              <a
+                href={`https://www.instagram.com/${DATOS_EMPRESA_DEFAULT.instagram}/`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 font-bold text-slate-800 hover:text-pink-700"
+              >
+                <IconoInstagram className="h-3.5 w-3.5 text-pink-600" />@{DATOS_EMPRESA_DEFAULT.instagram}
+              </a>
             </div>
           </div>
 

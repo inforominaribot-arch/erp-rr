@@ -102,12 +102,12 @@ export function ComandaImprimible({
           </div>
 
           <div className="text-right">
-            <span className="inline-block rounded-md bg-slate-900 px-3 py-1 text-xs font-black text-white uppercase tracking-wider">
+            <div className="text-xs font-black text-slate-900 uppercase tracking-wider">
               COMANDA DE TALLER
-            </span>
-            <div className="text-base font-black font-mono text-slate-900 mt-1">
-              {numComanda}
             </div>
+            <span className="inline-block rounded-md bg-slate-900 px-3 py-1 text-base font-black font-mono text-white mt-1">
+              {numComanda}
+            </span>
             <div className="text-[11px] text-slate-600 font-medium">
               Ref. Presupuesto: <strong>{numPresupuesto}</strong>
             </div>
@@ -121,9 +121,9 @@ export function ComandaImprimible({
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Datos del Cliente
             </p>
-            <p className="text-sm font-black text-slate-900">
+            <span className="inline-block rounded-md bg-slate-900 px-3 py-1 text-sm font-black text-white uppercase tracking-wide">
               {comanda.presupuesto.cliente.nombre}
-            </p>
+            </span>
             {comanda.presupuesto.cliente.telefono && (
               <p className="text-slate-700">
                 Tel: <strong>{comanda.presupuesto.cliente.telefono}</strong>
@@ -131,10 +131,13 @@ export function ComandaImprimible({
             )}
             {comanda.presupuesto.cliente.direccion && (
               <p className="text-slate-700">
-                Dirección: {comanda.presupuesto.cliente.direccion}
-                {comanda.presupuesto.cliente.localidad
-                  ? `, ${comanda.presupuesto.cliente.localidad}`
-                  : ""}
+                Dirección:{" "}
+                <strong>
+                  {comanda.presupuesto.cliente.direccion}
+                  {comanda.presupuesto.cliente.localidad
+                    ? `, ${comanda.presupuesto.cliente.localidad}`
+                    : ""}
+                </strong>
               </p>
             )}
           </div>
