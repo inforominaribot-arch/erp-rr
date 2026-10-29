@@ -40,6 +40,7 @@ export async function middleware(request: NextRequest) {
     "/api/mediciones/sync",
     "/api/mediciones/clientes-sync",
     "/api/mediciones/descargar",
+    "/api/mediciones/telas",
   ]
   const esRutaPublica = rutasPublicas.some(ruta =>
     request.nextUrl.pathname.startsWith(ruta)
