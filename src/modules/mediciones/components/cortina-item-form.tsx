@@ -70,6 +70,15 @@ import {
   type ModeloMosquitero,
   type PuertasMosquitero,
 } from "../lib/mosquiteros"
+import {
+  COLORES_NOCHE_TOTAL,
+  SISTEMAS_NOCHE_TOTAL,
+  celdaNocheTotal,
+  esNocheTotalACadena,
+  sistemasNocheTotalDisponibles,
+  type ColorNocheTotal,
+  type SistemaNocheTotal,
+} from "../lib/noche-total"
 
 interface CortinaItemFormProps {
   itemInicial?: Partial<IItemMedicion> | null
@@ -153,6 +162,12 @@ export function CortinaItemForm({
     caracInicial?.mosquitero?.sentidoApertura ?? null
   )
   const [mosqPuertas, setMosqPuertas] = useState<PuertasMosquitero>(caracInicial?.mosquitero?.puertas ?? "Simple")
+  // ─── Roller Noche Total MagicRoll ───
+  const [ntSistema, setNtSistema] = useState<SistemaNocheTotal | null>(caracInicial?.nocheTotal?.sistema ?? null)
+  const [ntColorTela, setNtColorTela] = useState<ColorNocheTotal | null>(caracInicial?.nocheTotal?.colorTela ?? null)
+  const [ntColorCadena, setNtColorCadena] = useState<ColorNocheTotal | null>(
+    caracInicial?.nocheTotal?.colorCadena ?? null
+  )
 
   const [sujecion, setSujecion] = useState<TipoSujecion | null>(
     caracInicial?.sujecion || null
@@ -647,6 +662,22 @@ export function CortinaItemForm({
       ? avisoAlturaPlegableImportado(anchoMosquitero, altoMosquitero, mosqPuertas)
       : null
 
+  // Noche Total: sistemas que se fabrican en la medida de todas las cortinas y cajón de cada una
+  const esNocheTotal = tipo === "Roller Noche total" || tipo === "Noche total"
+  const anchosNocheTotal = anchosTramos.slice(0, tramosBO).map((v) => (typeof v === "number" ? v : 0))
+  const medidasNocheTotalCargadas =
+    altoMosquitero > 0 && anchosNocheTotal.length > 0 && anchosNocheTotal.every((a) => a > 0)
+  const sistemasNocheTotal = medidasNocheTotalCargadas
+    ? hayTablasMosquitero
+      ? sistemasNocheTotalDisponibles(celdasMosquitero, anchosNocheTotal, altoMosquitero)
+      : SISTEMAS_NOCHE_TOTAL
+    : []
+  const celdasNocheTotalElegidas = ntSistema
+    ? anchosNocheTotal.map((a) => celdaNocheTotal(celdasMosquitero, ntSistema, a, altoMosquitero))
+    : []
+  const sistemaNocheTotalNoDisponible =
+    Boolean(ntSistema) && hayTablasMosquitero && medidasNocheTotalCargadas && celdasNocheTotalElegidas.some((c) => !c)
+
   // Objeto de características en tiempo real
   const caracteristicasActuales: ICaracteristicasItem | null = tipo
     ? {
@@ -703,6 +734,15 @@ export function CortinaItemForm({
                 ...(mosqModelo === "PLEGABLE_IMPORTADO" ? { puertas: mosqPuertas } : {}),
               }
             : undefined,
+        nocheTotal:
+          esNocheTotal && ntSistema
+            ? {
+                sistema: ntSistema,
+                colorTela: ntColorTela,
+                ...(esNocheTotalACadena(ntSistema) ? { colorCadena: ntColorCadena } : {}),
+                cajones: celdasNocheTotalElegidas.map((c) => c?.cajon ?? null),
+              }
+            : undefined,
         sujecion:
           tipo === "Aluminio"
             ? sujecionAluminio || undefined
@@ -713,6 +753,8 @@ export function CortinaItemForm({
         marcaBO:
           tipo === "Aluminio"
             ? "HD" // el aluminio es siempre HD
+            : esNocheTotal
+            ? "MG" // la Noche Total es siempre MagicRoll
             : (tipo === "Tradicional" && boActiva && formatoBO === "Tradicional") ||
           (esMotorizada && (subtipoMotorizada === "Tradicional Mot y Tradicional" || subtipoMotorizada === "Roller Mot y Tradicional"))
             ? null
@@ -821,7 +863,12 @@ export function CortinaItemForm({
                 alto: typeof altoBO === "number" ? altoBO : 0,
                 tramos: tramosBO,
                 anchosTramos: anchosTramos.slice(0, tramosBO).map((v) => (typeof v === "number" ? v : 0)),
-                nombreTela: tipo === "Mosquera" ? "Tela Mosquera" : nombreTelaBO,
+                nombreTela:
+                  tipo === "Mosquera"
+                    ? "Tela Mosquera"
+                    : esNocheTotal
+                    ? `Black Out${ntColorTela ? ` ${ntColorTela}` : ""}`
+                    : nombreTelaBO,
                 telaId: tipo === "Mosquera" ? null : telaIdBO,
                 colorTela: tipo === "Mosquera" || !telaIdBO ? null : colorTelaBO,
                 mandosRoller:
@@ -1003,6 +1050,101 @@ export function CortinaItemForm({
     )
   }
 
+  /** Roller Noche Total: sistema según la medida → color de tela → (a Cadena) lado y color de la cadena */
+  function renderPasosNocheTotal() {
+    const cajones = [...new Set(celdasNocheTotalElegidas.map((c) => c?.cajon).filter(Boolean))]
+    return (
+      <div className="pt-3 border-t border-indigo-100 space-y-4">
+        {/* Sistema */}
+        <div className="space-y-2">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">Sistema</label>
+          {!medidasNocheTotalCargadas ? (
+            <p className="text-[11px] text-slate-500">Cargá el ancho y el alto para ver los sistemas disponibles.</p>
+          ) : sistemasNocheTotal.length === 0 ? (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs font-semibold text-amber-800">
+              No hay ningún sistema que se fabrique en esa medida
+              {tramosBO > 1 ? " para todas las cortinas" : ""} (alto {fmtMedida(altoMosquitero)} m).
+            </p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {sistemasNocheTotal.map((s) => (
+                <button
+                  key={s.sistema}
+                  type="button"
+                  onClick={() => setNtSistema(s.sistema)}
+                  className={`${claseOpcion(ntSistema === s.sistema)} text-left`}
+                >
+                  {s.nombre}
+                </button>
+              ))}
+            </div>
+          )}
+          {!hayTablasMosquitero && medidasNocheTotalCargadas && (
+            <p className="text-[11px] text-amber-700">
+              Sin tablas de medidas cargadas (sincronizá la tablet): se muestran los dos sistemas.
+            </p>
+          )}
+          {sistemaNocheTotalNoDisponible && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs font-semibold text-amber-800">
+              El sistema elegido no se fabrica en esta medida: elegí otro.
+            </p>
+          )}
+          {cajones.length > 0 && (
+            <p className="text-[11px] font-semibold text-indigo-700">Lleva cajón de {cajones.join(" / ")} mm.</p>
+          )}
+        </div>
+
+        {/* Color de la tela */}
+        {ntSistema && (
+          <div className="space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">Color de la Tela</label>
+            <div className="flex flex-wrap gap-2">
+              {COLORES_NOCHE_TOTAL.map((c) => (
+                <button key={c} type="button" onClick={() => setNtColorTela(c)} className={claseOpcion(ntColorTela === c)}>
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* A Cadena: lado de la cadena de cada cortina y color */}
+        {esNocheTotalACadena(ntSistema) && (
+          <>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">Lado de la Cadena</label>
+              {Array.from({ length: tramosBO }).map((_, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  {tramosBO > 1 && <span className="w-20 text-[11px] font-bold text-slate-600">Cortina {i + 1}</span>}
+                  {(["Izquierda", "Derecha"] as const).map((l) => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => handleActualizarMandoRollerBO(i, l)}
+                      className={claseOpcion(mandosRollerBO[i] === l)}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">Color de la Cadena</label>
+              <div className="flex flex-wrap gap-2">
+                {COLORES_NOCHE_TOTAL.map((c) => (
+                  <button key={c} type="button" onClick={() => setNtColorCadena(c)} className={claseOpcion(ntColorCadena === c)}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    )
+  }
+
   function cambiarTelaGaza(v: ValorTela) {
     setNombreTelaGaza(v.nombreTela)
     setTelaIdGaza(v.telaId)
@@ -1106,6 +1248,34 @@ export function CortinaItemForm({
               : `Ingresá el Ancho de la Cortina ${i + 1} (${tipo}).`
           )
           return
+        }
+      }
+      if (esNocheTotal) {
+        if (!ntSistema) {
+          setErrorValidacion("Elegí el sistema de la Noche Total (a Resorte o a Cadena).")
+          return
+        }
+        if (sistemaNocheTotalNoDisponible) {
+          setErrorValidacion("Ese sistema de Noche Total no se fabrica en la medida cargada.")
+          return
+        }
+        if (!ntColorTela) {
+          setErrorValidacion("Elegí el color de la tela de la Noche Total.")
+          return
+        }
+        if (esNocheTotalACadena(ntSistema)) {
+          for (let i = 0; i < tramosBO; i++) {
+            if (!mandosRollerBO[i]) {
+              setErrorValidacion(
+                tramosBO === 1 ? "Elegí el lado de la cadena." : `Elegí el lado de la cadena de la Cortina ${i + 1}.`
+              )
+              return
+            }
+          }
+          if (!ntColorCadena) {
+            setErrorValidacion("Elegí el color de la cadena.")
+            return
+          }
         }
       }
       if (esNocheTotalConGaza) {
@@ -3074,6 +3244,7 @@ export function CortinaItemForm({
                 )}
 
                 {tipo === "Mosquera" && renderPasosMosquitero()}
+                {esNocheTotal && renderPasosNocheTotal()}
 
                 {/* Opción de Gaza delantera en Roller Noche Total */}
                 <div className="pt-3 border-t border-indigo-100 space-y-3 animate-in fade-in duration-100">

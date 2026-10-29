@@ -62,7 +62,7 @@ export function PresupuestoCalculadoraModal({
   listaRS = [],
   tablaMG = [],
 }: PresupuestoCalculadoraModalProps) {
-  const esMG = calculoInicial?.metodo === "MG_MOSQUITERO"
+  const esMG = calculoInicial?.metodo === "MG_MOSQUITERO" || calculoInicial?.metodo === "MG_NOCHE_TOTAL"
   const conListaRS = Boolean(calculoInicial) && (esMG ? tablaMG.length > 0 : listaRS.length > 0)
   // Dimensiones base
   const [ancho, setAncho] = useState<number>(anchoInicial)

@@ -685,5 +685,22 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 - [x] El modelo del mosquitero se ve en el dibujo de la medición y en el detalle de la comanda.
 
 ### ⏳ Pendiente
-- [ ] Roller Noche Total MagicRoll (otra tabla por medida, "Línea Premium").
+- [x] Roller Noche Total MagicRoll: ver la sección siguiente.
 - [ ] Mosqueras medidas antes de este cambio: no tienen modelo; al presupuestarlas se elige en la calculadora (pestaña "Lista MG").
+
+---
+
+## Actualización — Roller Noche Total MagicRoll (MG) con tablas de precios por medida (2026-10-29)
+
+### ✅ Implementado
+- [x] **Tablas** (`scripts/data/tablas-magicroll-noche-total-2026-10.mjs`, págs. 25 a 27 de la lista N° 26/10, 444 celdas, verificadas por el usuario; se cargan con `scripts/importar-tablas-medida.mjs`): Black Out con guías y cajón, dos sistemas:
+  - `NOCHE_TOTAL_RESORTE` — Sistema a Resorte: pág. 25 (cajón 40) y pág. 26 (cajón 54; las celdas gris oscuro, columna 2100–2200 y altos 2100–2300 desde 1400 de ancho, llevan cajón 62,5). Si la medida entra en las dos tablas se toma el cajón 40 (el más barato).
+  - `NOCHE_TOTAL_CADENA` — Sistema a Cadena Plástica con Tensor: pág. 27 (cajón 62,5; guías 42 mm con alto menor a 2000 y 60 mm con alto mayor).
+  - Sin extras (cadena extra, acero inoxidable, etc.). La zona "tela sellada horizontalmente" es solo informativa.
+- [x] **Medición** (`src/modules/mediciones/lib/noche-total.ts`, `cortina-item-form.tsx`): después del ancho de cada cortina y el alto se elige el **sistema** (solo los que se fabrican en la medida de todas las cortinas de la abertura; muestra el cajón), el **color de la tela** (Blanco, Negro, Gris o Beige) y, a Cadena, el **lado de la cadena** de cada cortina (`bo.mandosRoller`) y el **color de la cadena**. Perfilería, sujeción y Gaza delantera siguen como antes. Se guarda en `caracteristicas.nocheTotal` (sistema, colorTela, colorCadena, cajones por cortina); la tela queda como "Black Out <color>". La Noche Total es siempre marca MG. La tablet usa las mismas medidas que baja para los mosquiteros (`GET /api/mediciones/telas` → `mosquiteros` trae todas las celdas MG).
+- [x] **Presupuesto:** una fila por cortina, método `MG_NOCHE_TOTAL`: precio = celda (ancho y alto tal cual) × 1,25, instalación incluida. Pestaña "Lista MG" de la calculadora con el sistema y el desglose. Si no se fabrica en la medida o falta el sistema, la fila queda sin precio con aviso. El recálculo de presupuestos abiertos la incluye.
+- [x] El sistema, los colores y el cajón se ven en el dibujo de la medición y en el detalle de la comanda (con el lado de la cadena).
+- Datos de prueba: medición "Ventanal prueba NT" (2 cortinas a cadena, 2,30 y 1,00 × 1,00) y presupuesto #PRE-0015 (borrador), de Romina Ribot.
+
+### ⏳ Pendiente
+- [ ] Noche Total medidas antes de este cambio: no tienen sistema; al presupuestarlas se elige en la calculadora (pestaña "Lista MG").

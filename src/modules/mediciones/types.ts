@@ -2,6 +2,7 @@
 // Tipos específicos del módulo de mediciones
 
 import type { IMosquiteroConfig } from "./lib/mosquiteros"
+import type { INocheTotalConfig } from "./lib/noche-total"
 
 export type TipoCortina =
   | "Tradicional"
@@ -237,6 +238,9 @@ export interface ICaracteristicasItem {
 
   // Mosquitero MagicRoll (tipo "Mosquera"): modelo según la tabla de medidas, cajón, mando / sentido, puertas
   mosquitero?: IMosquiteroConfig
+
+  // Roller Noche Total MagicRoll: sistema según la tabla de medidas, color de tela y de cadena, cajones
+  nocheTotal?: INocheTotalConfig
 
   // Telas
   gaza?: IGazaConfig

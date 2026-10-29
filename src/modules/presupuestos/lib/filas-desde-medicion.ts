@@ -6,6 +6,7 @@
 
 import type { ICaracteristicasItem, IConfigMotor } from "@/modules/mediciones/types"
 import { textoMosquitero } from "@/modules/mediciones/lib/mosquiteros"
+import { textoNocheTotal } from "@/modules/mediciones/lib/noche-total"
 import {
   cortinasFisicas,
   etiquetaCortinaFisica,
@@ -20,6 +21,7 @@ import {
   calcularAccesorioMotorizado,
   calcularCortinaRS,
   calcularMosquiteroMG,
+  calcularNocheTotalMG,
   metodoParaCapa,
   type ICeldaPrecioMedida,
   type IItemListaCalculo,
@@ -97,6 +99,23 @@ export function calcularFilaMosquitero(
   }
 }
 
+/** Roller Noche Total MagicRoll: precio de la tabla del sistema elegido en la medición. */
+export function calcularFilaNocheTotal(
+  carac: ICaracteristicasItem | null,
+  ancho: number,
+  alto: number,
+  tablaMG: ICeldaPrecioMedida[],
+  opciones: OpcionesCalculo = {}
+): Pick<ItemPresupuestoInput, "precioUnitario" | "calculoPrecio"> {
+  if (tablaMG.length === 0) return { precioUnitario: 0, calculoPrecio: null }
+  const entrada = { modelo: carac?.nocheTotal?.sistema }
+  const resultado = calcularNocheTotalMG({ ...entrada, ancho, alto }, opciones, tablaMG)
+  return {
+    precioUnitario: resultado.precio ?? 0,
+    calculoPrecio: armarCalculoPrecio("MG_NOCHE_TOTAL", entrada, resultado),
+  }
+}
+
 /** Filas de una abertura (una por cortina física). Si la medición no tiene capas, una sola fila como antes. */
 export function filasDeAbertura(
   it: { id: string; descripcion: string; ancho: number; alto: number; cantidad: number; caracteristicas: unknown },
@@ -129,13 +148,21 @@ export function filasDeAbertura(
 
   return cortinas.map((k) => {
     const esMosquiteroMG = k.tipoCapa === "Mosquera" && k.marca === "MG"
+    const esNocheTotalMG = k.tipoCapa === "Roller Noche total" && k.marca === "MG"
     const calculo = esMosquiteroMG
       ? calcularFilaMosquitero(carac, k.ancho, k.alto, tablaMG)
+      : esNocheTotalMG
+      ? calcularFilaNocheTotal(carac, k.ancho, k.alto, tablaMG)
       : calcularFilaCortina(k, k.ancho, k.alto, lista)
     return {
       itemMedicionId: it.id,
       descripcion: esMosquiteroMG && carac?.mosquitero?.modelo
         ? `${it.descripcion || "Mosquitero"} – ${textoMosquitero(carac.mosquitero)}`.slice(0, 250)
+        : esNocheTotalMG && carac?.nocheTotal?.sistema
+        ? `${descripcionCortina(it.descripcion, k)} – ${textoNocheTotal({
+            ...carac.nocheTotal,
+            cajones: [carac.nocheTotal.cajones?.[k.indice] ?? null],
+          })}`.slice(0, 250)
         : descripcionCortina(it.descripcion, k),
       ambiente,
       ancho: k.ancho,

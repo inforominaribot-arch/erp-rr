@@ -115,8 +115,8 @@ export function cortinasFisicas(
     const marca =
       tipoCapa === "Aluminio"
         ? "HD"
-        : tipoCapa === "Mosquera"
-        ? "MG" // los mosquiteros son siempre MagicRoll
+        : tipoCapa === "Mosquera" || tipoCapa === "Roller Noche total"
+        ? "MG" // los mosquiteros y la Noche Total son siempre MagicRoll
         : ((capa === "GAZA" ? c.marcaGaza : c.marcaBO) ?? c.marca ?? null)
     const motor = (capa === "GAZA" ? c.motorGaza : c.motorBO) ?? null
     const anchoCapa = Number(config?.ancho) || anchoAbertura

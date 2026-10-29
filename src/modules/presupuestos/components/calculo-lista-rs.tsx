@@ -6,6 +6,7 @@
 import { AlertTriangle } from "lucide-react"
 import { formatearPrecio } from "@/lib/utils"
 import { modelosDisponibles } from "@/modules/mediciones/lib/mosquiteros"
+import { sistemasNocheTotalDisponibles } from "@/modules/mediciones/lib/noche-total"
 import {
   buscarPorId,
   canoBateria,
@@ -53,7 +54,12 @@ export function CalculoListaRS({
 
   const esAccesorio = metodo === "RS_CONTROL" || metodo === "RS_CARGADOR"
   const esMosquitero = metodo === "MG_MOSQUITERO"
-  const modelosMG = esMosquitero ? modelosDisponibles(tablaMG, ancho, alto) : []
+  const esNocheTotal = metodo === "MG_NOCHE_TOTAL"
+  const modelosMG = esMosquitero
+    ? modelosDisponibles(tablaMG, ancho, alto)
+    : esNocheTotal
+    ? sistemasNocheTotalDisponibles(tablaMG, [ancho], alto).map((s) => ({ modelo: s.sistema, nombre: s.nombre }))
+    : []
   const telas = telasParaCapa(lista, entrada.tipoCapa)
   const telaElegida = buscarPorId(lista, efectivas.telaId)
   const colores = coloresDe(telaElegida)
@@ -69,6 +75,8 @@ export function CalculoListaRS({
         <p className="font-bold">
           {esMosquitero
             ? "Mosquitero MagicRoll (tabla × 1,25, instalación incluida)"
+            : esNocheTotal
+            ? "Roller Noche Total MagicRoll (tabla × 1,25, instalación incluida)"
             : esAccesorio
             ? metodo === "RS_CONTROL"
               ? "Control remoto (lista × 1,5)"
@@ -76,21 +84,23 @@ export function CalculoListaRS({
             : `${entrada.tipoCapa} RS${modo !== "Normal" ? ` · ${modo}` : ""}`}
         </p>
         {resultado?.formula && <p>{resultado.formula}</p>}
-        {!esAccesorio && !esMosquitero && (
+        {!esAccesorio && !esMosquitero && !esNocheTotal && (
           <p className="text-violet-700">Ancho mínimo 1 m y mínimo 1 m² de tela.</p>
         )}
       </div>
 
-      {esMosquitero ? (
+      {esMosquitero || esNocheTotal ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-bold text-slate-700">Modelo (los que se fabrican en esta medida)</label>
+            <label className="text-xs font-bold text-slate-700">
+              {esNocheTotal ? "Sistema" : "Modelo"} (los que se fabrican en esta medida)
+            </label>
             <select
               value={efectivas.modelo || ""}
               onChange={(e) => cambiar({ modelo: e.target.value || null })}
               className={claseSelect}
             >
-              <option value="">-- Elegir modelo --</option>
+              <option value="">{esNocheTotal ? "-- Elegir sistema --" : "-- Elegir modelo --"}</option>
               {modelosMG.map((m) => (
                 <option key={m.modelo} value={m.modelo}>
                   {m.nombre}

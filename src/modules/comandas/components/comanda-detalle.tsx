@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { textoMosquitero } from "@/modules/mediciones/lib/mosquiteros"
+import { textoNocheTotal } from "@/modules/mediciones/lib/noche-total"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -687,6 +688,14 @@ export function ComandaDetalle({
                                   {c.mosquitero?.modelo && (
                                     <span>
                                       Mosquitero: <strong>{textoMosquitero(c.mosquitero)}</strong>
+                                    </span>
+                                  )}
+                                  {c.nocheTotal?.sistema && (
+                                    <span>
+                                      Noche Total: <strong>{textoNocheTotal(c.nocheTotal)}</strong>
+                                      {c.nocheTotal.colorCadena && c.bo?.mandosRoller?.length
+                                        ? ` · Cadena a la ${c.bo.mandosRoller.join(" / ").toLowerCase()}`
+                                        : ""}
                                     </span>
                                   )}
                                 </div>

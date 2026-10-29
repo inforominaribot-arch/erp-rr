@@ -4,6 +4,7 @@
 import { z } from "zod"
 import { clienteSchema } from "@/modules/clientes/schemas"
 import { CODIGOS_MODELO_MOSQUITERO } from "./lib/mosquiteros"
+import { CODIGOS_SISTEMA_NOCHE_TOTAL, COLORES_NOCHE_TOTAL } from "./lib/noche-total"
 
 // ─── Telas: Gaza y Black Out ──────────────────────────────────────────────────
 
@@ -163,6 +164,16 @@ export const caracteristicasItemSchema = z.object({
       mando: z.enum(["Izquierda", "Derecha"]).optional(),
       sentidoApertura: z.enum(["Izquierda", "Derecha"]).optional(),
       puertas: z.enum(["Simple", "Doble"]).optional(),
+    })
+    .optional(),
+
+  // Roller Noche Total MagicRoll
+  nocheTotal: z
+    .object({
+      sistema: z.enum(CODIGOS_SISTEMA_NOCHE_TOTAL),
+      colorTela: z.enum(COLORES_NOCHE_TOTAL).nullable(),
+      colorCadena: z.enum(COLORES_NOCHE_TOTAL).nullable().optional(),
+      cajones: z.array(z.string().max(10).nullable()).max(5).optional(),
     })
     .optional(),
 

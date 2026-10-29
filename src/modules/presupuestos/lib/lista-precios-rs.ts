@@ -13,6 +13,8 @@
 //  - Controles (por cliente, agrupados por marca y canales) y cargadores Li-ion (por abertura): lista × 1,5
 //  - Mosquitero MagicRoll (MG): precio de la tabla ancho × alto (IVA incluido) × 1,25 (instalación incluida).
 //    Plegable Importado doble: se entra a la tabla con la mitad del ancho y el precio va × 2.
+//  - Roller Noche Total MagicRoll (MG): tabla del sistema (a Resorte / a Cadena) con el ancho y alto tal cual × 1,25
+//    (instalación incluida). Una fila por cortina.
 
 import { z } from "zod"
 import type { IConfigMotor, ModoCortina } from "@/modules/mediciones/types"
@@ -23,6 +25,7 @@ import {
   type ICeldaMosquitero,
   type PuertasMosquitero,
 } from "@/modules/mediciones/lib/mosquiteros"
+import { celdaNocheTotal, nombreSistemaNocheTotal } from "@/modules/mediciones/lib/noche-total"
 import { VALORES_DEFECTO_PRECIOS } from "./calculadora-precios"
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
@@ -68,6 +71,7 @@ export type MetodoCalculoRS =
   | "RS_CONTROL"
   | "RS_CARGADOR"
   | "MG_MOSQUITERO"
+  | "MG_NOCHE_TOTAL"
 
 /** Celda de una tabla por medida con su precio (MagicRoll) */
 export interface ICeldaPrecioMedida extends ICeldaMosquitero {
@@ -83,7 +87,7 @@ export const opcionesCalculoSchema = z.object({
   canoId: z.string().max(64).nullable().optional(),
   motorId: z.string().max(64).nullable().optional(),
   itemId: z.string().max(64).nullable().optional(), // control o cargador
-  modelo: z.string().max(40).nullable().optional(), // mosquitero MG
+  modelo: z.string().max(40).nullable().optional(), // mosquitero MG / sistema de la Noche Total
   puertas: z.enum(["Simple", "Doble"]).nullable().optional(),
   instalacion: z.number().min(0).max(100_000_000).optional(),
 })
@@ -100,7 +104,7 @@ export const entradaCalculoSchema = z.object({
     .optional(),
   marcaMotor: z.string().max(20).optional(),
   canales: z.number().int().optional(),
-  // Mosquitero MG: modelo y puertas de la medición
+  // Mosquitero MG: modelo y puertas de la medición. Noche Total MG: sistema en "modelo"
   modelo: z.string().max(40).optional(),
   puertas: z.enum(["Simple", "Doble"]).optional(),
 })
@@ -114,7 +118,7 @@ export const lineaDesgloseSchema = z.object({
 export type LineaDesglose = z.infer<typeof lineaDesgloseSchema>
 
 export const calculoPrecioSchema = z.object({
-  metodo: z.enum(["RS_ROLLER", "RS_ROLLER_MOT", "RS_BANDAS", "RS_CONTROL", "RS_CARGADOR", "MG_MOSQUITERO"]),
+  metodo: z.enum(["RS_ROLLER", "RS_ROLLER_MOT", "RS_BANDAS", "RS_CONTROL", "RS_CARGADOR", "MG_MOSQUITERO", "MG_NOCHE_TOTAL"]),
   entrada: entradaCalculoSchema.default({}),
   opciones: opcionesCalculoSchema.default({}),
   desglose: z.array(lineaDesgloseSchema).max(30).default([]),
@@ -603,6 +607,45 @@ export function calcularMosquiteroMG(
   }
 }
 
+/** Precio de una Roller Noche Total MagicRoll: celda de la tabla del sistema × 1,25 (instalación incluida). */
+export function calcularNocheTotalMG(
+  entrada: { modelo?: string | null; ancho: number; alto: number },
+  opcionesElegidas: OpcionesCalculo,
+  tabla: ICeldaPrecioMedida[]
+): ResultadoCalculoRS {
+  const sistema = opcionesElegidas.modelo ?? entrada.modelo ?? null
+  const opciones: OpcionesCalculo = { ...opcionesElegidas, modelo: sistema }
+  const formula = "precio de la tabla (IVA incluido) × 1,25"
+  if (!sistema) {
+    return { precio: null, desglose: [], formula, avisos: ["Elegí el sistema de la Noche Total."], opciones }
+  }
+  const celda = celdaNocheTotal(tabla, sistema, entrada.ancho, entrada.alto)
+  if (!celda) {
+    return {
+      precio: null,
+      desglose: [],
+      formula,
+      avisos: [`Noche Total ${nombreSistemaNocheTotal(sistema)}: no se fabrica en esa medida.`],
+      opciones,
+    }
+  }
+  const precio = Math.round(celda.precio * FACTOR_MOSQUITERO_MG)
+  return {
+    precio,
+    desglose: [
+      {
+        concepto: "Tabla",
+        detalle: `Noche Total ${nombreSistemaNocheTotal(sistema)} (${celda.tabla}): ancho ${celda.anchoDesde}–${celda.anchoHasta} × alto ${celda.altoDesde}–${celda.altoHasta} mm${celda.cajon ? `, cajón ${celda.cajon}` : ""}`,
+        importe: celda.precio,
+      },
+      { concepto: "Recargo", detalle: `${fmt$(celda.precio)} × 1,25 (instalación incluida)`, importe: r2(precio - celda.precio) },
+    ],
+    formula,
+    avisos: [],
+    opciones,
+  }
+}
+
 /** Arma el JSON de cálculo que se guarda en la fila. */
 export function armarCalculoPrecio(
   metodo: MetodoCalculoRS,
@@ -641,6 +684,9 @@ export function recalcularFila(
   tablaMG: ICeldaPrecioMedida[] = []
 ): ResultadoCalculoRS | null {
   const calc = fila.calculoPrecio
+  if (calc.metodo === "MG_NOCHE_TOTAL") {
+    return calcularNocheTotalMG({ modelo: calc.entrada.modelo, ancho: fila.ancho, alto: fila.alto }, calc.opciones, tablaMG)
+  }
   if (calc.metodo === "MG_MOSQUITERO") {
     return calcularMosquiteroMG(
       { modelo: calc.entrada.modelo, puertas: calc.entrada.puertas, ancho: fila.ancho, alto: fila.alto },

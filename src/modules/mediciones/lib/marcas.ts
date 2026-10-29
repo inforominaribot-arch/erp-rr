@@ -17,7 +17,9 @@ function marcasPorCapa(c: CaracMarca): Array<{ capa: string; marca: MarcaCortina
   // El aluminio en sí es siempre HD
   if (c.tipo === "Aluminio") partes.push({ capa: "Aluminio", marca: "HD" })
   if (c.gaza?.activa && c.marcaGaza) partes.push({ capa: "Gaza", marca: c.marcaGaza })
-  if (c.tipo !== "Aluminio" && c.bo?.activa && c.marcaBO) {
+  // La Noche Total es siempre MagicRoll
+  if (c.tipo === "Roller Noche total" || c.tipo === "Noche total") partes.push({ capa: "B.O.", marca: "MG" })
+  else if (c.tipo !== "Aluminio" && c.bo?.activa && c.marcaBO) {
     partes.push({ capa: "B.O.", marca: c.marcaBO })
   }
   return partes

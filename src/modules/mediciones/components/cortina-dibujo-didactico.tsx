@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { textoMosquitero } from "../lib/mosquiteros"
+import { textoNocheTotal } from "../lib/noche-total"
 import type { ICaracteristicasItem } from "../types"
 import {
   calcularArgollasGaza,
@@ -1182,6 +1183,13 @@ export function CortinaDibujoDidactico({
           {caracteristicas?.mosquitero?.modelo && (
             <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-2.5 py-1.5 text-[11px] font-semibold text-indigo-900">
               {textoMosquitero(caracteristicas.mosquitero)}
+            </div>
+          )}
+
+          {/* Roller Noche Total MagicRoll: sistema, colores y cajón */}
+          {caracteristicas?.nocheTotal?.sistema && (
+            <div className="rounded-lg bg-indigo-50 border border-indigo-100 px-2.5 py-1.5 text-[11px] font-semibold text-indigo-900">
+              Noche Total: {textoNocheTotal(caracteristicas.nocheTotal)}
             </div>
           )}
 

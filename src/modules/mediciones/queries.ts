@@ -282,7 +282,7 @@ export async function obtenerTelasParaMedicion(): Promise<ITelaMedicion[]> {
 
 // ─── Medidas de los mosquiteros MagicRoll (sin precios) ──────────────────────
 
-/** Celdas activas de las tablas por medida del proveedor MG: qué medidas se fabrican en cada modelo. */
+/** Celdas activas de las tablas por medida del proveedor MG (mosquiteros y Noche Total): qué medidas se fabrican en cada modelo. */
 export async function obtenerCeldasMosquitero(): Promise<ICeldaMosquitero[]> {
   try {
     return await prisma.precioMedidaItem.findMany({

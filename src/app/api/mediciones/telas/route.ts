@@ -1,6 +1,7 @@
 // Telas de la lista de precios RS para el selector de la tablet (sentido web → tablet).
 // GET /api/mediciones/telas → { success, telas: ITelaMedicion[], mosquiteros: ICeldaMosquitero[] } (sin precios)
-// "mosquiteros": medidas que se fabrican en cada modelo MagicRoll (para ofrecer solo los modelos posibles).
+// "mosquiteros": medidas que se fabrican en cada modelo MagicRoll, mosquiteros y Noche Total (para ofrecer solo
+// los modelos / sistemas posibles).
 
 import {
   autenticarPeticionApi,
