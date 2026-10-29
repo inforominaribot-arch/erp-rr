@@ -580,6 +580,7 @@ export async function obtenerPresupuestosAceptadosSinComanda(): Promise<
         estado: p.estado,
         total: Number(p.total),
         creadoEn: p.creadoEn,
+        fechaAceptacion: p.fechaAceptacion,
         cliente: p.cliente,
         // Por abertura (como queda en la comanda): se unen las cortinas físicas aceptadas
         itemsAceptados: unirFilasPorAbertura(itemsAceptadosFiltrados).map((ab) => {

@@ -202,6 +202,8 @@ model Presupuesto {
   total         Decimal           @default(0) @db.Decimal(12, 2)
   notas         String?
   validezDias   Int               @default(15) @map("validez_dias")
+  // Cuándo se aceptó (total o parcial): la entrega de la comanda es 25 días después
+  fechaAceptacion DateTime?       @map("fecha_aceptacion")
   creadoEn      DateTime          @default(now()) @map("creado_en")
   actualizadoEn DateTime          @updatedAt @map("actualizado_en")
 

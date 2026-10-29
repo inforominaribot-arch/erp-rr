@@ -70,6 +70,8 @@ export interface IPresupuesto {
   total: number
   notas: string | null
   validezDias: number
+  /** Cuándo se aceptó (null si no está aceptado o se aceptó antes de guardarla) */
+  fechaAceptacion: Date | string | null
   creadoEn: Date | string
   actualizadoEn: Date | string
   cliente?: IPresupuestoCliente
@@ -115,8 +117,8 @@ export const CONDICIONES_PAGO_DEFAULT =
 export const PLAZO_ENTREGA_DEFAULT = "25 días a partir de la aprobación."
 
 export const DATOS_EMPRESA_DEFAULT = {
-  nombre: "ROMINA RIBOT Cortinados",
-  subtitulo: "Fábrica de Cortinas y Toldos a Medida",
+  nombre: "ROMINA RIBOT",
+  subtitulo: "Fábrica de cortinas, toldos y afines a medida",
   direccion: "P. Marcos Sastre 823",
   localidad: "Santa Fe, Argentina",
   telefono: "0342-154-064334",

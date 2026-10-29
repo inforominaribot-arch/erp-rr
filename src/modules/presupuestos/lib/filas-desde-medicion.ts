@@ -14,6 +14,7 @@ import {
 } from "@/modules/mediciones/lib/cortinas-fisicas"
 import type { ItemPresupuestoInput } from "../schemas"
 import type { MedicionImportable } from "../types"
+import { conGasa } from "./texto-presupuesto"
 import {
   armarCalculoPrecio,
   buscarCargador,
@@ -41,7 +42,7 @@ const esLiIon = (m: IConfigMotor | null | undefined) =>
 export function descripcionCortina(descripcionAbertura: string, k: ICortinaFisica): string {
   const etiqueta = etiquetaCortinaFisica({ ...k, total: 1 })
   const modo = k.modo !== "Normal" ? ` · ${k.modo}` : ""
-  return `${descripcionAbertura || "Cortina"} – ${etiqueta}${k.marca ? ` (${k.marca})` : ""}${modo}`.slice(0, 250)
+  return conGasa(`${descripcionAbertura || "Cortina"} – ${etiqueta}${k.marca ? ` (${k.marca})` : ""}${modo}`).slice(0, 250)
 }
 
 /** Sufijo del paño / tramo: "C2" en la Gaza, "T1" en el B.O. */

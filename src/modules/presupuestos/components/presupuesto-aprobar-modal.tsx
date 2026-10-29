@@ -23,6 +23,7 @@ import { cambiarEstadoPresupuesto, verificarStockPresupuestoAction } from "../ac
 import type { IReporteDisponibilidadStock } from "../lib/explosion-materiales"
 import { formatearPrecio } from "@/lib/utils"
 import { agruparCortinas, etiquetaOpcion, medidasOpcion } from "../lib/alternativas"
+import { conGasa } from "../lib/texto-presupuesto"
 
 interface PresupuestoAprobarModalProps {
   abierto: boolean
@@ -346,7 +347,7 @@ export function PresupuestoAprobarModal({
                     <div key={c.clave} className="p-3 text-xs">
                       <span className="font-bold text-slate-900 block">
                         {c.principal.ambiente ? `[${c.principal.ambiente}] ` : ""}
-                        {c.principal.descripcion}
+                        {conGasa(c.principal.descripcion)}
                       </span>
                       {renderSelectorOpcion(c)}
                     </div>
@@ -422,7 +423,7 @@ export function PresupuestoAprobarModal({
                         <div>
                           <span className="font-bold text-slate-900 block">
                             {it.ambiente ? `[${it.ambiente}] ` : ""}
-                            {it.descripcion}
+                            {conGasa(it.descripcion)}
                           </span>
                           <span className="text-[11px] text-slate-500 font-mono">
                             {medidasOpcion(elegida)}

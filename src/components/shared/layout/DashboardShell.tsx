@@ -12,7 +12,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
   const [mobileMenuAbierto, setMobileMenuAbierto] = useState(false)
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 print:h-auto print:overflow-visible print:bg-white">
+    <div className="flex h-screen overflow-hidden bg-slate-50 print:block print:h-auto print:overflow-visible print:bg-white">
       {/* Sidebar Desktop y Mobile Drawer */}
       <div className="print:hidden">
         <Sidebar
@@ -22,7 +22,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
       </div>
 
       {/* Contenido Principal */}
-      <div className="flex flex-1 flex-col overflow-hidden min-w-0 print:h-auto print:overflow-visible">
+      <div className="flex flex-1 flex-col overflow-hidden min-w-0 print:block print:h-auto print:overflow-visible">
         <div className="print:hidden">
           <Header onAbrirMobileMenu={() => setMobileMenuAbierto(true)} />
         </div>

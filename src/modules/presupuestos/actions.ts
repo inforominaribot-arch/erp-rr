@@ -282,9 +282,19 @@ export async function cambiarEstadoPresupuesto(
 
     await prisma.$transaction(async (tx) => {
       // Actualizar estado del presupuesto
+      // Fecha de aceptación: se guarda al aceptar (si ya estaba aceptado se mantiene la primera)
+      const aceptado = estado === "ACEPTADO_TOTAL" || estado === "ACEPTADO_PARCIAL"
+      const yaAceptado = presupuesto.estado === "ACEPTADO_TOTAL" || presupuesto.estado === "ACEPTADO_PARCIAL"
       await tx.presupuesto.update({
         where: { id },
-        data: { estado },
+        data: {
+          estado,
+          fechaAceptacion: aceptado
+            ? yaAceptado && presupuesto.fechaAceptacion
+              ? presupuesto.fechaAceptacion
+              : new Date()
+            : null,
+        },
       })
 
       // Actualizar aceptación de ítems individuales (opción elegida = aceptado)

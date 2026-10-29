@@ -4,13 +4,13 @@ import { Printer, ArrowLeft, Layers } from "lucide-react"
 import type { IComandaDetalle, IItemComanda } from "../types"
 import { CortinaDibujoDidactico } from "@/modules/mediciones/components/cortina-dibujo-didactico"
 import {
-  calcularAnchoConfeccionGaza,
   calcularArgollasGaza,
   calcularCantidadSoportes,
   determinarVarianteSoporte,
 } from "@/modules/mediciones/types"
 import { calcularCorteRiel } from "@/modules/presupuestos/lib/explosion-materiales"
 import { fmtMedida } from "@/lib/utils"
+import { detalleCapasComanda, llevaGanchos } from "../lib/detalle-capas"
 
 interface ComandaImprimibleProps {
   comanda: IComandaDetalle
@@ -40,6 +40,28 @@ export function ComandaImprimible({
 
   return (
     <div className="w-full space-y-4">
+      {/* Impresión A4: solo la hoja; cada cortina entera en una página */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            @media print {
+              @page { size: A4 portrait; margin: 8mm 10mm; }
+              html, body {
+                background: #ffffff !important;
+                height: auto !important;
+                overflow: visible !important;
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
+              }
+              .no-print, [class*="print:hidden"] { display: none !important; }
+              .comanda-hoja { width: 100% !important; max-width: 100% !important; padding: 0 !important; }
+              .comanda-tarjeta { break-inside: avoid !important; page-break-inside: avoid !important; }
+              .comanda-ambiente { break-after: avoid !important; page-break-after: avoid !important; }
+            }
+          `,
+        }}
+      />
+
       {/* ── BARRA SUPERIOR DE ACCIONES (OCULTA AL IMPRIMIR) ── */}
       <div className="no-print print:hidden flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
         <div className="flex items-center gap-2">
@@ -70,19 +92,13 @@ export function ComandaImprimible({
       </div>
 
       {/* ── HOJA A4 IMPRIMIBLE ── */}
-      <div className="mx-auto w-full max-w-[800px] bg-white p-8 border border-slate-200 shadow-sm print:m-0 print:max-w-none print:border-none print:p-0 print:shadow-none font-sans text-slate-900 text-xs">
+      <div className="comanda-hoja mx-auto w-full max-w-[800px] bg-white p-8 border border-slate-200 shadow-sm print:m-0 print:max-w-none print:border-none print:p-0 print:shadow-none font-sans text-slate-900 text-xs">
         {/* Cabecera / Membrete */}
         <div className="flex items-start justify-between border-b-2 border-slate-900 pb-4">
           <div>
             <h1 className="text-xl font-black tracking-tight text-slate-900 uppercase">
               ROMINA RIBOT
             </h1>
-            <p className="text-[11px] font-bold text-slate-600 uppercase tracking-widest">
-              Cortinados & Decoración
-            </p>
-            <p className="text-[10px] text-slate-500 mt-0.5">
-              Taller de Confección & Armado de Sistemas
-            </p>
           </div>
 
           <div className="text-right">
@@ -186,7 +202,7 @@ export function ComandaImprimible({
               return Object.entries(porAmbiente).map(([ambiente, itemsAmb]) => (
                 <div key={ambiente} className="space-y-3">
                   {/* Encabezado de Ambiente */}
-                  <div className="flex items-center justify-between bg-slate-100 border border-slate-800 px-3 py-1 rounded-md">
+                  <div className="comanda-ambiente flex items-center justify-between bg-slate-100 border border-slate-800 px-3 py-1 rounded-md">
                     <span className="text-xs font-black uppercase tracking-wider text-slate-900">
                       📍 AMBIENTE: {ambiente}
                     </span>
@@ -207,7 +223,6 @@ export function ComandaImprimible({
                       const altoGaza = c?.gaza?.alto || it.alto
                       const panosGaza = c?.gaza?.panos || 1
                       const anchosPanos = c?.gaza?.anchosPanos || []
-                      const anchoConfeccionGaza = tieneGaza ? calcularAnchoConfeccionGaza(anchoGaza) : 0
 
                       const anchoBO = c?.bo?.ancho || it.ancho
                       const altoBO = c?.bo?.alto || it.alto
@@ -219,7 +234,7 @@ export function ComandaImprimible({
                         !esProveedor && tieneGaza && tipo === "Tradicional" ? calcularArgollasGaza(anchoGaza) : 0
                       const cantidadSoportes = calcularCantidadSoportes(anchoEfectivo)
                       const varianteSoporte = determinarVarianteSoporte(tieneGaza, tieneBO, c?.formatoBO)
-                      const caida = c?.caida || "Por delante"
+                      const detallesCapas = detalleCapasComanda(c)
                       // Cálculo de medida de Riel o Barral
                       const esBarral = tipo === "Tradicional" && c?.sistema === "Barral"
                       const calculoRiel = calcularCorteRiel(Number(it.ancho))
@@ -239,7 +254,7 @@ export function ComandaImprimible({
                       return (
                         <div
                           key={it.id}
-                          className={`break-inside-avoid border-2 rounded-xl p-3.5 bg-white shadow-2xs ${
+                          className={`comanda-tarjeta break-inside-avoid border-2 rounded-xl p-3.5 bg-white shadow-2xs ${
                             esProveedor ? "border-amber-600" : "border-slate-900"
                           }`}
                         >
@@ -251,6 +266,7 @@ export function ComandaImprimible({
                                 alto={Number(it.alto)}
                                 caracteristicas={c}
                                 modoCompacto={true}
+                                medidasConfeccion={true}
                               />
                             </div>
 
@@ -291,7 +307,7 @@ export function ComandaImprimible({
                                 <div className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] text-amber-950 space-y-0.5">
                                   {it.pedidos.map((p) => (
                                     <div key={p.id}>
-                                      <strong>{p.etiqueta}</strong>
+                                      <strong>{p.etiqueta.replace("Gaza", "Gasa")}</strong>
                                       {p.marca ? ` (${p.marca})` : ""}: {p.proveedorNombre || "proveedor sin asignar"}
                                     </div>
                                   ))}
@@ -318,13 +334,6 @@ export function ComandaImprimible({
                                   <strong>{c?.sujecion || "Pared"}</strong>
                                 </div>
 
-                                {c?.mando && (
-                                  <div>
-                                    <span className="text-slate-500 font-medium">Mando: </span>
-                                    <strong>{c.mando}</strong>
-                                  </div>
-                                )}
-
                                 {c?.tipoSoporte && (
                                   <div>
                                     <span className="text-slate-500 font-medium">Soportes: </span>
@@ -335,21 +344,41 @@ export function ComandaImprimible({
                                 )}
                               </div>
 
+                              {/* Caída, posición y mando de cada capa */}
+                              {detallesCapas.length > 0 && (
+                                <div className="space-y-0.5 text-[11px]">
+                                  {detallesCapas.map((d) => (
+                                    <div key={d.capa}>
+                                      <strong>{d.capa}</strong>
+                                      <span className="text-slate-500"> ({d.tipo}): </span>
+                                      {[
+                                        d.caida && `Caída ${d.caida.toLowerCase()}`,
+                                        d.posicion && `Posición ${d.posicion.toLowerCase()}`,
+                                        d.mando && `Mando ${d.mando}`,
+                                      ]
+                                        .filter(Boolean)
+                                        .join(" · ")}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Ganchos: los cuenta y anota el taller */}
+                              {llevaGanchos(c) && (
+                                <div className="flex items-end gap-2 text-[11px] font-black text-slate-900">
+                                  <span>GANCHOS:</span>
+                                  <span className="flex-1 border-b-2 border-dotted border-slate-500 h-4 max-w-[140px]" />
+                                </div>
+                              )}
+
                               {/* Desglose de Confección de Telas */}
                               <div className="rounded-lg bg-slate-50 border border-slate-200 p-2 space-y-1 text-[11px]">
                                 {/* Gaza */}
                                 {tieneGaza && (
                                   <div className="border-b border-slate-200/80 pb-1">
-                                    <div className="flex items-center justify-between">
-                                      <span>
-                                        <strong>GAZA:</strong> {fmtMedida(anchoGaza)}m × {fmtMedida(altoGaza)}m
-                                        {c?.gaza?.nombreTela ? ` • ${c.gaza.nombreTela}` : ""}
-                                      </span>
-                                      {!esProveedor && (
-                                        <span className="rounded bg-amber-100 border border-amber-300 px-1.5 py-0.2 text-[9px] font-black text-amber-950">
-                                          Corte (+10cm): {fmtMedida(anchoConfeccionGaza)}m
-                                        </span>
-                                      )}
+                                    <div>
+                                      <strong>GASA:</strong> {fmtMedida(anchoGaza)}m × {fmtMedida(altoGaza)}m
+                                      {c?.gaza?.nombreTela ? ` • ${c.gaza.nombreTela}` : ""}
                                     </div>
                                     <div className="text-[10px] text-slate-600 mt-0.5">
                                       Paños ({panosGaza}):{" "}
@@ -364,14 +393,9 @@ export function ComandaImprimible({
                                 {/* Blackout */}
                                 {tieneBO && (
                                   <div className="pt-0.5">
-                                    <div className="flex items-center justify-between">
-                                      <span>
-                                        <strong>BLACK OUT:</strong> {fmtMedida(anchoBO)}m × {fmtMedida(altoBO)}m
-                                        {c?.bo?.nombreTela ? ` • ${c.bo.nombreTela}` : ""}
-                                      </span>
-                                      <span className="text-[10px] text-slate-500 font-medium">
-                                        Caída: {caida}
-                                      </span>
+                                    <div>
+                                      <strong>BLACK OUT:</strong> {fmtMedida(anchoBO)}m × {fmtMedida(altoBO)}m
+                                      {c?.bo?.nombreTela ? ` • ${c.bo.nombreTela}` : ""}
                                     </div>
                                     <div className="text-[10px] text-slate-600 mt-0.5">
                                       Tramos ({tramosBO}):{" "}

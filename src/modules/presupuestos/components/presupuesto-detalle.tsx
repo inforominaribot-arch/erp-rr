@@ -39,6 +39,7 @@ import type { ICaracteristicasItem } from "@/modules/mediciones/types"
 import { Package, AlertTriangle, Check } from "lucide-react"
 import { formatearPrecio, formatearFecha, fmtMedida } from "@/lib/utils"
 import { AvisoMedidaModificada } from "@/components/shared/aviso-medida-modificada"
+import { conGasa } from "../lib/texto-presupuesto"
 import {
   calcularTotalesPorOpcion,
   descripcionConOpcion,
@@ -58,6 +59,8 @@ export function PresupuestoDetalle({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [vistaActiva, setVistaActiva] = useState<"DIGITAL" | "FICHA_A4">("DIGITAL")
+  // "Enviar por WhatsApp": además de abrir WhatsApp, abre la ficha A4 para guardarla en PDF
+  const [imprimirFicha, setImprimirFicha] = useState(false)
   const [mostrarModalAprobar, setMostrarModalAprobar] = useState(false)
   const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false)
   const [mostrarModalComanda, setMostrarModalComanda] = useState(false)
@@ -94,6 +97,7 @@ export function PresupuestoDetalle({
         estado: presupuesto.estado,
         total: presupuesto.total,
         creadoEn: new Date(presupuesto.creadoEn),
+        fechaAceptacion: presupuesto.fechaAceptacion ? new Date(presupuesto.fechaAceptacion) : null,
         cliente: {
           id: presupuesto.cliente.id,
           nombre: presupuesto.cliente.nombre,
@@ -221,7 +225,15 @@ export function PresupuestoDetalle({
             </button>
           </div>
 
-          <PresupuestoWhatsappButton presupuesto={presupuesto} />
+          {vistaActiva === "DIGITAL" && (
+            <PresupuestoWhatsappButton
+              presupuesto={presupuesto}
+              onGuardarPdf={() => {
+                setImprimirFicha(true)
+                setVistaActiva("FICHA_A4")
+              }}
+            />
+          )}
 
           {puedeEditar && (
             <>
@@ -263,6 +275,8 @@ export function PresupuestoDetalle({
         <PresupuestoImprimible
           presupuesto={presupuesto}
           onVolver={() => setVistaActiva("DIGITAL")}
+          imprimirAlAbrir={imprimirFicha}
+          onImpreso={() => setImprimirFicha(false)}
         />
       ) : (
         <>
@@ -546,7 +560,7 @@ export function PresupuestoDetalle({
                           <td className={`py-3 px-4 ${esPrincipal(it) ? "" : "pl-8"}`}>
                             {esPrincipal(it) ? (
                               <span className="font-bold text-slate-900 block">
-                                {it.descripcion}
+                                {conGasa(it.descripcion)}
                                 {it.capa && grupo.items.filter((o) => o.grupoAlternativa === it.grupoAlternativa && esPrincipal(o)).length > 1 && (
                                   <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
                                     {sufijoCortina(it.capa, it.indiceCortina)}

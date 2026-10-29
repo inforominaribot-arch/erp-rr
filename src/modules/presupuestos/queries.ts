@@ -81,6 +81,7 @@ function serializarPresupuesto(p: PresupuestoConRelaciones): IPresupuesto {
     total: Number(p.total),
     notas: p.notas || null,
     validezDias: p.validezDias || 14,
+    fechaAceptacion: p.fechaAceptacion ?? null,
     creadoEn: p.creadoEn,
     actualizadoEn: p.actualizadoEn,
     cliente: p.cliente

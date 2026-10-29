@@ -23,6 +23,7 @@ import {
 } from "./lib/pedidos-proveedor"
 import type { EstadoPedidoProveedor } from "@prisma/client"
 import { unirFilasPorAbertura } from "@/modules/presupuestos/lib/filas-por-abertura"
+import { fechaEntregaDesdeAceptacion } from "./lib/fecha-entrega"
 
 // ─── 1. Generar Comanda desde Presupuesto Aceptado ───────────────────────────
 
@@ -150,8 +151,11 @@ export async function generarComandaDesdePresupuesto(
       }
     })
 
+    // Sin fecha cargada: 25 días desde la aceptación del presupuesto
     const fechaEntregaDate =
-      fechaEntrega && fechaEntrega.trim() !== "" ? new Date(fechaEntrega) : null
+      fechaEntrega && fechaEntrega.trim() !== ""
+        ? new Date(fechaEntrega)
+        : fechaEntregaDesdeAceptacion(presupuesto.fechaAceptacion)
 
     // Transacción Prisma: Crear Comanda e ítems, y actualizar Cliente a EN_PRODUCCION
     const nuevaComanda = await prisma.$transaction(async (tx) => {

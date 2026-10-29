@@ -378,7 +378,7 @@ export function PresupuestoCalculadoraModal({
           {tipo === "TRADICIONAL_ESTANDAR" && (
             <div className="space-y-4">
               <div className="rounded-lg bg-blue-50/60 p-3 border border-blue-100 text-xs text-blue-900">
-                Fórmula de taller: Riel ($50k/m) + Confección ($50k/m) + Telas (Gaza x2 o BO) + Instalación ($40k por capa).
+                Fórmula de taller: Riel ($50k/m) + Confección ($50k/m) + Telas (Gasa x2 o BO) + Instalación ($40k por capa).
               </div>
 
               {/* Capas de Tela */}
@@ -396,7 +396,7 @@ export function PresupuestoCalculadoraModal({
                       onChange={(e) => setTradLlevaGaza(e.target.checked)}
                       className="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
                     />
-                    Gaza (Frunce x2)
+                    Gasa (Frunce x2)
                   </label>
                   {tradLlevaGaza && (
                     <div className="flex items-center gap-2">

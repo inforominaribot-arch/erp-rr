@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect } from "react"
-import { Printer, ArrowLeft, Phone, MapPin, CreditCard } from "lucide-react"
-import { formatearPrecio, formatearFecha, fmtMedida } from "@/lib/utils"
+import { Printer, ArrowLeft, Phone } from "lucide-react"
+import { formatearPrecio, formatearFecha } from "@/lib/utils"
 import {
   formatearNumeroPresupuesto,
   calcularDiasRestantesValidez,
@@ -13,15 +13,21 @@ import {
 import type { IPresupuestoDetalle, IAmbientePresupuestoGrupo } from "../types"
 import { PresupuestoWhatsappButton } from "./presupuesto-whatsapp-button"
 import { agruparCortinas, calcularTotalesPorOpcion, esPrincipal, itemsAprobados } from "../lib/alternativas"
+import { conGasa, telaDeFila } from "../lib/texto-presupuesto"
 
 interface PresupuestoImprimibleProps {
   presupuesto: IPresupuestoDetalle
   onVolver?: () => void
+  /** Abrir el diálogo de impresión al mostrarse (desde "Enviar por WhatsApp", para guardar el PDF) */
+  imprimirAlAbrir?: boolean
+  onImpreso?: () => void
 }
 
 export function PresupuestoImprimible({
   presupuesto,
   onVolver,
+  imprimirAlAbrir = false,
+  onImpreso,
 }: PresupuestoImprimibleProps) {
   const { cliente, items } = presupuesto
   const numPresupuesto = formatearNumeroPresupuesto(presupuesto.numero)
@@ -71,6 +77,17 @@ export function PresupuestoImprimible({
     document.title = `Presupuesto - ${nombreCliente}`
     window.print()
   }
+
+  // Desde "Enviar por WhatsApp" en la vista digital: se abre la ficha y el diálogo para guardar el PDF
+  useEffect(() => {
+    if (!imprimirAlAbrir) return
+    const t = setTimeout(() => {
+      handleImprimir()
+      onImpreso?.()
+    }, 300)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imprimirAlAbrir])
 
   return (
     <div className="space-y-6">
@@ -140,7 +157,7 @@ export function PresupuestoImprimible({
         </div>
 
         <div className="flex items-center gap-2.5">
-          <PresupuestoWhatsappButton presupuesto={presupuesto} />
+          <PresupuestoWhatsappButton presupuesto={presupuesto} onGuardarPdf={handleImprimir} />
           <button
             type="button"
             onClick={handleImprimir}
@@ -173,10 +190,6 @@ export function PresupuestoImprimible({
               {DATOS_EMPRESA_DEFAULT.nombre}
             </h1>
             <div className="mt-1 space-y-0.5 text-xs text-slate-500">
-              <p className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                {DATOS_EMPRESA_DEFAULT.direccion}, {DATOS_EMPRESA_DEFAULT.localidad}
-              </p>
               <p className="flex items-center gap-1.5">
                 <Phone className="h-3.5 w-3.5 text-slate-400" />
                 {DATOS_EMPRESA_DEFAULT.telefono}
@@ -279,9 +292,6 @@ export function PresupuestoImprimible({
                       <th className="py-1 px-3 font-semibold">
                         Descripción del Producto
                       </th>
-                      <th className="py-1 px-3 font-semibold text-center w-28">
-                        Medidas (m)
-                      </th>
                       <th className="py-1 px-3 font-semibold text-center w-16">
                         Cant.
                       </th>
@@ -301,29 +311,13 @@ export function PresupuestoImprimible({
                         className={esPrincipal(it) ? "hover:bg-slate-50/50" : "bg-indigo-50/30"}
                       >
                         <td className={`py-1.5 px-3 ${esPrincipal(it) ? "" : "pl-7"}`}>
-                          {esPrincipal(it) && (
-                            <p className="font-bold text-slate-900">{it.descripcion}</p>
+                          <p className="font-bold text-slate-900">
+                            {esPrincipal(it) ? "" : "↳ "}
+                            {conGasa(it.descripcion)}
+                          </p>
+                          {telaDeFila(it) && (
+                            <p className="text-[11px] text-slate-600">Tela: {telaDeFila(it)}</p>
                           )}
-                          {it.grupoAlternativa && (
-                            <p
-                              className={`text-[11px] ${
-                                esPrincipal(it) ? "text-indigo-800" : "font-semibold text-indigo-800"
-                              }`}
-                            >
-                              {esPrincipal(it) ? "Opción " : "↳ Opción "}
-                              <strong>{it.nombreOpcion || "alternativa"}</strong>
-                              {estaAceptado && it.aceptado ? " ✓ elegida" : ""}
-                            </p>
-                          )}
-                        </td>
-                        <td className="py-1.5 px-3 text-center text-slate-600 font-mono">
-                          {it.filas.map((f) => (
-                            <span key={f.id} className="block">
-                              {f.ancho > 0 && f.alto > 0
-                                ? `${fmtMedida(f.ancho)} × ${fmtMedida(f.alto)}`
-                                : "—"}
-                            </span>
-                          ))}
                         </td>
                         <td className="py-1.5 px-3 text-center font-bold text-slate-800">
                           {it.filas.reduce((acc, f) => acc + f.cantidad, 0)}
@@ -389,21 +383,6 @@ export function PresupuestoImprimible({
               </p>
             </div>
 
-            {/* Datos Bancarios para Seña */}
-            <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-2 text-[11px] text-indigo-950">
-              <div className="flex items-center gap-1.5 font-bold mb-0.5">
-                <CreditCard className="h-3.5 w-3.5 text-indigo-600" />
-                Datos para Transferencia / Seña (50%):
-              </div>
-              <p className="text-[10px]">
-                <strong>Banco:</strong> Banco Santander &nbsp;|&nbsp;{" "}
-                <strong>Titular:</strong> Romina Ribot
-              </p>
-              <p className="text-[10px]">
-                <strong>Alias:</strong> CORTINADOS.RR &nbsp;|&nbsp;{" "}
-                <strong>CBU:</strong> 0720123988000034567891
-              </p>
-            </div>
           </div>
 
           {/* Bloque de Números (Lado Derecho ~38%) */}
@@ -488,7 +467,7 @@ export function PresupuestoImprimible({
 
         {/* Pie de Página */}
         <div className="mt-4 border-t border-slate-100 pt-2 text-center text-[10px] text-slate-400 print:text-[9px]">
-          Cotización generada a través de ERP RR — ROMINA RIBOT Cortinados a Medida • Santa Fe, Argentina.
+          Cotización generada a través de ERP RR — ROMINA RIBOT • Santa Fe, Argentina.
         </div>
       </div>
     </div>

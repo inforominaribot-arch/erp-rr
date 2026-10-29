@@ -103,7 +103,7 @@ export function PedidosProveedorPanel({
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-bold text-slate-900">
-                {p.etiqueta}
+                {p.etiqueta.replace("Gaza", "Gasa")}
                 {p.marca && (
                   <span className="ml-1.5 rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-bold text-white">
                     {p.marca}

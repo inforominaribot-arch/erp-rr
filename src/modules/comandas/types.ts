@@ -175,6 +175,8 @@ export interface IPresupuestoAceptadoResumen {
   estado: EstadoPresupuesto
   total: number
   creadoEn: Date
+  /** Cuándo se aceptó (null en presupuestos aceptados antes de guardarla) */
+  fechaAceptacion: Date | null
   cliente: {
     id: string
     nombre: string

@@ -71,7 +71,7 @@ const conSubtotal = (it: ItemPresupuestoInput): ItemPresupuestoInput => ({
   subtotal: Math.round(Math.max(1, it.cantidad) * Math.max(0, it.precioUnitario) * 100) / 100,
 })
 
-const NOMBRE_CAPA: Record<string, string> = { GAZA: "Gaza", BO: "B.O." }
+const NOMBRE_CAPA: Record<string, string> = { GAZA: "Gasa", BO: "B.O." }
 
 interface ClienteOpcion {
   id: string

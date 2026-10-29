@@ -30,6 +30,8 @@ interface CortinaDibujoDidacticoProps {
   caracteristicas: ICaracteristicasItem | null
   esVistaTaller?: boolean
   modoCompacto?: boolean
+  /** Comanda de taller: la Gasa tradicional se dibuja con el ancho de confección (+10 cm repartidos en los paños) */
+  medidasConfeccion?: boolean
 }
 
 // Colores de Barral
@@ -67,6 +69,7 @@ export function CortinaDibujoDidactico({
   caracteristicas,
   esVistaTaller = false,
   modoCompacto = false,
+  medidasConfeccion = false,
 }: CortinaDibujoDidacticoProps) {
   const [panoHovered, setPanoHovered] = useState<number | null>(null)
   const [panoSeleccionado, setPanoSeleccionado] = useState<number | null>(null)
@@ -188,6 +191,13 @@ export function CortinaDibujoDidactico({
     )) ||
     caracteristicas?.tipoCapaBO === "Tradicional Mot" ||
     caracteristicas?.tipoCapaBO === "Roller Mot"
+
+  // Gasa tradicional (común o motorizada): en la comanda se dibuja con el ancho de confección
+  const gazaEsTradicional =
+    gazaEsTradicionalComun ||
+    caracteristicas?.tipoCapaGaza === "Tradicional Mot" ||
+    (tipo === "Motorizada" && Boolean(caracteristicas?.subtipoMotorizada?.startsWith("Tradicional Mot")))
+  const conConfeccionGaza = medidasConfeccion && tieneGaza && gazaEsTradicional
 
   // ¿Lleva mando la capa Gaza? Solo si NO es tradicional común
   const gazaLlevaMando = tieneGaza && !gazaEsTradicionalComun
@@ -439,8 +449,10 @@ export function CortinaDibujoDidactico({
             <div className="flex flex-1 items-center px-0.5">
               <div className="h-[1px] flex-1 bg-slate-400" />
               <span className="px-0.5 text-[8px] font-extrabold text-slate-900 bg-white">
-                {tieneGaza && tieneBO ? "Gaza: " : ""}
-                {anchoEfectivo > 0 ? fmtMedida(anchoEfectivo) : "0.00"}m
+                {tieneGaza && tieneBO ? "Gasa: " : ""}
+                {anchoEfectivo > 0
+                  ? fmtMedida(conConfeccionGaza ? calcularAnchoConfeccionGaza(anchoEfectivo) : anchoEfectivo)
+                  : "0.00"}m
               </span>
               <div className="h-[1px] flex-1 bg-slate-400" />
             </div>
@@ -478,7 +490,12 @@ export function CortinaDibujoDidactico({
                             .replace("Tramo", "T")}
                         </span>
                         <span className="text-[9px] font-extrabold text-slate-950">
-                          {fmtMedida(p.ancho)}m
+                          {fmtMedida(
+                            conConfeccionGaza && p.tipoTela === "Gaza" && p.ancho > 0
+                              ? p.ancho + 0.1 / Math.max(1, divisiones.length)
+                              : p.ancho
+                          )}
+                          m
                         </span>
                       </div>
                     )

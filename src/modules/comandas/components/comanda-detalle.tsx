@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react"
 import { textoMosquitero } from "@/modules/mediciones/lib/mosquiteros"
 import { textoNocheTotal } from "@/modules/mediciones/lib/noche-total"
+import { detalleCapasComanda } from "../lib/detalle-capas"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -614,6 +615,7 @@ export function ComandaDetalle({
                                   alto={Number(it.alto)}
                                   caracteristicas={c}
                                   modoCompacto={true}
+                                  medidasConfeccion={true}
                                 />
                               </div>
 
@@ -635,7 +637,7 @@ export function ComandaDetalle({
                                 {c.gaza?.activa && (
                                   <div>
                                     <span className="text-slate-400 font-semibold">
-                                      Gaza:
+                                      Gasa:
                                     </span>{" "}
                                     <strong>
                                       {c.gaza.nombreTela || "Tela"}
@@ -664,17 +666,21 @@ export function ComandaDetalle({
                                   </div>
                                 )}
 
+                                {/* Caída, posición y mando de cada capa */}
+                                {detalleCapasComanda(c).map((d) => (
+                                  <div key={d.capa} className="text-[11px]">
+                                    <span className="text-slate-400 font-semibold">{d.capa} ({d.tipo}):</span>{" "}
+                                    {[
+                                      d.caida && `Caída ${d.caida.toLowerCase()}`,
+                                      d.posicion && `Posición ${d.posicion.toLowerCase()}`,
+                                      d.mando && `Mando ${d.mando}`,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" · ")}
+                                  </div>
+                                ))}
+
                                 <div className="flex flex-wrap gap-x-3 text-[11px] text-slate-500 pt-0.5">
-                                  {c.mando && (
-                                    <span>
-                                      Mando: <strong>{c.mando}</strong>
-                                    </span>
-                                  )}
-                                  {c.caida && (
-                                    <span>
-                                      Caída: <strong>{c.caida}</strong>
-                                    </span>
-                                  )}
                                   {c.sujecion && (
                                     <span>
                                       Sujeción: <strong>{c.sujecion}</strong>

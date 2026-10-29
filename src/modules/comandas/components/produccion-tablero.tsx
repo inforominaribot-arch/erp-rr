@@ -503,7 +503,7 @@ export function ProduccionTablero({
 
                         {c.gaza?.activa && (
                           <div className="text-[11px] text-slate-800">
-                            • <strong>Gaza:</strong>{" "}
+                            • <strong>Gasa:</strong>{" "}
                             {c.gaza.nombreTela || "Gaza"} — {c.gaza.panos}{" "}
                             {c.gaza.panos === 1 ? "paño" : "paños"}
                             {c.gaza.anchosPanos?.length > 0 &&

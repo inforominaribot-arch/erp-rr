@@ -16,6 +16,7 @@ import {
 import type { IPresupuestoAceptadoResumen, TipoItemComanda } from "../types"
 import { generarComandaDesdePresupuesto } from "../actions"
 import { formatearPrecio } from "@/lib/utils"
+import { DIAS_ENTREGA, fechaEntregaParaInput } from "../lib/fecha-entrega"
 
 interface ComandaGenerarModalProps {
   abierto: boolean
@@ -39,7 +40,10 @@ export function ComandaGenerarModal({
       (presupuestosAceptados.length > 0 ? presupuestosAceptados[0].id : "")
   )
 
-  const [fechaEntrega, setFechaEntrega] = useState<string>("")
+  // Fecha de entrega: 25 días desde la aceptación del presupuesto (se puede cambiar)
+  const fechaSugerida = (id: string) =>
+    fechaEntregaParaInput(presupuestosAceptados.find((p) => p.id === id)?.fechaAceptacion)
+  const [fechaEntrega, setFechaEntrega] = useState<string>(() => (presupuestoId ? fechaSugerida(presupuestoId) : ""))
   const [notas, setNotas] = useState<string>("")
 
   // Clasificación por ítem: { [itemId]: { tipo: "FABRICAR" | "PEDIR_PROVEEDOR", observaciones: string } }
@@ -162,7 +166,10 @@ export function ComandaGenerarModal({
             ) : (
               <select
                 value={presupuestoId}
-                onChange={(e) => setPresupuestoId(e.target.value)}
+                onChange={(e) => {
+                  setPresupuestoId(e.target.value)
+                  setFechaEntrega(e.target.value ? fechaSugerida(e.target.value) : "")
+                }}
                 className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-semibold text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
               >
                 {presupuestosAceptados.map((p) => (
@@ -210,6 +217,7 @@ export function ComandaGenerarModal({
                     <Calendar className="h-3.5 w-3.5 text-slate-400" />
                     Fecha de Entrega Estimada
                   </label>
+                  <p className="mb-1 text-[10px] text-slate-500">{DIAS_ENTREGA} días desde la aceptación del presupuesto.</p>
                   <input
                     type="date"
                     value={fechaEntrega}
