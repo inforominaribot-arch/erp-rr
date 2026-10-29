@@ -491,7 +491,7 @@ export function CortinaDibujoDidactico({
                         style={{ flex: `${peso} 1 0%` }}
                         className="flex flex-col justify-between p-0.5 bg-slate-50 text-center"
                       >
-                        <span className={`${tam("text-[7px]", "text-[11px]")} font-bold text-slate-600`}>
+                        <span className={`${tam("text-[7px] text-slate-600", "text-[11px] text-slate-900")} font-bold`}>
                           {p.etiqueta
                             .replace("Cortina", "C")
                             .replace("Paño", "P")

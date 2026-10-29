@@ -57,13 +57,6 @@ export function ComandaImprimible({
               .comanda-hoja { width: 100% !important; max-width: 100% !important; padding: 0 !important; }
               .comanda-tarjeta { break-inside: avoid !important; page-break-inside: avoid !important; }
               .comanda-ambiente { break-after: avoid !important; page-break-after: avoid !important; }
-              /* En papel todo en negro: los grises claros, naranjas y violetas salen lavados */
-              .comanda-hoja, .comanda-hoja * { color: #000 !important; }
-              .comanda-hoja [class*="border-"] { border-color: #000 !important; }
-              .comanda-hoja .bg-slate-900, .comanda-hoja .bg-amber-600 { background-color: #000 !important; }
-              .comanda-hoja .bg-slate-900, .comanda-hoja .bg-slate-900 *,
-              .comanda-hoja .bg-amber-600, .comanda-hoja .bg-amber-600 * { color: #fff !important; }
-              .comanda-hoja .bg-amber-50, .comanda-hoja .bg-indigo-50 { background-color: #fff !important; }
             }
           `,
         }}
@@ -99,7 +92,7 @@ export function ComandaImprimible({
       </div>
 
       {/* ── HOJA A4 IMPRIMIBLE ── */}
-      <div className="comanda-hoja mx-auto w-full max-w-[800px] bg-white p-8 border border-slate-200 shadow-sm print:m-0 print:max-w-none print:border-none print:p-0 print:shadow-none font-sans text-slate-900 text-xs">
+      <div className="comanda-hoja mx-auto w-full max-w-[800px] bg-white p-8 border border-slate-500 shadow-sm print:m-0 print:max-w-none print:border-none print:p-0 print:shadow-none font-sans text-slate-900 text-xs">
         {/* Cabecera / Membrete */}
         <div className="flex items-start justify-between border-b-2 border-slate-900 pb-4">
           <div>
@@ -115,29 +108,29 @@ export function ComandaImprimible({
             <span className="inline-block rounded-md bg-slate-900 px-3 py-1 text-base font-black font-mono text-white mt-1">
               {numComanda}
             </span>
-            <div className="text-[11px] text-slate-600 font-medium">
+            <div className="text-[11px] text-slate-900 font-medium">
               Ref. Presupuesto: <strong>{numPresupuesto}</strong>
             </div>
           </div>
         </div>
 
         {/* Datos Principales (Cliente, Fechas, Resumen) */}
-        <div className="grid grid-cols-2 gap-4 border-b border-slate-200 py-3 text-xs">
+        <div className="grid grid-cols-2 gap-4 border-b border-slate-500 py-3 text-xs">
           {/* Cliente */}
           <div className="space-y-1">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-900">
               Datos del Cliente
             </p>
             <span className="inline-block rounded-md bg-slate-900 px-3 py-1 text-sm font-black text-white uppercase tracking-wide">
               {comanda.presupuesto.cliente.nombre}
             </span>
             {comanda.presupuesto.cliente.telefono && (
-              <p className="text-slate-700">
+              <p className="text-slate-900">
                 Tel: <strong>{comanda.presupuesto.cliente.telefono}</strong>
               </p>
             )}
             {comanda.presupuesto.cliente.direccion && (
-              <p className="text-slate-700">
+              <p className="text-slate-900">
                 Dirección:{" "}
                 <strong>
                   {comanda.presupuesto.cliente.direccion}
@@ -151,19 +144,19 @@ export function ComandaImprimible({
 
           {/* Fechas & Resumen Taller */}
           <div className="space-y-1 text-right">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-900">
               Plazos de Producción
             </p>
-            <p className="text-slate-700">
+            <p className="text-slate-900">
               Emisión Comanda: <strong>{fechaEmision}</strong>
             </p>
             <p className="text-xs font-bold text-slate-900">
               Fecha de Entrega:{" "}
-              <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-indigo-900 border border-indigo-200">
+              <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-indigo-700 border border-indigo-600">
                 {fechaEntrega}
               </span>
             </p>
-            <div className="pt-1 text-[11px] text-slate-600 flex items-center justify-end gap-3">
+            <div className="pt-1 text-[11px] text-slate-900 flex items-center justify-end gap-3">
               <span>
                 Total: <strong>{totalItems} cortinas</strong>
               </span>
@@ -179,7 +172,7 @@ export function ComandaImprimible({
 
         {/* Observaciones generales de comanda si las hay */}
         {comanda.notas && (
-          <div className="my-3 rounded-lg border border-amber-200 bg-amber-50/70 p-2.5 text-[11px] text-amber-900">
+          <div className="my-3 rounded-lg border border-amber-600 bg-amber-50/70 p-2.5 text-[11px] text-amber-900">
             <strong className="uppercase tracking-wider text-[10px] text-amber-800">
               Instrucciones Especiales de Taller:
             </strong>{" "}
@@ -195,9 +188,6 @@ export function ComandaImprimible({
                 <Layers className="h-3.5 w-3.5" />
                 Cortinas de la Comanda ({totalItems})
               </h2>
-              <span className="text-[10px] font-bold text-slate-500 uppercase">
-                Dibujo técnico y especificaciones
-              </span>
             </div>
 
             {/* Agrupadas por Ambiente */}
@@ -216,7 +206,7 @@ export function ComandaImprimible({
                     <span className="text-xs font-black uppercase tracking-wider text-slate-900">
                       📍 AMBIENTE: {ambiente}
                     </span>
-                    <span className="text-[10px] font-bold text-slate-600">
+                    <span className="text-[10px] font-bold text-slate-900">
                       {itemsAmb.length} cortina{itemsAmb.length !== 1 ? "s" : ""}
                     </span>
                   </div>
@@ -270,7 +260,7 @@ export function ComandaImprimible({
                         >
                           <div className="grid grid-cols-12 gap-3.5 items-center">
                             {/* ── COLUMNA IZQUIERDA: DIBUJO DIDÁCTICO MUCHO MÁS GRANDE (~48%) ── */}
-                            <div className="col-span-12 sm:col-span-6 border-b sm:border-b-0 sm:border-r border-slate-300 pb-2 sm:pb-0 sm:pr-3 flex flex-col items-center justify-center min-h-[175px] bg-slate-50/50 rounded-lg p-1.5">
+                            <div className="col-span-12 sm:col-span-6 border-b sm:border-b-0 sm:border-r border-slate-500 pb-2 sm:pb-0 sm:pr-3 flex flex-col items-center justify-center min-h-[175px] bg-slate-50/50 rounded-lg p-1.5">
                               <CortinaDibujoDidactico
                                 ancho={Number(it.ancho)}
                                 alto={Number(it.alto)}
@@ -281,9 +271,9 @@ export function ComandaImprimible({
                             </div>
 
                             {/* ── COLUMNA DERECHA: ESPECIFICACIONES TÉCNICAS & CASILLEROS (~52%) ── */}
-                            <div className="col-span-12 sm:col-span-6 space-y-2 text-xs text-slate-800">
+                            <div className="col-span-12 sm:col-span-6 space-y-2 text-xs text-slate-900">
                               {/* Título de la Cortina y Medida de Riel/Barral */}
-                              <div className="flex items-start justify-between border-b border-slate-200 pb-1.5">
+                              <div className="flex items-start justify-between border-b border-slate-500 pb-1.5">
                                 <div>
                                   <span className="font-extrabold text-slate-950 text-sm block">
                                     {idx + 1}. {it.descripcion}
@@ -293,7 +283,7 @@ export function ComandaImprimible({
                                     <span className="inline-block rounded-md bg-slate-900 px-2 py-0.5 text-[11px] font-black text-white font-mono shadow-2xs">
                                       {textoMedidaSoporte}
                                     </span>
-                                    <span className="text-[10px] text-slate-500 font-bold">
+                                    <span className="text-[10px] text-slate-900 font-bold">
                                       Cant: {it.cantidad}
                                     </span>
                                   </div>
@@ -306,7 +296,7 @@ export function ComandaImprimible({
                                   >
                                     {esProveedor ? "Proveedor" : "Taller"}
                                   </span>
-                                  <span className="rounded bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-black uppercase text-indigo-900">
+                                  <span className="rounded bg-indigo-50 border border-indigo-600 px-2 py-0.5 text-[10px] font-black uppercase text-indigo-700">
                                     {tipo}
                                   </span>
                                 </div>
@@ -314,7 +304,7 @@ export function ComandaImprimible({
 
                               {/* Proveedor por capa (marca y proveedor asignado) */}
                               {esProveedor && it.pedidos.length > 0 && (
-                                <div className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] text-amber-950 space-y-0.5">
+                                <div className="rounded-md border border-amber-600 bg-amber-50 px-2 py-1 text-[10px] text-amber-950 space-y-0.5">
                                   {it.pedidos.map((p) => (
                                     <div key={p.id}>
                                       <strong>{p.etiqueta.replace("Gaza", "Gasa")}</strong>
@@ -327,7 +317,7 @@ export function ComandaImprimible({
                               {/* Especificaciones de Sistema, Mandos y Soportes */}
                               <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[11px]">
                                 <div>
-                                  <span className="text-slate-500 font-medium">Sistema: </span>
+                                  <span className="text-slate-900 font-medium">Sistema: </span>
                                   <strong>
                                     {tipo === "Tradicional"
                                       ? `${c?.sistema || "Riel"}${
@@ -340,13 +330,13 @@ export function ComandaImprimible({
                                 </div>
 
                                 <div>
-                                  <span className="text-slate-500 font-medium">Sujeción: </span>
+                                  <span className="text-slate-900 font-medium">Sujeción: </span>
                                   <strong>{c?.sujecion || "Pared"}</strong>
                                 </div>
 
                                 {c?.tipoSoporte && (
                                   <div>
-                                    <span className="text-slate-500 font-medium">Soportes: </span>
+                                    <span className="text-slate-900 font-medium">Soportes: </span>
                                     <strong>
                                       {cantidadSoportes} {c.tipoSoporte} ({varianteSoporte})
                                     </strong>
@@ -360,7 +350,7 @@ export function ComandaImprimible({
                                   {detallesCapas.map((d) => (
                                     <div key={d.capa}>
                                       <strong>{d.capa}</strong>
-                                      <span className="text-slate-500"> ({d.tipo}): </span>
+                                      <span className="text-slate-900"> ({d.tipo}): </span>
                                       {[
                                         d.caida && `Caída ${d.caida.toLowerCase()}`,
                                         d.posicion && `Posición ${d.posicion.toLowerCase()}`,
@@ -382,15 +372,15 @@ export function ComandaImprimible({
                               )}
 
                               {/* Desglose de Confección de Telas */}
-                              <div className="rounded-lg bg-slate-50 border border-slate-200 p-2 space-y-1 text-[11px]">
+                              <div className="rounded-lg bg-slate-50 border border-slate-500 p-2 space-y-1 text-[11px]">
                                 {/* Gaza */}
                                 {tieneGaza && (
-                                  <div className="border-b border-slate-200/80 pb-1">
+                                  <div className="border-b border-slate-500/80 pb-1">
                                     <div>
                                       <strong>GASA:</strong> {fmtMedida(anchoGaza)}m × {fmtMedida(altoGaza)}m
                                       {c?.gaza?.nombreTela ? ` • ${c.gaza.nombreTela}` : ""}
                                     </div>
-                                    <div className="text-[10px] text-slate-600 mt-0.5">
+                                    <div className="text-[10px] text-slate-900 mt-0.5">
                                       Paños ({panosGaza}):{" "}
                                       {anchosPanos.length > 0
                                         ? anchosPanos.map((p, pIdx) => `P${pIdx + 1}: ${fmtMedida(p)}m`).join(" + ")
@@ -407,7 +397,7 @@ export function ComandaImprimible({
                                       <strong>BLACK OUT:</strong> {fmtMedida(anchoBO)}m × {fmtMedida(altoBO)}m
                                       {c?.bo?.nombreTela ? ` • ${c.bo.nombreTela}` : ""}
                                     </div>
-                                    <div className="text-[10px] text-slate-600 mt-0.5">
+                                    <div className="text-[10px] text-slate-900 mt-0.5">
                                       Tramos ({tramosBO}):{" "}
                                       {anchosTramos.length > 0
                                         ? anchosTramos.map((t, tIdx) => `T${tIdx + 1}: ${fmtMedida(t)}m`).join(" + ")
@@ -418,17 +408,17 @@ export function ComandaImprimible({
                               </div>
 
                               {/* Casilleros para tildar con lapicera en taller */}
-                              <div className="pt-1 flex items-center justify-between border-t border-slate-200">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                              <div className="pt-1 flex items-center justify-between border-t border-slate-500">
+                                <span className="text-[10px] font-bold text-slate-900 uppercase tracking-wider">
                                   {esProveedor ? "Control de Recepción:" : "Control de Fabricación:"}
                                 </span>
-                                <div className="flex items-center gap-4 text-[10px] font-bold text-slate-700">
+                                <div className="flex items-center gap-4 text-[10px] font-bold text-slate-900">
                                   {(esProveedor
                                     ? ["Recibido", "Controlado", "Embalado"]
                                     : ["Corte", "Confección", "Control OK"]
                                   ).map((casilla) => (
                                     <div key={casilla} className="flex items-center gap-1.5">
-                                      <div className="h-3.5 w-3.5 rounded border-2 border-slate-400 bg-white" />
+                                      <div className="h-3.5 w-3.5 rounded border-2 border-slate-800 bg-white" />
                                       <span>{casilla}</span>
                                     </div>
                                   ))}
@@ -447,20 +437,20 @@ export function ComandaImprimible({
         )}
 
         {/* Firmas y Recepción de Taller al Pie */}
-        <div className="mt-8 pt-4 border-t border-slate-200 grid grid-cols-3 gap-4 text-center text-[10px] text-slate-500">
+        <div className="mt-8 pt-4 border-t border-slate-500 grid grid-cols-3 gap-4 text-center text-[10px] text-slate-900">
           <div>
-            <div className="h-10 border-b border-dashed border-slate-300 mb-1" />
-            <p className="font-bold text-slate-700">Jefa de Taller / Corte</p>
+            <div className="h-10 border-b border-dashed border-slate-500 mb-1" />
+            <p className="font-bold text-slate-900">Jefa de Taller / Corte</p>
             <p>Confección realizada</p>
           </div>
           <div>
-            <div className="h-10 border-b border-dashed border-slate-300 mb-1" />
-            <p className="font-bold text-slate-700">Control de Calidad</p>
+            <div className="h-10 border-b border-dashed border-slate-500 mb-1" />
+            <p className="font-bold text-slate-900">Control de Calidad</p>
             <p>Medidas & Terminaciones OK</p>
           </div>
           <div>
-            <div className="h-10 border-b border-dashed border-slate-300 mb-1" />
-            <p className="font-bold text-slate-700">Recepción para Colocación</p>
+            <div className="h-10 border-b border-dashed border-slate-500 mb-1" />
+            <p className="font-bold text-slate-900">Recepción para Colocación</p>
             <p>Pase a Instalación</p>
           </div>
         </div>
