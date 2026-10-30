@@ -17,6 +17,7 @@ import type { IPresupuestoAceptadoResumen, TipoItemComanda } from "../types"
 import { generarComandaDesdePresupuesto } from "../actions"
 import { formatearPrecio } from "@/lib/utils"
 import { DIAS_ENTREGA, fechaEntregaParaInput } from "../lib/fecha-entrega"
+import { textoTipoCortina, tipoSugeridoItemComanda } from "../lib/pedidos-proveedor"
 
 interface ComandaGenerarModalProps {
   abierto: boolean
@@ -55,6 +56,13 @@ export function ComandaGenerarModal({
     (p) => p.id === presupuestoId
   )
 
+  // Por defecto: Tradicional común → taller; el resto → proveedor
+  const tipoDeItem = (itemId: string): TipoItemComanda => {
+    if (clasificaciones[itemId]?.tipo) return clasificaciones[itemId].tipo
+    const it = presupuestoSeleccionado?.itemsAceptados.find((x) => x.id === itemId)
+    return tipoSugeridoItemComanda(it?.caracteristicas)
+  }
+
   function handleSetTipo(itemId: string, tipo: TipoItemComanda) {
     setClasificaciones((prev) => ({
       ...prev,
@@ -69,7 +77,7 @@ export function ComandaGenerarModal({
     setClasificaciones((prev) => ({
       ...prev,
       [itemId]: {
-        tipo: prev[itemId]?.tipo || "FABRICAR",
+        tipo: tipoDeItem(itemId),
         observaciones,
       },
     }))
@@ -88,7 +96,7 @@ export function ComandaGenerarModal({
       const itemsClasificacion = (presupuestoSeleccionado?.itemsAceptados || []).map(
         (it) => ({
           itemPresupuestoId: it.id,
-          tipo: clasificaciones[it.id]?.tipo || ("FABRICAR" as TipoItemComanda),
+          tipo: tipoDeItem(it.id),
           observaciones: clasificaciones[it.id]?.observaciones || null,
         })
       )
@@ -253,8 +261,8 @@ export function ComandaGenerarModal({
 
                 <div className="space-y-2">
                   {presupuestoSeleccionado.itemsAceptados.map((it) => {
-                    const tipoActual =
-                      clasificaciones[it.id]?.tipo || "FABRICAR"
+                    const tipoActual = tipoDeItem(it.id)
+                    const tipoCortina = textoTipoCortina(it.caracteristicas)
                     const obsActual =
                       clasificaciones[it.id]?.observaciones || ""
 
@@ -273,6 +281,11 @@ export function ComandaGenerarModal({
                                 {it.descripcion}
                               </span>
                             </div>
+                            {tipoCortina && (
+                              <div className="text-[11px] font-bold text-slate-700 mt-0.5">
+                                {tipoCortina}
+                              </div>
+                            )}
                             <div className="text-[11px] text-slate-500 mt-0.5 font-mono">
                               {it.ancho}m ancho × {it.alto}m alto • Cant:{" "}
                               {it.cantidad}

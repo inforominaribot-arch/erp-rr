@@ -5,6 +5,7 @@
 
 import type { Prisma } from "@prisma/client"
 import type { ICaracteristicasItem } from "@/modules/mediciones/types"
+import { tipoDeCapa } from "@/modules/mediciones/lib/cortinas-fisicas"
 
 type Tx = Prisma.TransactionClient
 
@@ -38,6 +39,42 @@ function esCapaDeTaller(c: ICaracteristicasItem, capa: "gaza" | "bo"): boolean {
     return c.tipoCapaGaza === "Tradicional"
   }
   return false
+}
+
+/**
+ * Clasificación sugerida al generar la comanda: taller si todas sus capas son Tradicional común (confección propia),
+ * proveedor si alguna capa se pide (Roller, Bandas, motorizadas, Aluminio, Mosquitero, Noche Total…).
+ */
+export function tipoSugeridoItemComanda(
+  c: ICaracteristicasItem | null | undefined
+): "FABRICAR" | "PEDIR_PROVEEDOR" {
+  if (!c?.tipo) return "FABRICAR"
+  if (c.tipo === "Aluminio" || c.tipo === "Mosquera" || c.tipo === "Roller Noche total" || c.tipo === "Noche total") {
+    return "PEDIR_PROVEEDOR"
+  }
+  const deProveedor =
+    (Boolean(c.gaza?.activa) && !esCapaDeTaller(c, "gaza")) || (Boolean(c.bo?.activa) && !esCapaDeTaller(c, "bo"))
+  return deProveedor ? "PEDIR_PROVEEDOR" : "FABRICAR"
+}
+
+/** Tipo de cortina para mostrar, con la marca de las capas de proveedor: "Tradicional + Roller RS", "Mosquitero MG"… */
+export function textoTipoCortina(c: ICaracteristicasItem | null | undefined): string {
+  if (!c?.tipo) return ""
+  const partes: string[] = []
+  for (const capa of ["GAZA", "BO"] as const) {
+    const tipo = tipoDeCapa(c, capa)
+    if (!tipo) continue
+    const deTaller = esCapaDeTaller(c, capa === "GAZA" ? "gaza" : "bo")
+    const marca = deTaller
+      ? null
+      : tipo === "Aluminio"
+      ? "HD"
+      : tipo === "Mosquera" || tipo === "Roller Noche total"
+      ? "MG"
+      : (capa === "GAZA" ? c.marcaGaza : c.marcaBO) ?? c.marca ?? null
+    partes.push([tipo === "Mosquera" ? "Mosquitero" : tipo, marca].filter(Boolean).join(" "))
+  }
+  return partes.length > 0 ? partes.join(" + ") : c.tipo
 }
 
 /** Capas de la cortina que se piden a proveedor, agrupando las de la misma marca. */
