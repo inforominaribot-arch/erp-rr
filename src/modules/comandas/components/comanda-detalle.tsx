@@ -33,6 +33,7 @@ import { ComandaImprimible } from "./comanda-imprimible"
 import { CortinaDibujoDidactico } from "@/modules/mediciones/components/cortina-dibujo-didactico"
 import { AvisoMedidaModificada } from "@/components/shared/aviso-medida-modificada"
 import { PedidosProveedorPanel } from "./pedidos-proveedor-panel"
+import { OrdenesPedidoPanel } from "./ordenes-pedido-panel"
 import type { IProveedorPedido } from "../types"
 import {
   cambiarEstadoComanda,
@@ -506,6 +507,9 @@ export function ComandaDetalle({
               />
             </div>
           </div>
+
+          {/* ── ÓRDENES DE PEDIDO A PROVEEDOR (HD / MG / RS) ── */}
+          {puedeEditar && <OrdenesPedidoPanel comanda={comanda} proveedores={proveedores} />}
 
           {/* ── DESGLOSE DE CORTINAS POR AMBIENTE ── */}
           <div className="space-y-4">

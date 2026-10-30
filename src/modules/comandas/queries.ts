@@ -249,6 +249,7 @@ export async function obtenerComandaPorId(
             estado: true,
           },
         },
+        ordenesPedido: { orderBy: { creadoEn: "desc" } },
       },
     })
 
@@ -281,6 +282,13 @@ export async function obtenerComandaPorId(
         },
       },
       items: c.items.map(serializarItemComanda),
+      ordenesPedido: c.ordenesPedido.map((o) => ({
+        id: o.id,
+        marca: o.marca,
+        numeroDia: o.numeroDia,
+        creadoEn: o.creadoEn.toISOString(),
+        detalle: o.detalle,
+      })),
       instalacion: c.instalacion
         ? {
             id: c.instalacion.id,
@@ -615,7 +623,7 @@ export async function obtenerProveedoresParaPedidos(): Promise<IProveedorPedido[
   try {
     const provs = await prisma.proveedor.findMany({
       where: { activo: true },
-      select: { id: true, nombre: true, marcas: true, diasEntrega: true },
+      select: { id: true, nombre: true, marcas: true, diasEntrega: true, email: true, telefono: true },
       orderBy: { nombre: "asc" },
     })
     return provs

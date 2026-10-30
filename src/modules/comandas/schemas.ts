@@ -84,3 +84,42 @@ export const filtrosProduccionSchema = z.object({
 })
 
 export type FiltrosProduccionInput = z.infer<typeof filtrosProduccionSchema>
+
+// ─── Orden de Pedido a Proveedor (Excel RS / WhatsApp MG) ────────────────────
+
+const filaOrdenRSSchema = z.object({
+  referencia: z.string().max(300),
+  pedidoId: z.string().uuid(),
+  cantidad: z.number().int().positive().max(999),
+  sistema: z.enum(["RS", "MAXI", "SUPER_MAXI", "PANEL", "BANDAS"]),
+  tela: z.string().max(120),
+  color: z.string().max(80),
+  ancho: z.number().positive().max(50),
+  alto: z.number().positive().max(50),
+  cadena: z.string().max(60),
+  mando: z.string().max(40),
+  caida: z.string().max(40),
+  recoge: z.string().max(40),
+  cenefa: z.string().max(60),
+  zocalo: z.string().max(60),
+  cajon: z.string().max(60),
+  guia: z.string().max(60),
+  motor: z.string().max(80),
+  observaciones: z.string().max(200),
+})
+
+export const registrarOrdenPedidoSchema = z.discriminatedUnion("marca", [
+  z.object({
+    marca: z.literal("RS"),
+    comandaId: z.string().uuid(),
+    filas: z.array(filaOrdenRSSchema).min(1, "No hay cortinas para pedir").max(200),
+  }),
+  z.object({
+    marca: z.literal("MG"),
+    comandaId: z.string().uuid(),
+    pedidoIds: z.array(z.string().uuid()).min(1, "No hay cortinas para pedir"),
+    mensaje: z.string().min(1).max(5000),
+  }),
+])
+
+export type RegistrarOrdenPedidoInput = z.infer<typeof registrarOrdenPedidoSchema>

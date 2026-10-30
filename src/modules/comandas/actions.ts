@@ -12,10 +12,12 @@ import {
   cambiarEstadoComandaSchema,
   actualizarItemComandaSchema,
   actualizarNotasComandaSchema,
+  registrarOrdenPedidoSchema,
   type GenerarComandaInput,
   type CambiarEstadoComandaInput,
   type ActualizarItemComandaInput,
   type ActualizarNotasComandaInput,
+  type RegistrarOrdenPedidoInput,
 } from "./schemas"
 import {
   asegurarPedidosItems,
@@ -591,5 +593,79 @@ export async function actualizarPedidoProveedor(input: {
   } catch (error) {
     console.error("Error al actualizar pedido a proveedor:", error)
     return { success: false, error: "No se pudo actualizar el pedido." }
+  }
+}
+
+// ─── Orden de Pedido a Proveedor (RS: Excel / MG: WhatsApp) ──────────────────
+
+/** Inicio del día de hoy en Argentina (UTC-3, sin horario de verano) */
+function inicioDelDiaArgentina(ahora: Date): Date {
+  const local = new Date(ahora.getTime() - 3 * 3_600_000)
+  return new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate(), 3))
+}
+
+/**
+ * Registra la orden de pedido de una marca: le da el N° de orden de trabajo del día
+ * (1, 2, 3… por marca, vuelve a 1 al día siguiente) y marca esas cortinas como pedidas.
+ */
+export async function registrarOrdenPedido(
+  input: RegistrarOrdenPedidoInput
+): Promise<ActionResponse<{ id: string; numeroDia: number; fecha: string }>> {
+  try {
+    const auth = await tienePermisoModuloProduccion()
+    if (!auth.permitido) {
+      return { success: false, error: auth.error || "No autorizado" }
+    }
+
+    const validacion = registrarOrdenPedidoSchema.safeParse(input)
+    if (!validacion.success) {
+      return { success: false, error: validacion.error.issues[0]?.message || "Datos inválidos" }
+    }
+    const datos = validacion.data
+    const pedidoIds = datos.marca === "RS" ? [...new Set(datos.filas.map((f) => f.pedidoId))] : datos.pedidoIds
+
+    const pedidos = await prisma.pedidoProveedorItem.findMany({
+      where: { id: { in: pedidoIds }, marca: datos.marca, itemComanda: { comandaId: datos.comandaId } },
+      select: { id: true, fechaPedido: true },
+    })
+    if (pedidos.length !== pedidoIds.length) {
+      return { success: false, error: "Alguna cortina del pedido no corresponde a esta comanda." }
+    }
+
+    const ahora = new Date()
+    const orden = await prisma.$transaction(async (tx) => {
+      const delDia = await tx.ordenPedido.count({
+        where: { marca: datos.marca, creadoEn: { gte: inicioDelDiaArgentina(ahora) } },
+      })
+      const creada = await tx.ordenPedido.create({
+        data: {
+          comandaId: datos.comandaId,
+          marca: datos.marca,
+          numeroDia: delDia + 1,
+          detalle: datos.marca === "RS" ? { filas: datos.filas } : { mensaje: datos.mensaje },
+          creadoEn: ahora,
+        },
+      })
+      for (const p of pedidos) {
+        await tx.pedidoProveedorItem.update({
+          where: { id: p.id },
+          data: { estado: "PEDIDO_REALIZADO", fechaPedido: p.fechaPedido ?? ahora, fechaRecibido: null },
+        })
+      }
+      await recalcularEstadoComanda(tx, datos.comandaId)
+      return creada
+    })
+
+    revalidatePath("/produccion")
+    revalidatePath("/comandas")
+    revalidatePath(`/comandas/${datos.comandaId}`)
+
+    return {
+      success: true,
+      data: { id: orden.id, numeroDia: orden.numeroDia, fecha: orden.creadoEn.toISOString() },
+    }
+  } catch (error) {
+    console.error("Error al registrar la orden de pedido:", error)
+    return { success: false, error: "No se pudo registrar la orden de pedido." }
   }
 }

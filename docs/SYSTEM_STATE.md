@@ -724,3 +724,21 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 ### ⏳ Pendiente
 - [ ] Presupuestos aceptados antes de este cambio no tienen fecha de aceptación: su comanda propone 25 días desde el día en que se genera.
 
+
+---
+
+## Actualización — Órdenes de pedido a proveedor desde la comanda (2026-10-30)
+
+### ✅ Implementado
+- Panel "Órdenes de pedido a proveedor" en el detalle de la comanda (`ordenes-pedido-panel.tsx`), una tarjeta por marca con cortinas a pedir:
+  - **HD**: "Generar orden de pedido" abre la página de pedidos de Hunter Douglas (`URL_PEDIDOS_HD`, requiere iniciar sesión allí).
+  - **MG**: abre WhatsApp al teléfono del proveedor con marca MG con el pedido escrito (modelo / sistema, colores, mando, cajón, medidas, cantidad).
+  - **RS**: ventana para revisar / completar cada cortina (sistema RS / Maxi / Súper Maxi / Panel / Bandas, cadena, cenefa, zócalo, cajón, guía, recoge, motor, observaciones) → baja el Excel `PEDIDO <CLIENTE> dd-mm-aaaa.xlsx` y abre el mail al proveedor RS con el asunto (el archivo se adjunta a mano).
+- Excel de Rollershade: plantilla `public/plantillas/orden-trabajo-rollershade.xlsx` (hojas "ORD. DE TRABAJO 1" y "ORD. DE TRABAJO 2", armada desde un pedido real con `scripts/armar-plantilla-rollershade.mjs`). `lib/excel-rollershade.ts` edita el XML de la hoja 2 con JSZip para conservar dibujos y formatos; más de 6 cortinas agrega filas. Observaciones van en rosa combinando Cajón:Motor.
+- Modelo Prisma `OrdenPedido` (tabla `ordenes_pedido`): marca, `numeroDia` (N° de orden de trabajo del día por marca, vuelve a 1 cada día, hora Argentina), `detalle` JSON para volver a descargar / reenviar igual.
+- `registrarOrdenPedido` (Zod `registrarOrdenPedidoSchema`): crea la orden y pasa esas cortinas a "Pedido realizado".
+- Filas y mensajes: `lib/orden-pedido.ts` (a partir de `cortinasFisicas` y los pedidos por capa).
+
+### ⏳ Pendiente
+- Requiere `npx prisma db push` (tabla `ordenes_pedido`).
+- MagicRoll no tiene teléfono cargado en Proveedores (WhatsApp pide elegir el contacto).

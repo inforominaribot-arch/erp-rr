@@ -193,19 +193,19 @@ model ItemMedicion {
 // ─── PRESUPUESTOS ────────────────────────────────────────────────────────────
 
 model Presupuesto {
-  id            String            @id @default(uuid())
-  clienteId     String            @map("cliente_id")
-  numero        Int               @unique @default(autoincrement())
-  estado        EstadoPresupuesto @default(BORRADOR)
-  subtotal      Decimal           @default(0) @db.Decimal(12, 2)
-  descuento     Decimal           @default(0) @db.Decimal(5, 2) // porcentaje
-  total         Decimal           @default(0) @db.Decimal(12, 2)
-  notas         String?
-  validezDias   Int               @default(15) @map("validez_dias")
+  id              String            @id @default(uuid())
+  clienteId       String            @map("cliente_id")
+  numero          Int               @unique @default(autoincrement())
+  estado          EstadoPresupuesto @default(BORRADOR)
+  subtotal        Decimal           @default(0) @db.Decimal(12, 2)
+  descuento       Decimal           @default(0) @db.Decimal(5, 2) // porcentaje
+  total           Decimal           @default(0) @db.Decimal(12, 2)
+  notas           String?
+  validezDias     Int               @default(15) @map("validez_dias")
   // Cuándo se aceptó (total o parcial): la entrega de la comanda es 25 días después
-  fechaAceptacion DateTime?       @map("fecha_aceptacion")
-  creadoEn      DateTime          @default(now()) @map("creado_en")
-  actualizadoEn DateTime          @updatedAt @map("actualizado_en")
+  fechaAceptacion DateTime?         @map("fecha_aceptacion")
+  creadoEn        DateTime          @default(now()) @map("creado_en")
+  actualizadoEn   DateTime          @updatedAt @map("actualizado_en")
 
   // Relaciones
   cliente Cliente           @relation(fields: [clienteId], references: [id])
@@ -266,11 +266,29 @@ model Comanda {
   actualizadoEn DateTime      @updatedAt @map("actualizado_en")
 
   // Relaciones
-  presupuesto Presupuesto   @relation(fields: [presupuestoId], references: [id])
-  items       ItemComanda[]
-  instalacion Instalacion?
+  presupuesto   Presupuesto   @relation(fields: [presupuestoId], references: [id])
+  items         ItemComanda[]
+  instalacion   Instalacion?
+  ordenesPedido OrdenPedido[]
 
   @@map("comandas")
+}
+
+// Orden de pedido a proveedor generada desde la comanda (Excel de Rollershade, WhatsApp a MagicRoll).
+// numeroDia: N° de orden de trabajo de esa marca en el día (1, 2, 3… vuelve a 1 al día siguiente).
+// detalle: filas tal como salieron en la orden, para volver a descargarla igual.
+model OrdenPedido {
+  id        String   @id @default(uuid())
+  comandaId String   @map("comanda_id")
+  marca     String
+  numeroDia Int      @map("numero_dia")
+  detalle   Json
+  creadoEn  DateTime @default(now()) @map("creado_en")
+
+  comanda Comanda @relation(fields: [comandaId], references: [id], onDelete: Cascade)
+
+  @@index([marca, creadoEn])
+  @@map("ordenes_pedido")
 }
 
 model ItemComanda {

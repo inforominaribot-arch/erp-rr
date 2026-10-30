@@ -48,6 +48,18 @@ export interface IProveedorPedido {
   nombre: string
   marcas: string[]
   diasEntrega: number | null
+  email?: string | null
+  telefono?: string | null
+}
+
+/** Orden de pedido a proveedor ya generada (Excel RS / WhatsApp MG) */
+export interface IOrdenPedido {
+  id: string
+  marca: string
+  numeroDia: number
+  creadoEn: string
+  /** RS: { filas }, MG: { mensaje } */
+  detalle: unknown
 }
 
 // ─── Comanda Básica ──────────────────────────────────────────────────────────
@@ -109,6 +121,7 @@ export interface IComandaDetalle extends IComanda {
     }
   }
   items: IItemComanda[]
+  ordenesPedido?: IOrdenPedido[]
   instalacion?: {
     id: string
     fecha: Date
