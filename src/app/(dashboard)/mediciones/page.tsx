@@ -145,7 +145,7 @@ export default async function MedicionesPage({
 
       {/* ── Contenido Principal según Vista ── */}
       {vistaActual === "clientes" ? (
-        <MedicionClientesGrid clientes={clientesConMediciones} />
+        <MedicionClientesGrid clientes={clientesConMediciones} puedeEditar={puedeEscribir} />
       ) : (
         <MedicionTabla
           medicionesIniciales={mediciones}

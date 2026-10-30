@@ -40,9 +40,11 @@ interface ClienteConMediciones {
 
 interface MedicionClientesGridProps {
   clientes: ClienteConMediciones[]
+  /** Muestra el botón Editar en cada medición */
+  puedeEditar?: boolean
 }
 
-export function MedicionClientesGrid({ clientes }: MedicionClientesGridProps) {
+export function MedicionClientesGrid({ clientes, puedeEditar = false }: MedicionClientesGridProps) {
   const [busqueda, setBusqueda] = useState("")
   const [clienteExpandidoId, setClienteExpandidoId] = useState<string | null>(
     clientes.length > 0 ? clientes[0].id : null
@@ -312,6 +314,16 @@ export function MedicionClientesGrid({ clientes }: MedicionClientesGridProps) {
                           >
                             Ver detalle / Imprimir
                           </Link>
+
+                          {puedeEditar && (
+                            <Link
+                              href={`/mediciones/${medicion.id}/editar`}
+                              className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 shadow-2xs"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                              Editar
+                            </Link>
+                          )}
                         </div>
                       </div>
 
