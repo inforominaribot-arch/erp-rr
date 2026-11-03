@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react"
 import { textoMosquitero } from "@/modules/mediciones/lib/mosquiteros"
 import { textoNocheTotal } from "@/modules/mediciones/lib/noche-total"
-import { detalleCapasComanda } from "../lib/detalle-capas"
+import { contarCortinas, detalleCapasComanda } from "../lib/detalle-capas"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -534,7 +534,10 @@ export function ComandaDetalle({
                       {ambiente}
                     </span>
                     <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-[10px] font-bold text-slate-600">
-                      {itemsAmb.length} cortinas
+                      {(() => {
+                        const n = contarCortinas(itemsAmb)
+                        return `${n} cortina${n !== 1 ? "s" : ""}`
+                      })()}
                     </span>
                   </div>
                   <span className="text-[11px] font-medium text-slate-400">

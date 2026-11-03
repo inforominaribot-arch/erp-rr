@@ -3,7 +3,7 @@
 // (Tradicional común con riel: la cantidad la escribe el taller a mano en la comanda impresa).
 
 import type { ICaracteristicasItem, LadoMando } from "@/modules/mediciones/types"
-import { tipoDeCapa, type CapaCortina } from "@/modules/mediciones/lib/cortinas-fisicas"
+import { cortinasFisicas, tipoDeCapa, type CapaCortina } from "@/modules/mediciones/lib/cortinas-fisicas"
 
 export interface IDetalleCapaComanda {
   /** "Gasa" / "B.O." */
@@ -35,6 +35,16 @@ function gazaAdelante(c: ICaracteristicasItem): boolean {
 }
 
 /** Caída, posición y mando de cada capa con cortinas (Gasa / B.O.). */
+/** Cortinas reales de las aberturas (paños / tramos de cada capa), no la cantidad de aberturas. */
+export function contarCortinas(
+  items: Array<{ caracteristicas: ICaracteristicasItem | null; ancho: number; alto: number; cantidad?: number }>
+): number {
+  return items.reduce(
+    (acc, it) => acc + (cortinasFisicas(it.caracteristicas, it.ancho, it.alto).length || it.cantidad || 1),
+    0
+  )
+}
+
 export function detalleCapasComanda(c: ICaracteristicasItem | null | undefined): IDetalleCapaComanda[] {
   if (!c?.tipo) return []
   const hayDos = Boolean(c.gaza?.activa) && Boolean(c.bo?.activa) && c.tipo !== "Aluminio"

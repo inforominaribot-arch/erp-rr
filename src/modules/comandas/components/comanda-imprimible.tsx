@@ -10,7 +10,7 @@ import {
 } from "@/modules/mediciones/types"
 import { calcularCorteRiel } from "@/modules/presupuestos/lib/explosion-materiales"
 import { fmtMedida } from "@/lib/utils"
-import { detalleCapasComanda, llevaGanchos } from "../lib/detalle-capas"
+import { contarCortinas, detalleCapasComanda, llevaGanchos } from "../lib/detalle-capas"
 
 interface ComandaImprimibleProps {
   comanda: IComandaDetalle
@@ -207,7 +207,10 @@ export function ComandaImprimible({
                       📍 AMBIENTE: {ambiente}
                     </span>
                     <span className="text-[10px] font-bold text-slate-900">
-                      {itemsAmb.length} cortina{itemsAmb.length !== 1 ? "s" : ""}
+                      {(() => {
+                        const n = contarCortinas(itemsAmb)
+                        return `${n} cortina${n !== 1 ? "s" : ""}`
+                      })()}
                     </span>
                   </div>
 
