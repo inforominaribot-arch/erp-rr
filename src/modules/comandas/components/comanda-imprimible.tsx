@@ -32,11 +32,10 @@ export function ComandaImprimible({
     ? new Date(comanda.fechaEntrega).toLocaleDateString("es-AR")
     : "A coordinar"
 
-  const totalItems = comanda.items.length
-  const totalFabricar = comanda.items.filter((i) => i.tipo === "FABRICAR").length
-  const totalProveedor = comanda.items.filter(
-    (i) => i.tipo === "PEDIR_PROVEEDOR"
-  ).length
+  // Cortinas reales (paños / tramos de cada abertura), no la cantidad de aberturas
+  const totalItems = contarCortinas(comanda.items)
+  const totalFabricar = contarCortinas(comanda.items.filter((i) => i.tipo === "FABRICAR"))
+  const totalProveedor = contarCortinas(comanda.items.filter((i) => i.tipo === "PEDIR_PROVEEDOR"))
 
   return (
     <div className="w-full space-y-4">

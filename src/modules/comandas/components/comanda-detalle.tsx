@@ -515,7 +515,7 @@ export function ComandaDetalle({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-slate-900">
-                Cortinas y Sistemas a Realizar ({totalItems})
+                Cortinas y Sistemas a Realizar ({contarCortinas(items)})
               </h2>
               <span className="text-xs text-slate-400">
                 Tildá cada cortina a medida que se termine en taller
