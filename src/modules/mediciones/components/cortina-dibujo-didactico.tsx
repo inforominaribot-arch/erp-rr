@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import { textoMosquitero } from "../lib/mosquiteros"
 import { textoNocheTotal } from "../lib/noche-total"
+import { lineasToldo, nombreSubtipoToldo } from "../lib/toldos"
 import type { ICaracteristicasItem } from "../types"
 import {
   calcularArgollasGaza,
@@ -63,7 +64,40 @@ const COLORES_PERFILERIA_HEX: Record<string, { bg: string; border: string }> = {
   "Aluminio Anodizado": { bg: "#94a3b8", border: "#64748b" },
 }
 
-export function CortinaDibujoDidactico({
+/** Toldo PRINTEMPS: no se dibuja, se muestra la ficha con medidas y opciones */
+function FichaToldo({ ancho, alto, caracteristicas, modoCompacto }: CortinaDibujoDidacticoProps) {
+  const t = caracteristicas?.toldo
+  const vertical = t?.subtipo !== "PROYECCION"
+  return (
+    <div className={`rounded-xl border border-indigo-100 bg-indigo-50/40 ${modoCompacto ? "p-2.5" : "p-3.5"} space-y-2`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs font-bold uppercase tracking-wider text-indigo-950">
+          {nombreSubtipoToldo(t?.subtipo)} <span className="font-semibold text-indigo-600">· PT</span>
+        </span>
+        <span className="flex items-center gap-1 text-xs font-bold text-slate-700">
+          <Ruler className="h-3.5 w-3.5" />
+          {fmtMedida(ancho)} × {fmtMedida(alto)} m{vertical ? "" : " (ancho × proyección)"}
+        </span>
+      </div>
+      {t?.subtipo ? (
+        <ul className="space-y-0.5 text-[11px] font-medium text-slate-700">
+          {lineasToldo(t).map((l) => (
+            <li key={l}>{l}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-[11px] text-slate-500">Elegí el subtipo de toldo.</p>
+      )}
+    </div>
+  )
+}
+
+export function CortinaDibujoDidactico(props: CortinaDibujoDidacticoProps) {
+  if (props.caracteristicas?.tipo === "Toldos") return <FichaToldo {...props} />
+  return <CortinaDibujoGeneral {...props} />
+}
+
+function CortinaDibujoGeneral({
   ancho,
   alto,
   caracteristicas,

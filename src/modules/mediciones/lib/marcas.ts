@@ -13,6 +13,7 @@ type CaracMarca = Pick<
 /** Marcas por capa activa (las capas de taller propio no tienen marca). */
 function marcasPorCapa(c: CaracMarca): Array<{ capa: string; marca: MarcaCortina }> {
   if (c.tipo === "Mosquera") return [{ capa: "Mosquera", marca: "MG" }]
+  if (c.tipo === "Toldos") return [{ capa: "Toldo", marca: "PT" }]
   const partes: Array<{ capa: string; marca: MarcaCortina }> = []
   // El aluminio en sí es siempre HD
   if (c.tipo === "Aluminio") partes.push({ capa: "Aluminio", marca: "HD" })

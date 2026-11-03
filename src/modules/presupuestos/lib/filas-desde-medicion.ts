@@ -7,6 +7,7 @@
 import type { ICaracteristicasItem, IConfigMotor } from "@/modules/mediciones/types"
 import { textoMosquitero } from "@/modules/mediciones/lib/mosquiteros"
 import { textoNocheTotal } from "@/modules/mediciones/lib/noche-total"
+import { textoToldo } from "@/modules/mediciones/lib/toldos"
 import {
   cortinasFisicas,
   etiquetaCortinaFisica,
@@ -159,6 +160,8 @@ export function filasDeAbertura(
       itemMedicionId: it.id,
       descripcion: esMosquiteroMG && carac?.mosquitero?.modelo
         ? `${it.descripcion || "Mosquitero"} – ${textoMosquitero(carac.mosquitero)}`.slice(0, 250)
+        : k.tipoCapa === "Toldo" && carac?.toldo?.subtipo
+        ? `${it.descripcion || "Toldo"} – ${textoToldo(carac.toldo)} (PT)`.slice(0, 250)
         : esNocheTotalMG && carac?.nocheTotal?.sistema
         ? `${descripcionCortina(it.descripcion, k)} – ${textoNocheTotal({
             ...carac.nocheTotal,

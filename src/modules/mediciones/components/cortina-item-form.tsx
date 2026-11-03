@@ -79,6 +79,8 @@ import {
   type ColorNocheTotal,
   type SistemaNocheTotal,
 } from "../lib/noche-total"
+import { limpiarToldo, validarToldo, textoTelaToldo, type IToldoConfig } from "../lib/toldos"
+import { ToldoPasos } from "./toldo-pasos"
 
 interface CortinaItemFormProps {
   itemInicial?: Partial<IItemMedicion> | null
@@ -162,6 +164,14 @@ export function CortinaItemForm({
     caracInicial?.mosquitero?.sentidoApertura ?? null
   )
   const [mosqPuertas, setMosqPuertas] = useState<PuertasMosquitero>(caracInicial?.mosquitero?.puertas ?? "Simple")
+  // ─── Toldo PRINTEMPS ───
+  const [toldo, setToldo] = useState<Partial<IToldoConfig>>(caracInicial?.toldo ?? {})
+  const [anchoToldo, setAnchoToldo] = useState<number | "">(
+    caracInicial?.tipo === "Toldos" ? itemInicial?.ancho || "" : ""
+  )
+  const [altoToldo, setAltoToldo] = useState<number | "">(
+    caracInicial?.tipo === "Toldos" ? itemInicial?.alto || "" : ""
+  )
   // ─── Roller Noche Total MagicRoll ───
   const [ntSistema, setNtSistema] = useState<SistemaNocheTotal | null>(caracInicial?.nocheTotal?.sistema ?? null)
   const [ntColorTela, setNtColorTela] = useState<ColorNocheTotal | null>(caracInicial?.nocheTotal?.colorTela ?? null)
@@ -578,8 +588,11 @@ export function CortinaItemForm({
   // Ancho y alto efectivos calculados para la abertura
   const esTipoDirecto = tipo === "Mosquera" || tipo === "Roller Noche total" || tipo === "Noche total"
 
+  const esToldo = tipo === "Toldos"
   const anchoEfectivo =
-    tipo === "Aluminio"
+    esToldo
+      ? (typeof anchoToldo === "number" ? anchoToldo : 0)
+      : tipo === "Aluminio"
       ? (typeof anchoAluminio === "number" ? anchoAluminio : 0)
       : esTipoDirecto
       ? anchosTramos.length > 0
@@ -602,7 +615,9 @@ export function CortinaItemForm({
           : 0)
 
   const altoEfectivo =
-    tipo === "Aluminio"
+    esToldo
+      ? (typeof altoToldo === "number" ? altoToldo : 0)
+      : tipo === "Aluminio"
       ? (typeof altoAluminio === "number" ? altoAluminio : 0)
       : esTipoDirecto
       ? (typeof altoBO === "number" ? altoBO : 0)
@@ -615,6 +630,7 @@ export function CortinaItemForm({
   // Cálculo automático de la cantidad de cortinas para el presupuesto
   const cantidadCortinasCalculada = (() => {
     if (tipo === "Aluminio") return aluminioTieneGaza ? 2 : 1
+    if (esToldo) return 1
     if (esTipoDirecto) {
       const cantBO = Number(tramosBO) || 1
       if (esNocheTotalConGaza) {
@@ -679,7 +695,25 @@ export function CortinaItemForm({
     Boolean(ntSistema) && hayTablasMosquitero && medidasNocheTotalCargadas && celdasNocheTotalElegidas.some((c) => !c)
 
   // Objeto de características en tiempo real
-  const caracteristicasActuales: ICaracteristicasItem | null = tipo
+  const caracteristicasActuales: ICaracteristicasItem | null = esToldo
+    ? {
+        // Toldo: una sola "capa" PRINTEMPS con la medida y la tela (el detalle va en toldo)
+        tipo: "Toldos",
+        toldo: limpiarToldo(toldo) as IToldoConfig,
+        marca: "PT",
+        marcaBO: "PT",
+        bo: {
+          activa: true,
+          ancho: anchoEfectivo,
+          alto: altoEfectivo,
+          tramos: 1,
+          anchosTramos: [anchoEfectivo],
+          nombreTela: textoTelaToldo(toldo),
+          telaId: null,
+          colorTela: toldo.colorTela ?? null,
+        },
+      }
+    : tipo
     ? {
         tipo,
         subtipoMotorizada: esMotorizada ? subtipoMotorizada : undefined,
@@ -888,7 +922,7 @@ export function CortinaItemForm({
       }
     : null
   // Marca general según las capas activas (antes quedaba fija en HD, el default del B.O.)
-  if (caracteristicasActuales) {
+  if (caracteristicasActuales && !esToldo) {
     caracteristicasActuales.marca = marcaPrincipalCortina(caracteristicasActuales)
   }
 
@@ -905,7 +939,7 @@ export function CortinaItemForm({
     caracteristicasActuales.gaza.telaId = null
     caracteristicasActuales.gaza.colorTela = null
   }
-  if (caracteristicasActuales?.bo && !usarListaBO) {
+  if (caracteristicasActuales?.bo && !usarListaBO && !esToldo) {
     caracteristicasActuales.bo.telaId = null
     caracteristicasActuales.bo.colorTela = null
   }
@@ -1171,7 +1205,13 @@ export function CortinaItemForm({
       return
     }
 
-    if (tipo === "Aluminio") {
+    if (esToldo) {
+      const falta = validarToldo(limpiarToldo(toldo), anchoEfectivo, altoEfectivo)
+      if (falta) {
+        setErrorValidacion(falta)
+        return
+      }
+    } else if (tipo === "Aluminio") {
       if (!anchoAluminio || anchoAluminio <= 0 || !altoAluminio || altoAluminio <= 0) {
         setErrorValidacion("Ingresá el Ancho y Alto de la cortina de aluminio.")
         return
@@ -2781,7 +2821,21 @@ export function CortinaItemForm({
       {/* ────────────────────────────────────────────────────────────────────────── */}
       {/* FLUJO PROGRESIVO: SI SELECCIONÓ TRADICIONAL O ROLLER / BANDAS / NOCHE TOTAL / MOSQUERA / MOTORIZADA */}
       {/* ────────────────────────────────────────────────────────────────────────── */}
-      {tipo && tipo !== "Aluminio" && (
+      {/* ────────────────────────────────────────────────────────────────────────── */}
+      {/* FLUJO PROGRESIVO: SI SELECCIONÓ TOLDOS                                    */}
+      {/* ────────────────────────────────────────────────────────────────────────── */}
+      {esToldo && (
+        <ToldoPasos
+          toldo={toldo}
+          onChange={setToldo}
+          ancho={anchoToldo}
+          alto={altoToldo}
+          onAncho={setAnchoToldo}
+          onAlto={setAltoToldo}
+        />
+      )}
+
+      {tipo && tipo !== "Aluminio" && !esToldo && (
         <div className="space-y-6 animate-in fade-in duration-150">
           {/* ── PASO ESPECIAL: Subtipo si es Motorizada ── */}
           {tipo === "Motorizada" && (

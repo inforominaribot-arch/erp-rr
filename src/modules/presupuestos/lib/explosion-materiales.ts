@@ -91,6 +91,7 @@ export function analizarRielesItem(
   if (
     descLower.includes("aluminio") ||
     descLower.includes("mosquera") ||
+    descLower.includes("toldo") ||
     descLower.includes("hunter")
   ) {
     return null

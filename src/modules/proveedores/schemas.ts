@@ -57,7 +57,7 @@ export const proveedorSchema = z.object({
     .transform((v) => (v && v.trim() !== "" ? v.trim() : null)),
   activo: z.boolean().default(true),
   // Marcas de cortina que provee (para preseleccionarlo en pedidos de cortinas)
-  marcas: z.array(z.enum(["HD", "RS", "MG"])).default([]),
+  marcas: z.array(z.enum(["HD", "RS", "MG", "PT"])).default([]),
   // Días habituales de entrega (alerta de pedido demorado)
   diasEntrega: z
     .number()

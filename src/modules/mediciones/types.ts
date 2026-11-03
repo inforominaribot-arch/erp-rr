@@ -3,6 +3,7 @@
 
 import type { IMosquiteroConfig } from "./lib/mosquiteros"
 import type { INocheTotalConfig } from "./lib/noche-total"
+import type { IToldoConfig } from "./lib/toldos"
 
 export type TipoCortina =
   | "Tradicional"
@@ -13,6 +14,7 @@ export type TipoCortina =
   | "Noche total" // compatibilidad con registros previos
   | "Mosquera"
   | "Motorizada"
+  | "Toldos"
 
 export type SubtipoMotorizada =
   | "Tradicional Mot"
@@ -139,7 +141,8 @@ export type LadoMando = "Izquierda" | "Derecha" | "Izquierdo" | "Derecho" | "Sin
 
 export type TipoCaida = "Por delante" | "Por detrás"
 
-export type MarcaCortina = "HD" | "RS" | "MG"
+/** PT = PRINTEMPS (toldos) */
+export type MarcaCortina = "HD" | "RS" | "MG" | "PT"
 
 export type TipoModeloSoporte = "Grampa" | "Kent"
 export type VarianteSoporte = "Simple" | "Doble"
@@ -241,6 +244,9 @@ export interface ICaracteristicasItem {
 
   // Roller Noche Total MagicRoll: sistema según la tabla de medidas, color de tela y de cadena, cajones
   nocheTotal?: INocheTotalConfig
+
+  // Toldo PRINTEMPS (tipo "Toldos"): subtipo, estructura, mecanismo, cubre toldo y tela
+  toldo?: IToldoConfig
 
   // Telas
   gaza?: IGazaConfig
@@ -357,6 +363,7 @@ export const TIPOS_CORTINA: TipoCortina[] = [
   "Roller Noche total",
   "Mosquera",
   "Motorizada",
+  "Toldos",
 ]
 
 export const SUBTIPOS_MOTORIZADA: SubtipoMotorizada[] = [

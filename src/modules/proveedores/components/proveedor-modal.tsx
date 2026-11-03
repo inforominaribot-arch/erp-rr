@@ -42,7 +42,7 @@ export function ProveedorModal({
   const [direccion, setDireccion] = useState("")
   const [notas, setNotas] = useState("")
   const [activo, setActivo] = useState(true)
-  const [marcas, setMarcas] = useState<("HD" | "RS" | "MG")[]>([])
+  const [marcas, setMarcas] = useState<("HD" | "RS" | "MG" | "PT")[]>([])
   const [diasEntrega, setDiasEntrega] = useState<string>("")
 
   const [guardando, setGuardando] = useState(false)
@@ -57,7 +57,7 @@ export function ProveedorModal({
       setDireccion(proveedorAEditar.direccion || "")
       setNotas(proveedorAEditar.notas || "")
       setActivo(proveedorAEditar.activo)
-      setMarcas((proveedorAEditar.marcas || []) as ("HD" | "RS" | "MG")[])
+      setMarcas((proveedorAEditar.marcas || []) as ("HD" | "RS" | "MG" | "PT")[])
       setDiasEntrega(proveedorAEditar.diasEntrega ? String(proveedorAEditar.diasEntrega) : "")
     } else {
       setNombre("")
@@ -275,7 +275,7 @@ export function ProveedorModal({
                 Marcas de cortina que provee
               </label>
               <div className="flex gap-2">
-                {(["HD", "RS", "MG"] as const).map((m) => {
+                {(["HD", "RS", "MG", "PT"] as const).map((m) => {
                   const activa = marcas.includes(m)
                   return (
                     <button
@@ -296,7 +296,7 @@ export function ProveedorModal({
                 })}
               </div>
               <p className="mt-1 text-[11px] text-slate-500">
-                Se preselecciona en los pedidos de cortinas de esa marca.
+                Se preselecciona en los pedidos de cortinas de esa marca (PT = PRINTEMPS, toldos).
               </p>
             </div>
             <div>

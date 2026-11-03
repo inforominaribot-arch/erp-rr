@@ -109,7 +109,7 @@ export async function actualizarProveedor(
     if (input.notas !== undefined) dataActualizar.notas = input.notas
     if (input.activo !== undefined) dataActualizar.activo = input.activo
     if (input.marcas !== undefined) {
-      dataActualizar.marcas = input.marcas.filter((m) => ["HD", "RS", "MG"].includes(m))
+      dataActualizar.marcas = input.marcas.filter((m) => ["HD", "RS", "MG", "PT"].includes(m))
     }
     if (input.diasEntrega !== undefined) {
       const d = input.diasEntrega

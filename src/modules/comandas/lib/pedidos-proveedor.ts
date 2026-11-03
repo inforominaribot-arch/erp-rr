@@ -6,6 +6,7 @@
 import type { Prisma } from "@prisma/client"
 import type { ICaracteristicasItem } from "@/modules/mediciones/types"
 import { tipoDeCapa } from "@/modules/mediciones/lib/cortinas-fisicas"
+import { nombreSubtipoToldo } from "@/modules/mediciones/lib/toldos"
 
 type Tx = Prisma.TransactionClient
 
@@ -49,7 +50,13 @@ export function tipoSugeridoItemComanda(
   c: ICaracteristicasItem | null | undefined
 ): "FABRICAR" | "PEDIR_PROVEEDOR" {
   if (!c?.tipo) return "FABRICAR"
-  if (c.tipo === "Aluminio" || c.tipo === "Mosquera" || c.tipo === "Roller Noche total" || c.tipo === "Noche total") {
+  if (
+    c.tipo === "Aluminio" ||
+    c.tipo === "Mosquera" ||
+    c.tipo === "Roller Noche total" ||
+    c.tipo === "Noche total" ||
+    c.tipo === "Toldos"
+  ) {
     return "PEDIR_PROVEEDOR"
   }
   const deProveedor =
@@ -71,8 +78,12 @@ export function textoTipoCortina(c: ICaracteristicasItem | null | undefined): st
       ? "HD"
       : tipo === "Mosquera" || tipo === "Roller Noche total"
       ? "MG"
+      : tipo === "Toldo"
+      ? "PT"
       : (capa === "GAZA" ? c.marcaGaza : c.marcaBO) ?? c.marca ?? null
-    partes.push([tipo === "Mosquera" ? "Mosquitero" : tipo, marca].filter(Boolean).join(" "))
+    const nombre =
+      tipo === "Mosquera" ? "Mosquitero" : tipo === "Toldo" ? nombreSubtipoToldo(c.toldo?.subtipo) : tipo
+    partes.push([nombre, marca].filter(Boolean).join(" "))
   }
   return partes.length > 0 ? partes.join(" + ") : c.tipo
 }
@@ -94,7 +105,7 @@ export function capasPedidoProveedor(c: ICaracteristicasItem | null | undefined)
       capas.push({ capa: "gaza", etiqueta: "Gaza", marca: c.marcaGaza || c.marca || null })
     }
     if (c.bo?.activa && !esCapaDeTaller(c, "bo")) {
-      capas.push({ capa: "bo", etiqueta: "B.O.", marca: c.marcaBO || c.marca || null })
+      capas.push({ capa: "bo", etiqueta: c.tipo === "Toldos" ? "Toldo" : "B.O.", marca: c.marcaBO || c.marca || null })
     }
   }
 

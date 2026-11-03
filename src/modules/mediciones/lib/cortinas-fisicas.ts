@@ -22,6 +22,7 @@ export type TipoCapaFisica =
   | "Aluminio"
   | "Roller Noche total"
   | "Mosquera"
+  | "Toldo"
 
 export interface ICortinaFisica {
   capa: CapaCortina
@@ -63,6 +64,7 @@ export function tipoDeCapa(c: ICaracteristicasItem, capa: CapaCortina): TipoCapa
 
   if (tipo === "Aluminio") return "Aluminio"
   if (tipo === "Mosquera") return "Mosquera"
+  if (tipo === "Toldos") return "Toldo"
   if (tipo === "Roller Noche total" || tipo === "Noche total") return "Roller Noche total"
   if (!c.bo?.activa) return null
   if (tipo === "Tradicional") return c.formatoBO === "Roller" ? "Roller" : "Tradicional"
@@ -88,7 +90,7 @@ export function tipoDeCapa(c: ICaracteristicasItem, capa: CapaCortina): TipoCapa
 
 /** Las capas Tradicional y Aluminio son una sola cortina; el resto se separa por paño/tramo. */
 function seSeparaPorPanos(tipoCapa: TipoCapaFisica): boolean {
-  return tipoCapa !== "Tradicional" && tipoCapa !== "Tradicional Mot" && tipoCapa !== "Aluminio"
+  return tipoCapa !== "Tradicional" && tipoCapa !== "Tradicional Mot" && tipoCapa !== "Aluminio" && tipoCapa !== "Toldo"
 }
 
 const r3 = (n: number) => Math.round(n * 1000) / 1000
@@ -117,6 +119,8 @@ export function cortinasFisicas(
         ? "HD"
         : tipoCapa === "Mosquera" || tipoCapa === "Roller Noche total"
         ? "MG" // los mosquiteros y la Noche Total son siempre MagicRoll
+        : tipoCapa === "Toldo"
+        ? "PT" // los toldos son siempre PRINTEMPS
         : ((capa === "GAZA" ? c.marcaGaza : c.marcaBO) ?? c.marca ?? null)
     const motor = (capa === "GAZA" ? c.motorGaza : c.motorBO) ?? null
     const anchoCapa = Number(config?.ancho) || anchoAbertura
@@ -172,16 +176,16 @@ export function medidasCortinaFisica(
   return cortina ? { ancho: cortina.ancho, alto: cortina.alto } : null
 }
 
-/** Nombre corto de la capa: "Gaza", "B.O.", "Aluminio", "Mosquera". */
+/** Nombre corto de la capa: "Gaza", "B.O.", "Aluminio", "Mosquera", "Toldo". */
 export function nombreCapa(capa: CapaCortina, tipoCapa?: TipoCapaFisica | null): string {
-  if (tipoCapa === "Aluminio" || tipoCapa === "Mosquera") return tipoCapa
+  if (tipoCapa === "Aluminio" || tipoCapa === "Mosquera" || tipoCapa === "Toldo") return tipoCapa
   return capa === "GAZA" ? "Gaza" : "B.O."
 }
 
 /** Etiqueta de la cortina física, ej: "B.O. Roller T2" o "Gaza Tradicional". */
 export function etiquetaCortinaFisica(k: Pick<ICortinaFisica, "capa" | "tipoCapa" | "indice" | "total">): string {
   const base = nombreCapa(k.capa, k.tipoCapa)
-  const tipo = k.tipoCapa === "Aluminio" || k.tipoCapa === "Mosquera" ? "" : ` ${k.tipoCapa}`
+  const tipo = k.tipoCapa === "Aluminio" || k.tipoCapa === "Mosquera" || k.tipoCapa === "Toldo" ? "" : ` ${k.tipoCapa}`
   const sufijo = k.total > 1 ? ` ${k.capa === "GAZA" ? "C" : "T"}${k.indice + 1}` : ""
   return `${base}${tipo}${sufijo}`
 }

@@ -41,7 +41,7 @@ export function detalleCapasComanda(c: ICaracteristicasItem | null | undefined):
   const resultado: IDetalleCapaComanda[] = []
   for (const capa of ["GAZA", "BO"] as CapaCortina[]) {
     const tipo = tipoDeCapa(c, capa)
-    if (!tipo || tipo === "Aluminio" || tipo === "Mosquera") continue
+    if (!tipo || tipo === "Aluminio" || tipo === "Mosquera" || tipo === "Toldo") continue
     const esGaza = capa === "GAZA"
     const esRoller = tipo === "Roller" || tipo === "Roller Mot" || tipo === "Roller Noche total"
     const esTradicional = tipo === "Tradicional" || tipo === "Tradicional Mot"

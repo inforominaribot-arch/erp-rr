@@ -5,6 +5,17 @@ import { z } from "zod"
 import { clienteSchema } from "@/modules/clientes/schemas"
 import { CODIGOS_MODELO_MOSQUITERO } from "./lib/mosquiteros"
 import { CODIGOS_SISTEMA_NOCHE_TOTAL, COLORES_NOCHE_TOTAL } from "./lib/noche-total"
+import {
+  BARRAS_FRENTE_TOLDO,
+  BRAZOS_TP2,
+  CANOS_TOLDO,
+  COLORES_PERFILERIA_TOLDO,
+  MAQUINAS_TOLDO,
+  MECANISMOS_TOLDO,
+  MOTORES_TOLDO,
+  TELAS_TOLDO,
+  TIPOS_PROYECCION,
+} from "./lib/toldos"
 
 // ─── Telas: Gaza y Black Out ──────────────────────────────────────────────────
 
@@ -45,6 +56,7 @@ export const caracteristicasItemSchema = z.object({
     "Noche total",
     "Mosquera",
     "Motorizada",
+    "Toldos",
   ]),
 
   subtipoMotorizada: z
@@ -111,14 +123,14 @@ export const caracteristicasItemSchema = z.object({
   posicionRoller: z.enum(["Adelante", "Atrás"]).optional(),
   caidaBO: z.enum(["Por delante", "Por detrás"]).optional(),
   posicionRollerBO: z.enum(["Adelante", "Atrás"]).optional(),
-  marca: z.enum(["HD", "RS", "MG"]).optional().nullable(),
+  marca: z.enum(["HD", "RS", "MG", "PT"]).optional().nullable(),
 
   // Formato B.O. (Tradicional de taller vs Roller proveedor)
   formatoBO: z.enum(["Tradicional", "Roller"]).optional(),
   mandoBO: z
     .enum(["Izquierda", "Derecha", "Izquierdo", "Derecho", "Sin mando"])
     .optional(),
-  marcaBO: z.enum(["HD", "RS", "MG"]).optional().nullable(),
+  marcaBO: z.enum(["HD", "RS", "MG", "PT"]).optional().nullable(),
   mandosRollerBO: z
     .array(z.enum(["Izquierda", "Derecha", "Izquierdo", "Derecho", "Sin mando"]))
     .optional(),
@@ -127,7 +139,7 @@ export const caracteristicasItemSchema = z.object({
     .optional(),
 
   // Marcas independientes por capa
-  marcaGaza: z.enum(["HD", "RS", "MG"]).optional().nullable(),
+  marcaGaza: z.enum(["HD", "RS", "MG", "PT"]).optional().nullable(),
 
   // Motores
   motorGaza: z
@@ -174,6 +186,39 @@ export const caracteristicasItemSchema = z.object({
       colorTela: z.enum(COLORES_NOCHE_TOTAL).nullable(),
       colorCadena: z.enum(COLORES_NOCHE_TOTAL).nullable().optional(),
       cajones: z.array(z.string().max(10).nullable()).max(5).optional(),
+    })
+    .optional(),
+
+  // Toldo PRINTEMPS
+  toldo: z
+    .object({
+      subtipo: z.enum(["VERTICAL", "PROYECCION"]),
+      colorPerfileria: z.enum(COLORES_PERFILERIA_TOLDO),
+      cano: z.enum(CANOS_TOLDO),
+      barraFrente: z.enum(BARRAS_FRENTE_TOLDO).optional(),
+      tensor: z.boolean().optional(),
+      brazoCaputa: z.boolean().optional(),
+      sujecionPiso: z.number().int().min(0).max(99).optional(),
+      brazos: z.enum(BRAZOS_TP2).optional(),
+      tipoProyeccion: z.enum(TIPOS_PROYECCION).optional(),
+      pollerita: z.boolean().optional(),
+      mecanismo: z.enum(MECANISMOS_TOLDO),
+      maquina: z.enum(MAQUINAS_TOLDO).optional(),
+      soportePlano: z.number().int().min(0).max(99).optional(),
+      escuadra: z.number().int().min(0).max(99).optional(),
+      manijas: z.number().int().min(1).max(99).optional(),
+      motor: z.enum(MOTORES_TOLDO).optional(),
+      control: z.boolean().optional(),
+      cantidadControles: z.number().int().min(1).max(99).optional(),
+      canales: z.union([z.literal(1), z.literal(3), z.literal(5), z.literal(15), z.literal(16)]).optional(),
+      domotica: z.boolean().optional(),
+      cubreToldo: z.boolean(),
+      anchoCubreToldo: z.number().min(0).max(50).optional(),
+      perchas: z.number().int().min(0).max(99).optional(),
+      tela: z.enum(TELAS_TOLDO),
+      tipoTela: z.string().max(40),
+      colorTela: z.string().max(80),
+      lineaTela: z.string().max(40).optional(),
     })
     .optional(),
 

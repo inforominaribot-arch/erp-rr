@@ -742,3 +742,24 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 ### ⏳ Pendiente
 - Requiere `npx prisma db push` (tabla `ordenes_pedido`).
 - MagicRoll no tiene teléfono cargado en Proveedores (WhatsApp pide elegir el contacto).
+
+
+---
+
+## Actualización — Toldos PRINTEMPS (2026-11-02)
+
+### ✅ Implementado
+- Tipo de cortina nuevo **Toldos** (marca **PT** = PRINTEMPS), en la tablet y en la web (mismo `CortinaItemForm`; los pasos están en `components/toldo-pasos.tsx`).
+- Dos subtipos (`lib/toldos.ts`, se guarda en `caracteristicas.toldo`; ancho y alto/proyección en el ítem y en `bo`):
+  - **Toldo Vertical**: color de perfilería e insumos (Blanco/Negro), caño galvanizado 70/80, ancho y alto, barra frente TP1 (con/sin tensor, brazo Caputa importado, sujeción al piso) o TP2 (brazos 0,8–1,8 m), mecanismo Manual (máquina polifuncional/súper, soporte plano, escuadra, manijas) o Motorizado (soporte plano, escuadra, motor Tube/Somfy/Oximo —Oximo solo con TP1—, control con cantidad, canales 1/3/5/15/16 si lleva control, domótica), cubre toldo (ancho y perchas), tela acrílica o vinílica.
+  - **Toldo de Proyección**: color de perfilería, caño, ancho y proyección, tipo Punta a Punta / Barra Cuadra, mecanismo Manual (manijas) o Motorizado (Tube/Somfy, control, canales, domótica), cubre toldo, tela solo acrílica, pollerita.
+- Accesorios automáticos guardados para presupuesto / pedido: Tapa TP1 con pasa cable (con tensor) o simple (sin tensor), Tapa Frente (TP2).
+- Catálogo de telas con buscador: vinílicas Sembra 7000 / 11000 / Screen Exterior / Microperforado / Blackout (blanco); acrílicas x1,20 / x1,53 / x2 con Sauleda y Sauleda by Printemps filtrados por ancho disponible y Muaari Lisas / Rayadas en cualquier ancho.
+- La medición, comanda e impresiones muestran la ficha del toldo (no se dibuja). En la comanda va a proveedor por defecto ("Toldo Vertical PT"). Proveedores: se puede marcar la marca PT.
+- Presupuesto: entra como una fila con la descripción del toldo y precio a mano.
+
+### ⏳ Pendiente
+- Lista de precios de toldos y cálculo del presupuesto.
+- Orden de pedido a PRINTEMPS (hay datos de los toldos que faltan definir).
+- Marcar a PRINTEMPS con la marca PT en Proveedores.
+- Generar el APK nuevo para tener Toldos en la tablet.
