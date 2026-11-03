@@ -38,6 +38,7 @@ import { calcularTotalesPorOpcion, subtotalPrincipales } from "../lib/alternativ
 import {
   filasDeAbertura,
   filasDesdeMedicion,
+  modoDeFila,
   nuevoGrupoId,
   sufijoCortina,
 } from "../lib/filas-desde-medicion"
@@ -681,6 +682,11 @@ export function PresupuestoForm({
               {it.descripcion}
               {sufijo && ` ${sufijo}`} · {it.ancho} × {it.alto} m
             </span>
+            {modoDeFila(it) && (
+              <span className="rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-amber-900">
+                {modoDeFila(it) === "Solo tela" ? "Solo tela" : "Solo riel / mecanismo"}
+              </span>
+            )}
             {primera && (
               <button
                 type="button"
@@ -966,6 +972,11 @@ export function PresupuestoForm({
                       required
                     />
                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      {modoDeFila(it) && (
+                        <span className="rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-amber-900">
+                          {modoDeFila(it) === "Solo tela" ? "Solo tela" : "Solo riel / mecanismo"}
+                        </span>
+                      )}
                       {it.capa && cortinasDeOpcion(it) > 1 && (
                         <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
                           {sufijoCortina(it.capa, it.indiceCortina)}
@@ -1282,6 +1293,7 @@ export function PresupuestoForm({
           anchoInicial={items[calculadoraIndex].ancho}
           altoInicial={items[calculadoraIndex].alto}
           cantidadInicial={items[calculadoraIndex].cantidad}
+          modoCortina={modoDeFila(items[calculadoraIndex])}
           descripcionInicial={
             items[calculadoraIndex].grupoAlternativa && items[calculadoraIndex].nombreOpcion
               ? `${items[calculadoraIndex].descripcion} (${items[calculadoraIndex].nombreOpcion})`

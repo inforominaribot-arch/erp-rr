@@ -46,6 +46,29 @@ export function descripcionCortina(descripcionAbertura: string, k: ICortinaFisic
   return conGasa(`${descripcionAbertura || "Cortina"} – ${etiqueta}${k.marca ? ` (${k.marca})` : ""}${modo}`).slice(0, 250)
 }
 
+/**
+ * "Solo tela" / "Solo riel" de una fila del presupuesto (para avisarlo al cotizar, ej: en la página de HD).
+ * Con la especificación de la fila (alternativas) se toma de la medición; si no, de la descripción
+ * que arma el sistema ("… (HD) · Solo tela").
+ */
+export function modoDeFila(it: {
+  descripcion: string
+  caracteristicas?: Record<string, unknown> | null
+  capa?: string | null
+  indiceCortina?: number | null
+  ancho: number
+  alto: number
+}): "Solo tela" | "Solo riel" | null {
+  if (it.caracteristicas && it.capa) {
+    const k = cortinasFisicas(it.caracteristicas as unknown as ICaracteristicasItem, it.ancho, it.alto).find(
+      (c) => c.capa === it.capa && c.indice === (it.indiceCortina ?? 0)
+    )
+    if (k) return k.modo === "Normal" ? null : k.modo
+  }
+  const m = it.descripcion.match(/·\s*Solo (tela|riel)/i)
+  return m ? (m[1].toLowerCase() === "tela" ? "Solo tela" : "Solo riel") : null
+}
+
 /** Sufijo del paño / tramo: "C2" en la Gaza, "T1" en el B.O. */
 export function sufijoCortina(capa: string | null | undefined, indice: number | null | undefined): string {
   if (!capa || indice === null || indice === undefined) return ""
