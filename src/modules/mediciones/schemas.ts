@@ -218,6 +218,7 @@ export const caracteristicasItemSchema = z.object({
       anchoCubreToldo: z.number().min(0).max(50).optional(),
       perchas: z.number().int().min(0).max(99).optional(),
       colorCubreToldo: z.enum(COLORES_PERFILERIA_TOLDO).optional(),
+      mensulasCubreToldo: z.number().int().min(0).max(99).optional(),
       tela: z.enum(TELAS_TOLDO),
       tipoTela: z.string().max(40),
       colorTela: z.string().max(80),

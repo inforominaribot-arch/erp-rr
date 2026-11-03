@@ -14,6 +14,7 @@ import {
   type ICortinaFisica,
 } from "@/modules/mediciones/lib/cortinas-fisicas"
 import type { ItemPresupuestoInput } from "../schemas"
+import { calcularToldoPergola, type IPrecioInsumoPT } from "./toldo-pergola"
 import type { MedicionImportable } from "../types"
 import { conGasa } from "./texto-presupuesto"
 import {
@@ -141,6 +142,23 @@ export function calcularFilaNocheTotal(
   }
 }
 
+/** Toldo Pérgola Barrio PRINTEMPS: insumos de la planilla × 1,5 (madera, confección e instalación a mano). */
+export function calcularFilaPergola(
+  carac: ICaracteristicasItem | null,
+  ancho: number,
+  largo: number,
+  preciosPT: IPrecioInsumoPT[],
+  opciones: OpcionesCalculo = {}
+): Pick<ItemPresupuestoInput, "precioUnitario" | "calculoPrecio"> {
+  if (preciosPT.length === 0 || carac?.toldo?.subtipo !== "PERGOLA_BARRIO") return { precioUnitario: 0, calculoPrecio: null }
+  const entrada = { tipoCapa: "Toldo", toldo: carac.toldo as unknown as Record<string, unknown> }
+  const resultado = calcularToldoPergola({ toldo: carac.toldo, ancho, largo }, opciones, preciosPT)
+  return {
+    precioUnitario: resultado.precio ?? 0,
+    calculoPrecio: armarCalculoPrecio("PT_PERGOLA", entrada, resultado),
+  }
+}
+
 /** Filas de una abertura (una por cortina física). Si la medición no tiene capas, una sola fila como antes. */
 export function filasDeAbertura(
   it: { id: string; descripcion: string; ancho: number; alto: number; cantidad: number; caracteristicas: unknown },
@@ -148,7 +166,8 @@ export function filasDeAbertura(
   lista: IItemListaCalculo[],
   opcion?: { caracteristicas: Record<string, unknown> | null; nombreOpcion: string; esOpcionPrincipal: boolean },
   soloCapa?: string | null,
-  tablaMG: ICeldaPrecioMedida[] = []
+  tablaMG: ICeldaPrecioMedida[] = [],
+  preciosPT: IPrecioInsumoPT[] = []
 ): ItemPresupuestoInput[] {
   const carac = (opcion?.caracteristicas ?? it.caracteristicas) as ICaracteristicasItem | null
   const cortinas = cortinasFisicas(carac, it.ancho, it.alto).filter((k) => !soloCapa || k.capa === soloCapa)
@@ -178,6 +197,8 @@ export function filasDeAbertura(
       ? calcularFilaMosquitero(carac, k.ancho, k.alto, tablaMG)
       : esNocheTotalMG
       ? calcularFilaNocheTotal(carac, k.ancho, k.alto, tablaMG)
+      : k.tipoCapa === "Toldo"
+      ? calcularFilaPergola(carac, k.ancho, k.alto, preciosPT)
       : calcularFilaCortina(k, k.ancho, k.alto, lista)
     return {
       itemMedicionId: it.id,
@@ -214,7 +235,8 @@ export function filasDeAbertura(
 export function filasDesdeMedicion(
   medicion: MedicionImportable,
   lista: IItemListaCalculo[],
-  tablaMG: ICeldaPrecioMedida[] = []
+  tablaMG: ICeldaPrecioMedida[] = [],
+  preciosPT: IPrecioInsumoPT[] = []
 ): ItemPresupuestoInput[] {
   const filas: ItemPresupuestoInput[] = []
   const controles = new Map<string, { marca: string; canales: number; cantidad: number }>()
@@ -222,7 +244,7 @@ export function filasDesdeMedicion(
   for (const amb of medicion.ambientes) {
     const ambiente = amb.nombre || "General"
     for (const it of amb.items) {
-      const deAbertura = filasDeAbertura(it, ambiente, lista, undefined, null, tablaMG)
+      const deAbertura = filasDeAbertura(it, ambiente, lista, undefined, null, tablaMG, preciosPT)
       // Cada capa es un grupo (se acepta entera y puede tener alternativas)
       const grupos = new Map<string, string>()
       for (const f of deAbertura) {

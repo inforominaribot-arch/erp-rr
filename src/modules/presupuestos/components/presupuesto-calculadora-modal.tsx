@@ -19,6 +19,8 @@ import {
 } from "../lib/calculadora-precios"
 import { formatearPrecio } from "@/lib/utils"
 import { CalculoListaRS } from "./calculo-lista-rs"
+import { CalculoToldoPT } from "./calculo-toldo-pt"
+import type { IPrecioInsumoPT } from "../lib/toldo-pergola"
 import {
   recalcularFila,
   type CalculoPrecio,
@@ -48,6 +50,8 @@ interface PresupuestoCalculadoraModalProps {
   calculoInicial?: CalculoPrecio | null
   listaRS?: IItemListaCalculo[]
   tablaMG?: ICeldaPrecioMedida[]
+  /** Insumos de la planilla de PRINTEMPS (toldos) */
+  preciosPT?: IPrecioInsumoPT[]
   /** La cortina se pide solo tela / solo riel (se avisa al cotizar, ej: en la página de HD) */
   modoCortina?: "Solo tela" | "Solo riel" | null
 }
@@ -63,10 +67,13 @@ export function PresupuestoCalculadoraModal({
   calculoInicial = null,
   listaRS = [],
   tablaMG = [],
+  preciosPT = [],
   modoCortina = null,
 }: PresupuestoCalculadoraModalProps) {
   const esMG = calculoInicial?.metodo === "MG_MOSQUITERO" || calculoInicial?.metodo === "MG_NOCHE_TOTAL"
-  const conListaRS = Boolean(calculoInicial) && (esMG ? tablaMG.length > 0 : listaRS.length > 0)
+  const esPT = calculoInicial?.metodo === "PT_PERGOLA"
+  const conListaRS =
+    Boolean(calculoInicial) && (esPT ? preciosPT.length > 0 : esMG ? tablaMG.length > 0 : listaRS.length > 0)
   // Dimensiones base
   const [ancho, setAncho] = useState<number>(anchoInicial)
   const [alto, setAlto] = useState<number>(altoInicial)
@@ -153,7 +160,12 @@ export function PresupuestoCalculadoraModal({
   const [opcionesRS, setOpcionesRS] = useState<OpcionesCalculo>(calculoInicial?.opciones ?? {})
   const resultadoRS =
     calculoInicial && conListaRS
-      ? recalcularFila({ ancho, alto, calculoPrecio: { ...calculoInicial, opciones: opcionesRS } }, listaRS, tablaMG)
+      ? recalcularFila(
+          { ancho, alto, calculoPrecio: { ...calculoInicial, opciones: opcionesRS } },
+          listaRS,
+          tablaMG,
+          preciosPT
+        )
       : null
 
   // Cálculos reactivos
@@ -289,7 +301,7 @@ export function PresupuestoCalculadoraModal({
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              {esMG ? "Lista MG" : "Lista RS"}
+              {esPT ? "Toldo PT" : esMG ? "Lista MG" : "Lista RS"}
             </button>
           )}
           <button
@@ -368,7 +380,7 @@ export function PresupuestoCalculadoraModal({
             </div>
             <div>
               <label className="text-xs font-bold text-slate-700">
-                Alto (metros)
+                {esPT ? "Largo (metros)" : "Alto (metros)"}
               </label>
               <input
                 type="number"
@@ -751,7 +763,16 @@ export function PresupuestoCalculadoraModal({
           )}
 
           {/* 6. LISTA DE PRECIOS RS */}
-          {tipo === "LISTA_RS" && calculoInicial && (
+          {tipo === "LISTA_RS" && calculoInicial && esPT && (
+            <CalculoToldoPT
+              calculo={calculoInicial}
+              ancho={ancho}
+              opciones={opcionesRS}
+              onCambiarOpciones={setOpcionesRS}
+              resultado={resultadoRS}
+            />
+          )}
+          {tipo === "LISTA_RS" && calculoInicial && !esPT && (
             <CalculoListaRS
               calculo={calculoInicial}
               lista={listaRS}

@@ -3,6 +3,8 @@
 
 import { prisma } from "@/lib/prisma"
 import type { Prisma, ItemPresupuesto, Presupuesto, Cliente, Comanda } from "@prisma/client"
+import { asegurarPlanillaReciente } from "@/modules/proveedores/lib/sincronizar-planilla"
+import type { IPrecioInsumoPT } from "./lib/toldo-pergola"
 import type { FiltrosPresupuestoInput } from "./schemas"
 import { serializarAvisoMedida } from "@/modules/mediciones/types"
 import type { ICaracteristicasItem } from "@/modules/mediciones/types"
@@ -424,6 +426,34 @@ export async function obtenerTablaMedidaMG(): Promise<ICeldaPrecioMedida[]> {
     }))
   } catch (error) {
     console.error("Error al obtener las tablas por medida MG:", error)
+    return []
+  }
+}
+
+
+// ─── Insumos de toldos PRINTEMPS (planilla de Google Sheets del proveedor) ───
+
+/**
+ * Precios vigentes de la planilla del proveedor de la marca PT (PRINTEMPS) para calcular toldos.
+ * Si la copia tiene más de unas horas, se vuelve a bajar antes.
+ */
+export async function obtenerPreciosInsumosPT(): Promise<IPrecioInsumoPT[]> {
+  try {
+    const proveedor = await prisma.proveedor.findFirst({
+      where: { activo: true, marcas: { has: "PT" }, planillaPreciosUrl: { not: null } },
+      orderBy: { nombre: "asc" },
+      select: { id: true },
+    })
+    if (!proveedor) return []
+    await asegurarPlanillaReciente(proveedor.id)
+    const items = await prisma.precioPlanillaItem.findMany({
+      where: { proveedorId: proveedor.id, activo: true },
+      orderBy: { orden: "asc" },
+      select: { descripcion: true, precio: true },
+    })
+    return items.map((it) => ({ descripcion: it.descripcion, precio: Number(it.precio) }))
+  } catch (error) {
+    console.error("Error al obtener los precios de insumos PRINTEMPS:", error)
     return []
   }
 }

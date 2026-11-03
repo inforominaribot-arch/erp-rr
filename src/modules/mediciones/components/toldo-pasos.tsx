@@ -335,6 +335,10 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
                   valor={t.colorCubreToldo}
                   onElegir={(colorCubreToldo) => cambiar({ colorCubreToldo })}
                 />
+                <span className="block pt-2 text-[11px] font-bold text-slate-600">
+                  Ménsula soportes escuadra 20x25 (cantidad)
+                </span>
+                <Cantidad valor={t.mensulasCubreToldo} onCambiar={(mensulasCubreToldo) => cambiar({ mensulasCubreToldo })} />
               </div>
             )}
           </Paso>

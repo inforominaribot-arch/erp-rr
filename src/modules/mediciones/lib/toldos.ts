@@ -91,6 +91,8 @@ export interface IToldoConfig {
   perchas?: number
   /** Pérgola Barrio */
   colorCubreToldo?: ColorPerfileriaToldo
+  /** Pérgola Barrio: cantidad de ménsulas soportes escuadra 20x25 del cubre toldo */
+  mensulasCubreToldo?: number
 
   tela: TelaToldo
   tipoTela: string
@@ -296,7 +298,7 @@ function limpiarPergola(t: Partial<IToldoConfig>): Partial<IToldoConfig> {
     altoPiso: t.altoPiso,
     divisiones: t.divisiones?.length ? t.divisiones.slice(0, MAX_DIVISIONES_PERGOLA) : undefined,
     cubreToldo: t.cubreToldo ?? false,
-    ...(t.cubreToldo ? { colorCubreToldo: t.colorCubreToldo } : {}),
+    ...(t.cubreToldo ? { colorCubreToldo: t.colorCubreToldo, mensulasCubreToldo: t.mensulasCubreToldo } : {}),
     ...telaValida(t),
   })
 }
@@ -360,6 +362,9 @@ function validarPergola(t: Partial<IToldoConfig>, ancho: number, largo: number):
     return `Las partes suman ${fmtM(suma)} m y el ancho es ${fmtM(ancho)} m: tienen que sumar lo mismo (podés tocar "Repartir igual").`
   }
   if (t.cubreToldo && !t.colorCubreToldo) return "Elegí el color del cubre toldo."
+  if (t.cubreToldo && !((t.mensulasCubreToldo ?? 0) > 0)) {
+    return "Ingresá la cantidad de ménsulas soportes escuadra 20x25 del cubre toldo."
+  }
   return validarTela(t)
 }
 
@@ -385,7 +390,9 @@ export function lineasToldo(t: Partial<IToldoConfig> | null | undefined): string
     return [
       ...(t.altoPiso ? [`Alto desde el piso: ${fmtM(t.altoPiso)} m`] : []),
       d.length > 1 ? `Ancho dividido en ${d.length} partes: ${d.map(fmtM).join(" / ")} m` : "Ancho sin dividir (1 parte)",
-      t.cubreToldo ? `Cubre toldo ${t.colorCubreToldo ?? ""}`.trim() : "Sin cubre toldo",
+      t.cubreToldo
+        ? `Cubre toldo ${t.colorCubreToldo ?? ""} · Ménsula soportes escuadra 20x25 × ${t.mensulasCubreToldo ?? 0}`.replace("  ", " ")
+        : "Sin cubre toldo",
       ...(t.tela ? [`Tela ${textoTelaToldo(t)}`] : []),
     ]
   }

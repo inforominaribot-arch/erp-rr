@@ -27,6 +27,8 @@ import {
 } from "@/modules/mediciones/lib/mosquiteros"
 import { celdaNocheTotal, nombreSistemaNocheTotal } from "@/modules/mediciones/lib/noche-total"
 import { VALORES_DEFECTO_PRECIOS } from "./calculadora-precios"
+import type { IToldoConfig } from "@/modules/mediciones/lib/toldos"
+import { calcularToldoPergola, type IPrecioInsumoPT } from "./toldo-pergola"
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
@@ -72,6 +74,7 @@ export type MetodoCalculoRS =
   | "RS_CARGADOR"
   | "MG_MOSQUITERO"
   | "MG_NOCHE_TOTAL"
+  | "PT_PERGOLA"
 
 /** Celda de una tabla por medida con su precio (MagicRoll) */
 export interface ICeldaPrecioMedida extends ICeldaMosquitero {
@@ -90,6 +93,13 @@ export const opcionesCalculoSchema = z.object({
   modelo: z.string().max(40).nullable().optional(), // mosquitero MG / sistema de la Noche Total
   puertas: z.enum(["Simple", "Doble"]).nullable().optional(),
   instalacion: z.number().min(0).max(100_000_000).optional(),
+  // Toldo Pérgola PRINTEMPS: ancho de tela (microperforado), precios propios y a mano
+  anchoTela: z.number().min(0).max(10).nullable().optional(),
+  precioPuente: z.number().min(0).max(100_000_000).optional(),
+  precioAlambre: z.number().min(0).max(100_000_000).optional(),
+  precioMensula: z.number().min(0).max(100_000_000).optional(),
+  precioMadera: z.number().min(0).max(100_000_000).optional(),
+  confeccion: z.number().min(0).max(100_000_000).optional(),
 })
 export type OpcionesCalculo = z.infer<typeof opcionesCalculoSchema>
 
@@ -107,6 +117,8 @@ export const entradaCalculoSchema = z.object({
   // Mosquitero MG: modelo y puertas de la medición. Noche Total MG: sistema en "modelo"
   modelo: z.string().max(40).optional(),
   puertas: z.enum(["Simple", "Doble"]).optional(),
+  // Toldo Pérgola PRINTEMPS: la configuración del toldo de la medición
+  toldo: z.record(z.string(), z.unknown()).optional(),
 })
 export type EntradaCalculo = z.infer<typeof entradaCalculoSchema>
 
@@ -118,7 +130,16 @@ export const lineaDesgloseSchema = z.object({
 export type LineaDesglose = z.infer<typeof lineaDesgloseSchema>
 
 export const calculoPrecioSchema = z.object({
-  metodo: z.enum(["RS_ROLLER", "RS_ROLLER_MOT", "RS_BANDAS", "RS_CONTROL", "RS_CARGADOR", "MG_MOSQUITERO", "MG_NOCHE_TOTAL"]),
+  metodo: z.enum([
+    "RS_ROLLER",
+    "RS_ROLLER_MOT",
+    "RS_BANDAS",
+    "RS_CONTROL",
+    "RS_CARGADOR",
+    "MG_MOSQUITERO",
+    "MG_NOCHE_TOTAL",
+    "PT_PERGOLA",
+  ]),
   entrada: entradaCalculoSchema.default({}),
   opciones: opcionesCalculoSchema.default({}),
   desglose: z.array(lineaDesgloseSchema).max(30).default([]),
@@ -681,9 +702,18 @@ export function leerCalculoPrecio(valor: unknown): CalculoPrecio | null {
 export function recalcularFila(
   fila: { ancho: number; alto: number; calculoPrecio: CalculoPrecio },
   lista: IItemListaCalculo[],
-  tablaMG: ICeldaPrecioMedida[] = []
+  tablaMG: ICeldaPrecioMedida[] = [],
+  preciosPT: IPrecioInsumoPT[] = []
 ): ResultadoCalculoRS | null {
   const calc = fila.calculoPrecio
+  if (calc.metodo === "PT_PERGOLA") {
+    if (preciosPT.length === 0) return null
+    return calcularToldoPergola(
+      { toldo: calc.entrada.toldo as Partial<IToldoConfig> | undefined, ancho: fila.ancho, largo: fila.alto },
+      calc.opciones,
+      preciosPT
+    )
+  }
   if (calc.metodo === "MG_NOCHE_TOTAL") {
     return calcularNocheTotalMG({ modelo: calc.entrada.modelo, ancho: fila.ancho, alto: fila.alto }, calc.opciones, tablaMG)
   }
