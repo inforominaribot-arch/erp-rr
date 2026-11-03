@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   Clock,
   Ruler,
@@ -13,7 +14,11 @@ import {
   ChevronUp,
   FilePlus,
   AlertCircle,
+  Eye,
+  Trash2,
+  Loader2,
 } from "lucide-react"
+import { eliminarMedicion } from "@/modules/mediciones/actions"
 import type { IMedicionPendientePresupuesto } from "../types"
 import { formatearFecha } from "@/lib/utils"
 
@@ -27,6 +32,35 @@ export function MedicionesPendientesAlerta({
   puedeEditar = true,
 }: MedicionesPendientesAlertaProps) {
   const [expandido, setExpandido] = useState(true)
+  const [eliminandoId, setEliminandoId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [, startTransition] = useTransition()
+  const router = useRouter()
+
+  /** Borra una medición que no se va a presupuestar (ej: duplicada al sincronizar la tablet) */
+  function eliminar(item: IMedicionPendientePresupuesto) {
+    const confirmado = window.confirm(
+      `¿Eliminar la medición de ${item.clienteNombre} del ${formatearFecha(item.creadoEn)}?
+
+` +
+        `${item.totalCortinas} cortina(s) en ${item.totalAmbientes} ambiente(s): ${item.ambientesNombres.join(", ") || "General"}.
+
+` +
+        "Se borra definitivamente."
+    )
+    if (!confirmado) return
+    setError(null)
+    setEliminandoId(item.medicionId)
+    startTransition(async () => {
+      const res = await eliminarMedicion(item.medicionId)
+      setEliminandoId(null)
+      if (!res.success) {
+        setError(res.error || "No se pudo eliminar la medición.")
+        return
+      }
+      router.refresh()
+    })
+  }
 
   if (!mediciones || mediciones.length === 0) {
     return null
@@ -76,6 +110,10 @@ export function MedicionesPendientesAlerta({
           )}
         </button>
       </div>
+
+      {error && (
+        <p className="mt-3 rounded-xl border border-red-200 bg-red-50 p-2.5 text-xs font-semibold text-red-700">{error}</p>
+      )}
 
       {/* ── Grilla de Clientes con Medición Tomada ── */}
       {expandido && (
@@ -148,7 +186,7 @@ export function MedicionesPendientesAlerta({
 
                 {/* Botón de Acción Directa */}
                 {puedeEditar && (
-                  <div className="pt-2 border-t border-slate-100">
+                  <div className="pt-2 border-t border-slate-100 space-y-2">
                     <Link
                       href={`/presupuestos/nuevo?clienteId=${item.clienteId}&medicionId=${item.medicionId}`}
                       className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600 px-3.5 py-2 text-xs font-bold text-white shadow-2xs hover:bg-amber-700 transition"
@@ -157,6 +195,28 @@ export function MedicionesPendientesAlerta({
                       Presupuestar Cortinas
                       <ArrowRight className="h-3.5 w-3.5 opacity-80" />
                     </Link>
+                    <div className="flex items-center justify-between gap-2">
+                      <Link
+                        href={`/mediciones/${item.medicionId}`}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-indigo-600"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        Ver medición
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => eliminar(item)}
+                        disabled={eliminandoId === item.medicionId}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-red-600 disabled:opacity-50"
+                      >
+                        {eliminandoId === item.medicionId ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                        Eliminar
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

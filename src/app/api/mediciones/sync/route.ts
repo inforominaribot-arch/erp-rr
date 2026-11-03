@@ -86,11 +86,13 @@ export async function POST(req: Request) {
 
     // 4. Procesamiento transaccional de cada medición
     for (const med of medicionesParaSincronizar) {
-      // Si ya existe en el servidor: se ACTUALIZA con la versión de la tablet (gana la tablet)
-      if (med.idServidor) {
-        const existente = await prisma.medicion.findUnique({
-          where: { id: med.idServidor },
-        })
+      // Si ya existe en el servidor: se ACTUALIZA con la versión de la tablet (gana la tablet).
+      // Se busca por su id del ERP o, si la tablet no llegó a enterarse de que ya la había subido
+      // (se cortó la respuesta), por su código de la tablet: así no se crea una medición duplicada.
+      {
+        const existente =
+          (med.idServidor ? await prisma.medicion.findUnique({ where: { id: med.idServidor } }) : null) ??
+          (await prisma.medicion.findUnique({ where: { idLocalTablet: med.idLocal } }))
         if (existente) {
           try {
             await prisma.$transaction(
@@ -136,81 +138,93 @@ export async function POST(req: Request) {
         }
       }
 
-      const resultado = await prisma.$transaction(async (tx) => {
-        let clienteFinalId = med.clienteId
+      let resultado: { idLocal: string; idServidor: string; clienteId: string; yaExistia?: boolean }
+      try {
+        resultado = await prisma.$transaction(async (tx) => {
+          let clienteFinalId = med.clienteId
 
-        // Verificar si el cliente existe en la BD
-        const clienteExiste = await tx.cliente.findUnique({
-          where: { id: clienteFinalId },
-        })
+          // Verificar si el cliente existe en la BD
+          const clienteExiste = await tx.cliente.findUnique({
+            where: { id: clienteFinalId },
+          })
 
-        if (!clienteExiste) {
-          // Si el cliente no existe con ese ID (ej. creado offline con id temporal), buscar por nombre
-          const clientePorNombre = await tx.cliente.findFirst({
-            where: {
-              nombre: {
-                equals: med.clienteNombre,
-                mode: "insensitive",
+          if (!clienteExiste) {
+            // Si el cliente no existe con ese ID (ej. creado offline con id temporal), buscar por nombre
+            const clientePorNombre = await tx.cliente.findFirst({
+              where: {
+                nombre: {
+                  equals: med.clienteNombre,
+                  mode: "insensitive",
+                },
+              },
+            })
+
+            if (clientePorNombre) {
+              clienteFinalId = clientePorNombre.id
+            } else {
+              // Alta express del cliente si fue creado 100% offline
+              const nuevoCliente = await tx.cliente.create({
+                data: {
+                  nombre: med.clienteNombre || "Cliente Relevamiento",
+                  telefono: med.clienteTelefono || null,
+                  direccion: med.clienteDireccion || null,
+                  localidad: med.clienteLocalidad || null,
+                  estado: "MEDICION_TOMADA",
+                },
+              })
+              clienteFinalId = nuevoCliente.id
+            }
+          }
+
+          // Crear la medición completa con sus ambientes y cortinas
+          const medicionCreada = await tx.medicion.create({
+            data: {
+              clienteId: clienteFinalId,
+              usuarioId: auth.usuario!.id,
+              observaciones: med.observaciones?.trim() || null,
+              sincronizado: true,
+              idLocalTablet: med.idLocal,
+              creadoEn: med.guardadoEn ? new Date(med.guardadoEn) : new Date(),
+              ambientes: {
+                create: med.ambientes.map((amb, ambIndex) => ({
+                  nombre: amb.nombre.trim(),
+                  orden: amb.orden ?? ambIndex,
+                  items: {
+                    create: amb.items.map((item) => ({
+                      descripcion: item.descripcion.trim(),
+                      ancho: item.ancho,
+                      alto: item.alto,
+                      cantidad: item.cantidad || 1,
+                      caracteristicas: (item.caracteristicas ?? {}) as any,
+                      observaciones: item.observaciones?.trim() || null,
+                    })),
+                  },
+                })),
               },
             },
           })
 
-          if (clientePorNombre) {
-            clienteFinalId = clientePorNombre.id
-          } else {
-            // Alta express del cliente si fue creado 100% offline
-            const nuevoCliente = await tx.cliente.create({
-              data: {
-                nombre: med.clienteNombre || "Cliente Relevamiento",
-                telefono: med.clienteTelefono || null,
-                direccion: med.clienteDireccion || null,
-                localidad: med.clienteLocalidad || null,
-                estado: "MEDICION_TOMADA",
-              },
-            })
-            clienteFinalId = nuevoCliente.id
-          }
-        }
+          // Actualizar el estado del cliente a MEDICION_TOMADA
+          await tx.cliente.update({
+            where: { id: clienteFinalId },
+            data: { estado: "MEDICION_TOMADA" },
+          })
 
-        // Crear la medición completa con sus ambientes y cortinas
-        const medicionCreada = await tx.medicion.create({
-          data: {
+          return {
+            idLocal: med.idLocal,
+            idServidor: medicionCreada.id,
             clienteId: clienteFinalId,
-            usuarioId: auth.usuario!.id,
-            observaciones: med.observaciones?.trim() || null,
-            sincronizado: true,
-            creadoEn: med.guardadoEn ? new Date(med.guardadoEn) : new Date(),
-            ambientes: {
-              create: med.ambientes.map((amb, ambIndex) => ({
-                nombre: amb.nombre.trim(),
-                orden: amb.orden ?? ambIndex,
-                items: {
-                  create: amb.items.map((item) => ({
-                    descripcion: item.descripcion.trim(),
-                    ancho: item.ancho,
-                    alto: item.alto,
-                    cantidad: item.cantidad || 1,
-                    caracteristicas: (item.caracteristicas ?? {}) as any,
-                    observaciones: item.observaciones?.trim() || null,
-                  })),
-                },
-              })),
-            },
-          },
+          }
         })
-
-        // Actualizar el estado del cliente a MEDICION_TOMADA
-        await tx.cliente.update({
-          where: { id: clienteFinalId },
-          data: { estado: "MEDICION_TOMADA" },
-        })
-
-        return {
-          idLocal: med.idLocal,
-          idServidor: medicionCreada.id,
-          clienteId: clienteFinalId,
-        }
-      })
+      } catch (err) {
+        // Dos envíos simultáneos de la misma medición: el segundo choca con el código de la tablet ya guardado
+        const yaCreada =
+          (err as { code?: string })?.code === "P2002"
+            ? await prisma.medicion.findUnique({ where: { idLocalTablet: med.idLocal } })
+            : null
+        if (!yaCreada) throw err
+        resultado = { idLocal: med.idLocal, idServidor: yaCreada.id, clienteId: yaCreada.clienteId, yaExistia: true }
+      }
 
       resultadosSincronizacion.push(resultado)
     }

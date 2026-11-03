@@ -20,6 +20,7 @@ import {
 import { agruparCortinas, esPrincipal, subtotalPrincipales } from "./lib/alternativas"
 import { unirFilasPorAbertura } from "./lib/filas-por-abertura"
 import { recalcularPresupuestosConLista, type ResultadoRecalculo } from "./lib/recalcular-con-lista"
+import { obtenerConteoMedicionesPendientes } from "./queries"
 
 // ─── Helper: normalizar ítems (incluye alternativas) antes de guardar ─────────
 
@@ -464,14 +465,7 @@ export async function obtenerMedicionesClienteAction(
 
 export async function obtenerConteoPendientesPresupuestoAction(): Promise<number> {
   try {
-    const conteo = await prisma.medicion.count({
-      where: {
-        cliente: {
-          estado: "MEDICION_TOMADA",
-        },
-      },
-    })
-    return conteo
+    return await obtenerConteoMedicionesPendientes()
   } catch (error) {
     console.error("Error al obtener conteo de pendientes:", error)
     return 0

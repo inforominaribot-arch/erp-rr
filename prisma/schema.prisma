@@ -143,6 +143,8 @@ model Medicion {
   usuarioId     String   @map("usuario_id")
   observaciones String?
   sincronizado  Boolean  @default(false)
+  // Código de la medición en la tablet: si vuelve a llegar (respuesta perdida, reintento) se actualiza, no se duplica
+  idLocalTablet String?  @unique @map("id_local_tablet")
   creadoEn      DateTime @default(now()) @map("creado_en")
   actualizadoEn DateTime @updatedAt @map("actualizado_en")
 

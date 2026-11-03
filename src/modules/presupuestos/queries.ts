@@ -295,6 +295,11 @@ export async function obtenerClientesParaPresupuesto() {
 
 // ─── Mediciones de Clientes Pendientes de Presupuestar ───────────────────────
 
+/** Medición que todavía no se usó en ningún presupuesto */
+const MEDICION_SIN_PRESUPUESTO = {
+  ambientes: { none: { items: { some: { itemsPresupuesto: { some: {} } } } } },
+} satisfies Prisma.MedicionWhereInput
+
 export async function obtenerMedicionesPendientesPresupuesto(): Promise<
   IMedicionPendientePresupuesto[]
 > {
@@ -302,12 +307,14 @@ export async function obtenerMedicionesPendientesPresupuesto(): Promise<
     where: {
       estado: "MEDICION_TOMADA",
       mediciones: {
-        some: {},
+        some: MEDICION_SIN_PRESUPUESTO,
       },
     },
     orderBy: { actualizadoEn: "desc" },
     include: {
       mediciones: {
+        // Solo las que todavía no están en ningún presupuesto (editar una ya presupuestada no la vuelve a pedir)
+        where: MEDICION_SIN_PRESUPUESTO,
         orderBy: { creadoEn: "desc" },
         include: {
           ambientes: {
@@ -357,6 +364,7 @@ export async function obtenerMedicionesPendientesPresupuesto(): Promise<
 export async function obtenerConteoMedicionesPendientes(): Promise<number> {
   const conteo = await prisma.medicion.count({
     where: {
+      ...MEDICION_SIN_PRESUPUESTO,
       cliente: {
         estado: "MEDICION_TOMADA",
       },

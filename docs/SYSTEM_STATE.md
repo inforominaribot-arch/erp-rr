@@ -793,3 +793,17 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 - Requiere `npx prisma db push` (columnas nuevas en `proveedores` y tabla `precios_planilla`).
 - Crear el proveedor PRINTEMPS con la marca PT y el link de la planilla.
 - Relacionar cada opción del toldo con su insumo de la planilla y armar el cálculo del presupuesto.
+
+
+---
+
+## Actualización — Mediciones duplicadas por la tablet y pendientes de presupuestar (2026-11-03)
+
+### ✅ Implementado
+- `Medicion.idLocalTablet` (único): el código de la medición en la tablet. `/api/mediciones/sync` busca la medición por `idServidor` y, si no, por ese código: si la tablet no se enteró de que ya la había subido (respuesta cortada) la actualiza en vez de crear otra. Dos envíos simultáneos: el segundo choca con el índice único y devuelve la ya creada. Lo mismo en `sincronizarMedicionOffline` (web sin conexión).
+- "Mediciones pendientes de presupuestar" (lista y número del menú): solo las mediciones que todavía no están en ningún presupuesto.
+- Tarjetas de pendientes: "Ver medición" y "Eliminar" (con confirmación; `eliminarMedicion` no deja borrar si ya está en un presupuesto).
+
+### ⏳ Pendiente
+- Requiere `npx prisma db push` (columna `id_local_tablet`).
+- Duplicados existentes (Carina Mazzarello, Gabriela Liendo): los borra el usuario desde la lista de pendientes; también hay que borrar la copia vieja en la tablet.

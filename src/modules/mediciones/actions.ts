@@ -233,6 +233,14 @@ export async function sincronizarMedicionOffline(
 
     const usuarioId = auth.usuarioId!
 
+    // Ya subida antes (se cortó la respuesta y se reintentó): no se duplica
+    const yaSubida = medicionOffline.idLocal
+      ? await prisma.medicion.findUnique({ where: { idLocalTablet: medicionOffline.idLocal } })
+      : null
+    if (yaSubida) {
+      return { success: true, data: { idServidor: yaSubida.id, idLocal: medicionOffline.idLocal } }
+    }
+
     let clienteFinalId = medicionOffline.clienteId
 
     // Si el cliente no existe en DB (ej. fue creado offline con id temporal), crearlo
@@ -274,6 +282,7 @@ export async function sincronizarMedicionOffline(
         usuarioId,
         observaciones: medicionOffline.observaciones?.trim() || null,
         sincronizado: true,
+        idLocalTablet: medicionOffline.idLocal || null,
         creadoEn: new Date(medicionOffline.guardadoEn || Date.now()),
         ambientes: {
           create: medicionOffline.ambientes.map((amb, index) => ({
