@@ -7,7 +7,7 @@
 //  - Tela: paños = ⌈(ancho + 0,15) ÷ ancho de la tela⌉; metros = paños × (largo + 0,20)
 //  - Pitón cerrado del 10: 2 × X + 3 (los "pitones abiertos" van con el cerrado) · Tensor M8: X · Ojal zincado 25: X
 //  - Soga nylon con alma 6 mm: ⌈2 × largo + 1,5 × alto desde el piso⌉ m · Roldana simple y doble n° 4: 1 c/u
-//  - Puente de media: 1 · Madera listón 3 × 1,5: ancho (m) · Ata soga reforzado: 1 · Alambre: (largo + 0,20) × X m
+//  - Puente de media: 1 · Madera listón 3 × 1,5: se compran "ancho" metros (precio total a mano) · Ata soga reforzado: 1 · Alambre: (largo + 0,20) × X m
 //  - Cubre toldo: cubre techo aluminio (ancho + 0,10) ml + ménsulas (cantidad de la medición)
 
 import type { IToldoConfig } from "@/modules/mediciones/lib/toldos"
@@ -190,7 +190,10 @@ export function calcularToldoPergola(
   dePlanilla("Roldana simple n° 4", INSUMOS.roldanaSimple, 1, "u")
   dePlanilla("Roldana doble n° 4", INSUMOS.roldanaDoble, 1, "u")
   agregar("Puente de media", 1, "u", opciones.precioPuente ?? PRECIO_PUENTE_MEDIA)
-  agregar("Madera listón 3 × 1,5", ancho, "m", opciones.precioMadera ?? 0, `comprar ${fmtM(ancho)} m`)
+  // La madera se carga con el precio total que pasa la maderera
+  const madera = opciones.precioMadera ?? 0
+  insumos += madera
+  desglose.push({ concepto: "Madera listón 3 × 1,5", detalle: `comprar ${fmtM(ancho)} m · precio total de la maderera`, importe: madera })
   dePlanilla("Ata soga reforzado", INSUMOS.ataSoga, 1, "u")
   const metrosAlambre = r2((largo + 0.2) * X)
   agregar("Alambre", metrosAlambre, "m", opciones.precioAlambre ?? PRECIO_ALAMBRE_METRO, `(${fmtM(largo)} + 0,20) × ${X}`)

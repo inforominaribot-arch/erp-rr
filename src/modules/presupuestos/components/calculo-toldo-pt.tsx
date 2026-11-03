@@ -91,10 +91,10 @@ export function CalculoToldoPT({ calculo, ancho, opciones, onCambiarOpciones, re
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <CampoPrecio
-            label="Madera ($ por metro)"
+            label="Madera ($ total)"
             valor={efectivas.precioMadera}
             onCambiar={(precioMadera) => cambiar({ precioMadera })}
-            ayuda="Precio de la maderera"
+            ayuda={`Precio de los ${fmtM(ancho)} m en la maderera`}
             resaltar={!efectivas.precioMadera}
           />
           <CampoPrecio

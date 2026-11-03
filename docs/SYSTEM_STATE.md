@@ -831,7 +831,7 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 - `lib/toldo-pergola.ts` (`calcularToldoPergola`, método `PT_PERGOLA`), con X = divisiones + 1:
   tela ⌈(ancho + 0,15) ÷ ancho de tela⌉ paños × (largo + 0,20) m; pitón cerrado del 10 (2X + 3); tensor M8 (X); ojal zincado 25 (X);
   soga nylon 6 mm ⌈2 × largo + 1,5 × alto desde el piso⌉ m; roldana simple y doble n° 4; puente de media ($920); madera listón
-  3 × 1,5 (ancho m, precio a mano); ata soga reforzado; alambre (largo + 0,20) × X m a $500; cubre toldo: cubre techo aluminio
+  3 × 1,5 (se compran "ancho" m; precio total de la maderera, a mano); ata soga reforzado; alambre (largo + 0,20) × X m a $500; cubre toldo: cubre techo aluminio
   (ancho + 0,10) ml + ménsulas ($53.539 / 24 c/u). Precio = insumos × 1,5 + confección + instalación (a mano).
 - Precios de la planilla de PRINTEMPS (`obtenerPreciosInsumosPT`, se actualiza la copia si tiene más de 6 h). Telas: Sauleda x1,20 / x1,50 / x2,00,
   Muaari Fantasía x1,20 y Lisa x1,60, Sembra 7000 x2,20, 11000 x1,50, Screen Exterior x3,10, Blackout exterior x2,50, Microperforado
