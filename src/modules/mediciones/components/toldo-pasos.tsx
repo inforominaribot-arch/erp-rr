@@ -325,7 +325,11 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
             )}
           </Paso>
 
-          <Paso titulo="3 • Cubre toldo">
+          <Paso titulo="3 • Caída (cm)">
+            <Cantidad valor={t.caidaCm} onCambiar={(caidaCm) => cambiar({ caidaCm })} />
+          </Paso>
+
+          <Paso titulo="4 • Cubre toldo">
             <SiNo valor={t.cubreToldo} onElegir={(cubreToldo) => cambiar({ cubreToldo })} />
             {t.cubreToldo && (
               <div className="space-y-1 rounded-xl border border-slate-200 bg-white/70 p-3">
@@ -343,7 +347,7 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
             )}
           </Paso>
 
-          {pasoTela("4 • Tela")}
+          {pasoTela("5 • Tela")}
         </>
       )}
 

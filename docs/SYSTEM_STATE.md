@@ -842,3 +842,16 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 ### ⏳ Pendiente
 - Presupuesto de los toldos Vertical y de Proyección.
 - "Recalcular presupuestos con la lista" todavía no recalcula toldos.
+
+
+---
+
+## Actualización — Dibujo de taller del Toldo Pérgola Barrio (2026-11-03)
+
+### ✅ Implementado
+- Medición de la pérgola: "Caída (cm)" (`toldo.caidaCm`, obligatoria) y el nombre de la cortina pasa a ser "Lugar de fijación" (punto cardinal).
+- `ToldoPergolaDibujo` (en la ficha del toldo: medición, comanda e impresión): vista de frente con la medida de cada división arriba (en vertical si no entra), franja superior de 4 cm con un ojal en cada línea (bordes + divisiones), divisiones en línea de puntos y fuelle inferior de 12 cm; al lado, el zigzag de la caída con su medida.
+- Comanda: el título dice "Lugar de fijación: NORTE" o "Lugar de fijación y cubre toldo: NORTE" si lleva cubre toldo.
+
+### ⏳ Pendiente
+- Generar el APK nuevo para tener la caída y el lugar de fijación en la tablet.

@@ -67,6 +67,8 @@ export interface IToldoConfig {
   // y los metros de cada parte del ancho (suman el ancho)
   altoPiso?: number
   divisiones?: number[]
+  /** Caída del plegado (cm) */
+  caidaCm?: number
 
   /** Vertical y Proyección */
   mecanismo?: MecanismoToldo
@@ -296,6 +298,7 @@ function limpiarPergola(t: Partial<IToldoConfig>): Partial<IToldoConfig> {
   return sinVacios({
     subtipo: "PERGOLA_BARRIO",
     altoPiso: t.altoPiso,
+    caidaCm: t.caidaCm,
     divisiones: t.divisiones?.length ? t.divisiones.slice(0, MAX_DIVISIONES_PERGOLA) : undefined,
     cubreToldo: t.cubreToldo ?? false,
     ...(t.cubreToldo ? { colorCubreToldo: t.colorCubreToldo, mensulasCubreToldo: t.mensulasCubreToldo } : {}),
@@ -357,6 +360,7 @@ function validarPergola(t: Partial<IToldoConfig>, ancho: number, largo: number):
   const d = t.divisiones ?? []
   if (d.length === 0) return "Elegí en cuántas partes se divide el ancho."
   if (d.some((v) => !(v > 0))) return "Completá los metros de cada parte del ancho."
+  if (!((t.caidaCm ?? 0) > 0)) return "Ingresá la caída (cm)."
   const suma = sumaDivisiones(d)
   if (Math.abs(suma - ancho) > 0.02) {
     return `Las partes suman ${fmtM(suma)} m y el ancho es ${fmtM(ancho)} m: tienen que sumar lo mismo (podés tocar "Repartir igual").`
@@ -369,6 +373,11 @@ function validarPergola(t: Partial<IToldoConfig>, ancho: number, largo: number):
 }
 
 // ─── Textos ─────────────────────────────────────────────────────────────────
+
+/** Pérgola: el nombre de la cortina es el lugar de fijación (punto cardinal); en la comanda suma el cubre toldo. */
+export const esPergola = (t: Partial<IToldoConfig> | null | undefined) => t?.subtipo === "PERGOLA_BARRIO"
+export const etiquetaLugarFijacion = (t: Partial<IToldoConfig> | null | undefined) =>
+  t?.cubreToldo ? "Lugar de fijación y cubre toldo" : "Lugar de fijación"
 
 export const nombreSubtipoToldo = (subtipo: string | null | undefined) =>
   SUBTIPOS_TOLDO.find((s) => s.subtipo === subtipo)?.nombre ?? "Toldo"
@@ -389,6 +398,7 @@ export function lineasToldo(t: Partial<IToldoConfig> | null | undefined): string
     const d = t.divisiones ?? []
     return [
       ...(t.altoPiso ? [`Alto desde el piso: ${fmtM(t.altoPiso)} m`] : []),
+      ...(t.caidaCm ? [`Caída: ${t.caidaCm} cm`] : []),
       d.length > 1 ? `Ancho dividido en ${d.length} partes: ${d.map(fmtM).join(" / ")} m` : "Ancho sin dividir (1 parte)",
       t.cubreToldo
         ? `Cubre toldo ${t.colorCubreToldo ?? ""} · Ménsula soportes escuadra 20x25 × ${t.mensulasCubreToldo ?? 0}`.replace("  ", " ")

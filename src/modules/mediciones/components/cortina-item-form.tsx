@@ -79,7 +79,7 @@ import {
   type ColorNocheTotal,
   type SistemaNocheTotal,
 } from "../lib/noche-total"
-import { limpiarToldo, validarToldo, textoTelaToldo, type IToldoConfig } from "../lib/toldos"
+import { esPergola, limpiarToldo, validarToldo, textoTelaToldo, type IToldoConfig } from "../lib/toldos"
 import { ToldoPasos } from "./toldo-pasos"
 
 interface CortinaItemFormProps {
@@ -1196,7 +1196,11 @@ export function CortinaItemForm({
     setErrorValidacion(null)
 
     if (!descripcion.trim()) {
-      setErrorValidacion("Ingresá un nombre o identificación para la cortina.")
+      setErrorValidacion(
+        esPergola(toldo) && tipo === "Toldos"
+          ? "Ingresá el lugar de fijación (ej: Norte)."
+          : "Ingresá un nombre o identificación para la cortina."
+      )
       return
     }
 
@@ -1463,13 +1467,17 @@ export function CortinaItemForm({
       <div className="border-b border-slate-100 pb-5">
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-            Identificación de la Cortina o Abertura
+            {esPergola(toldo) && tipo === "Toldos" ? "Lugar de fijación" : "Identificación de la Cortina o Abertura"}
           </label>
           <input
             type="text"
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
-            placeholder="Ej: Ventanal Frente, Ventana Izquierda, Dormitorio 1"
+            placeholder={
+              esPergola(toldo) && tipo === "Toldos"
+                ? "Ej: Norte, Sur, Este, Oeste"
+                : "Ej: Ventanal Frente, Ventana Izquierda, Dormitorio 1"
+            }
             required
             className="mt-1.5 block w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />

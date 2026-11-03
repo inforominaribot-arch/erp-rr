@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import { textoMosquitero } from "../lib/mosquiteros"
 import { textoNocheTotal } from "../lib/noche-total"
 import { lineasToldo, nombreSubtipoToldo } from "../lib/toldos"
+import { ToldoPergolaDibujo } from "./toldo-pergola-dibujo"
 import type { ICaracteristicasItem } from "../types"
 import {
   calcularArgollasGaza,
@@ -80,6 +81,11 @@ function FichaToldo({ ancho, alto, caracteristicas, modoCompacto }: CortinaDibuj
           {fmtMedida(ancho)} × {fmtMedida(alto)} m{aclaracion}
         </span>
       </div>
+      {t?.subtipo === "PERGOLA_BARRIO" && (
+        <div className="rounded-lg border border-slate-200 bg-white p-1.5">
+          <ToldoPergolaDibujo toldo={t} ancho={ancho} largo={alto} />
+        </div>
+      )}
       {t?.subtipo ? (
         <ul className="space-y-0.5 text-[11px] font-medium text-slate-700">
           {lineasToldo(t).map((l) => (

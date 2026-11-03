@@ -43,6 +43,7 @@ import {
   eliminarComanda,
 } from "../actions"
 import { formatearPrecio } from "@/lib/utils"
+import { esPergola, etiquetaLugarFijacion } from "@/modules/mediciones/lib/toldos"
 import { ESTADOS_COMANDA } from "../schemas"
 
 interface ComandaDetalleProps {
@@ -586,7 +587,9 @@ export function ComandaDetalle({
                                     : "text-slate-900"
                                 }`}
                               >
-                                {it.descripcion}
+                                {esPergola(it.caracteristicas?.toldo)
+                                  ? `${etiquetaLugarFijacion(it.caracteristicas?.toldo)}: ${it.descripcion}`
+                                  : it.descripcion}
                               </span>
                               <ComandaTipoBadge tipo={it.tipo} tamano="sm" />
                             </div>

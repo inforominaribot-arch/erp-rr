@@ -10,6 +10,7 @@ import {
 } from "@/modules/mediciones/types"
 import { calcularCorteRiel } from "@/modules/presupuestos/lib/explosion-materiales"
 import { fmtMedida } from "@/lib/utils"
+import { esPergola, etiquetaLugarFijacion } from "@/modules/mediciones/lib/toldos"
 import { contarCortinas, detalleCapasComanda, llevaGanchos } from "../lib/detalle-capas"
 
 interface ComandaImprimibleProps {
@@ -281,7 +282,8 @@ export function ComandaImprimible({
                               <div className="flex items-start justify-between border-b border-slate-500 pb-1.5">
                                 <div>
                                   <span className="font-extrabold text-slate-950 text-sm block">
-                                    {idx + 1}. {it.descripcion}
+                                    {idx + 1}.{" "}
+                                    {esPergola(c?.toldo) ? `${etiquetaLugarFijacion(c?.toldo)}: ${it.descripcion}` : it.descripcion}
                                   </span>
                                   {/* MEDIDA DE RIEL O BARRAL REMARCADA */}
                                   <div className="flex items-center gap-2 mt-0.5">

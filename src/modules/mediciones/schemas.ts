@@ -203,6 +203,7 @@ export const caracteristicasItemSchema = z.object({
       tipoProyeccion: z.enum(TIPOS_PROYECCION).optional(),
       pollerita: z.boolean().optional(),
       altoPiso: z.number().min(0).max(20).optional(),
+      caidaCm: z.number().min(0).max(500).optional(),
       divisiones: z.array(z.number().min(0).max(50)).max(10).optional(),
       mecanismo: z.enum(MECANISMOS_TOLDO).optional(),
       maquina: z.enum(MAQUINAS_TOLDO).optional(),
