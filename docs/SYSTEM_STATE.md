@@ -763,3 +763,15 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 - Orden de pedido a PRINTEMPS (hay datos de los toldos que faltan definir).
 - Marcar a PRINTEMPS con la marca PT en Proveedores.
 - Generar el APK nuevo para tener Toldos en la tablet.
+
+
+---
+
+## Actualización — Guardado automático en la tablet y renombrar ambientes (2026-11-02)
+
+### ✅ Implementado
+- Tablet (`MedicionFormMobile.tsx`): la medición se guarda sola en la tablet cada vez que cambian las cortinas o los ambientes (agregar, editar, duplicar, borrar, renombrar), siempre con el mismo `idLocal`. Aviso chico abajo a la izquierda ("Guardado 21:35") que desaparece solo. Sin cliente elegido no se guarda y se avisa. El botón "Guardar Medición en Tablet" sigue igual (guarda y vuelve al listado).
+- `AmbienteManager` (web y tablet): lápiz en cada ambiente para cambiarle el nombre en cualquier momento (también con presupuesto aceptado). Mínimo 2 caracteres.
+
+### ⏳ Pendiente
+- Generar el APK nuevo (`npm run build:mobile` + Android Studio).

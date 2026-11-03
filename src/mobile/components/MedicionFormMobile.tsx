@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { ClienteSelectorMobile } from "./ClienteSelectorMobile"
 import { AmbienteManager } from "@/modules/mediciones/components/ambiente-manager"
 import {
@@ -67,28 +67,17 @@ export function MedicionFormMobile({
   )
   const [error, setError] = useState<string | null>(null)
   const [guardado, setGuardado] = useState(false)
+  // Guardado automático: misma medición local en cada guardado; aviso chico que se va solo
+  const idLocalRef = useRef(medicionExistente?.idLocal || `med_off_${Date.now()}`)
+  const [avisoAuto, setAvisoAuto] = useState<string | null>(null)
+  const timerAviso = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const totalCortinas = ambientes.reduce(
-    (acc, amb) => acc + (amb.items?.length || 0),
-    0
-  )
+  const contarCortinas = (lista: any[]) => lista.reduce((acc, amb) => acc + (amb.items?.length || 0), 0)
+  const totalCortinas = contarCortinas(ambientes)
 
-  const handleGuardar = async () => {
-    setError(null)
-
-    if (!cliente) {
-      setError("Debes seleccionar o crear un cliente antes de guardar.")
-      window.scrollTo({ top: 0, behavior: "smooth" })
-      return
-    }
-
-    if (totalCortinas === 0) {
-      setError("Debes relevar al menos una cortina en algún ambiente.")
-      return
-    }
-
-    const payload: IMedicionOffline = {
-      idLocal: medicionExistente?.idLocal || `med_off_${Date.now()}`,
+  function armarPayload(cliente: IClienteCache, ambientes: any[], observaciones: string): IMedicionOffline {
+    return {
+      idLocal: idLocalRef.current,
       idServidor: medicionExistente?.idServidor,
       clienteId: cliente.id,
       clienteNombre: cliente.nombre,
@@ -120,6 +109,42 @@ export function MedicionFormMobile({
           })),
         })),
     }
+  }
+
+  /** Se guarda sola en la tablet cada vez que cambian las cortinas o los ambientes. */
+  async function autoguardar(nuevos: any[]) {
+    if (!cliente || contarCortinas(nuevos) === 0) return
+    try {
+      await guardarMedicionLocal(armarPayload(cliente, nuevos, observaciones))
+      const hora = new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false })
+      setAvisoAuto(`Guardado ${hora}`)
+    } catch {
+      setAvisoAuto("No se pudo guardar")
+    }
+    if (timerAviso.current) clearTimeout(timerAviso.current)
+    timerAviso.current = setTimeout(() => setAvisoAuto(null), 2500)
+  }
+
+  const cambiarAmbientes = (nuevos: any[]) => {
+    setAmbientes(nuevos)
+    autoguardar(nuevos)
+  }
+
+  const handleGuardar = async () => {
+    setError(null)
+
+    if (!cliente) {
+      setError("Debes seleccionar o crear un cliente antes de guardar.")
+      window.scrollTo({ top: 0, behavior: "smooth" })
+      return
+    }
+
+    if (totalCortinas === 0) {
+      setError("Debes relevar al menos una cortina en algún ambiente.")
+      return
+    }
+
+    const payload = armarPayload(cliente, ambientes, observaciones)
 
     try {
       await guardarMedicionLocal(payload)
@@ -169,6 +194,14 @@ export function MedicionFormMobile({
         </div>
       )}
 
+      {/* Aviso chico del guardado automático (abajo a la izquierda, no tapa nada) */}
+      {avisoAuto && (
+        <div className="pointer-events-none fixed bottom-3 left-3 z-50 flex items-center gap-1 rounded-full bg-slate-900/75 px-2.5 py-1 text-[10px] font-semibold text-white">
+          <CheckCircle2 className="h-3 w-3" />
+          {avisoAuto}
+        </div>
+      )}
+
       {/* Paso 1: Selección de Cliente */}
       <ClienteSelectorMobile
         clienteSeleccionado={cliente}
@@ -177,10 +210,15 @@ export function MedicionFormMobile({
 
       {/* Paso 2: Ambientes y Cortinas */}
       <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+        {!cliente && totalCortinas > 0 && (
+          <p className="text-[11px] font-semibold text-amber-700">
+            Elegí el cliente para que la medición se guarde automáticamente.
+          </p>
+        )}
         <TelasListaProvider telas={telas} celdasMosquitero={celdasMosquitero}>
           <AmbienteManager
             ambientes={ambientes}
-            onAmbientesChange={setAmbientes}
+            onAmbientesChange={cambiarAmbientes}
             bloquearAltasBajas={Boolean(medicionExistente?.bloqueada)}
           />
         </TelasListaProvider>

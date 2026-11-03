@@ -42,6 +42,8 @@ export function AmbienteManager({
   // Ambiente actualmente seleccionado para visualización/edición
   const [ambienteActivoIdx, setAmbienteActivoIdx] = useState<number>(0)
   const [nuevoNombreAmbiente, setNuevoNombreAmbiente] = useState<string>("")
+  // Renombrar ambiente (se puede siempre, aunque la medición esté bloqueada)
+  const [renombrando, setRenombrando] = useState<{ idx: number; nombre: string } | null>(null)
 
   // Estado para modal / formulario de cortina
   const [editandoCortina, setEditandoCortina] = useState<{
@@ -63,6 +65,15 @@ export function AmbienteManager({
     onAmbientesChange(nuevosAmbientes)
     setAmbienteActivoIdx(nuevosAmbientes.length - 1)
     setNuevoNombreAmbiente("")
+  }
+
+  // Renombrar ambiente
+  function confirmarRenombre() {
+    if (!renombrando) return
+    const nombre = renombrando.nombre.trim()
+    setRenombrando(null)
+    if (nombre.length < 2 || nombre === ambientes[renombrando.idx]?.nombre) return
+    onAmbientesChange(ambientes.map((a, i) => (i === renombrando.idx ? { ...a, nombre } : a)))
   }
 
   // Eliminar ambiente
@@ -214,6 +225,24 @@ export function AmbienteManager({
                     : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                 }`}
               >
+                {renombrando?.idx === idx ? (
+                  <input
+                    autoFocus
+                    value={renombrando.nombre}
+                    onChange={(e) => setRenombrando({ idx, nombre: e.target.value })}
+                    onBlur={confirmarRenombre}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        confirmarRenombre()
+                      } else if (e.key === "Escape") {
+                        setRenombrando(null)
+                      }
+                    }}
+                    maxLength={100}
+                    className="mx-1.5 my-1 w-36 rounded-lg border border-indigo-300 bg-white px-2 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                ) : (
                 <button
                   type="button"
                   onClick={() => {
@@ -233,6 +262,18 @@ export function AmbienteManager({
                     {cantItems}
                   </span>
                 </button>
+                )}
+
+                {renombrando?.idx !== idx && (
+                  <button
+                    type="button"
+                    title="Cambiar nombre"
+                    onClick={() => setRenombrando({ idx, nombre: amb.nombre })}
+                    className="px-1.5 py-2 text-slate-400 hover:text-indigo-600"
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </button>
+                )}
 
                 {ambientes.length > 1 && !bloquearAltasBajas && (
                   <button
