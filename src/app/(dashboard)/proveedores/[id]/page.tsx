@@ -8,7 +8,9 @@ import {
   obtenerCatalogoProductosParaCompras,
   obtenerListaPreciosProveedor,
   obtenerResumenTablasMedida,
+  obtenerPreciosPlanilla,
 } from "@/modules/proveedores/queries"
+import { asegurarPlanillaReciente } from "@/modules/proveedores/lib/sincronizar-planilla"
 import { ProveedorDetalleView } from "@/modules/proveedores/components/proveedor-detalle-view"
 import { ShieldAlert } from "lucide-react"
 
@@ -52,12 +54,16 @@ export default async function ProveedorDetallePage({
     )
   }
 
-  const [detalle, catalogoProductos, listaPrecios, tablasMedida] = await Promise.all([
+  // Planilla de Google Sheets del proveedor: si la copia tiene más de unas horas, se vuelve a bajar
+  if (auth.puedeVerCostos) await asegurarPlanillaReciente(id)
+
+  const [detalle, catalogoProductos, listaPrecios, tablasMedida, preciosPlanilla] = await Promise.all([
     obtenerProveedorPorId(id, !auth.puedeVerCostos),
     obtenerCatalogoProductosParaCompras(),
     // La lista de precios y las tablas por medida son costos: solo para quien puede verlos
     auth.puedeVerCostos ? obtenerListaPreciosProveedor(id) : Promise.resolve([]),
     auth.puedeVerCostos ? obtenerResumenTablasMedida(id) : Promise.resolve([]),
+    auth.puedeVerCostos ? obtenerPreciosPlanilla(id) : Promise.resolve([]),
   ])
 
   if (!detalle) {
@@ -73,6 +79,7 @@ export default async function ProveedorDetallePage({
         catalogoProductos={catalogoProductos}
         listaPrecios={listaPrecios}
         tablasMedida={tablasMedida}
+        preciosPlanilla={preciosPlanilla}
         puedeVerCostos={auth.puedeVerCostos}
         puedeAdministrar={auth.puedeAdministrar}
         puedeEmitirOrden={auth.puedeEmitirOrden}

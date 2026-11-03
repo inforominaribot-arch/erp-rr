@@ -44,6 +44,7 @@ export function ProveedorModal({
   const [activo, setActivo] = useState(true)
   const [marcas, setMarcas] = useState<("HD" | "RS" | "MG" | "PT")[]>([])
   const [diasEntrega, setDiasEntrega] = useState<string>("")
+  const [planillaPreciosUrl, setPlanillaPreciosUrl] = useState<string>("")
 
   const [guardando, setGuardando] = useState(false)
   const [errorGlobal, setErrorGlobal] = useState<string | null>(null)
@@ -59,6 +60,7 @@ export function ProveedorModal({
       setActivo(proveedorAEditar.activo)
       setMarcas((proveedorAEditar.marcas || []) as ("HD" | "RS" | "MG" | "PT")[])
       setDiasEntrega(proveedorAEditar.diasEntrega ? String(proveedorAEditar.diasEntrega) : "")
+      setPlanillaPreciosUrl(proveedorAEditar.planillaPreciosUrl ?? "")
     } else {
       setNombre("")
       setContacto("")
@@ -69,6 +71,7 @@ export function ProveedorModal({
       setActivo(true)
       setMarcas([])
       setDiasEntrega("")
+      setPlanillaPreciosUrl("")
     }
     setErrorGlobal(null)
   }, [proveedorAEditar, abierto])
@@ -99,6 +102,7 @@ export function ProveedorModal({
         activo,
         marcas,
         diasEntrega: diasEntrega.trim() === "" ? null : parseInt(diasEntrega, 10),
+        planillaPreciosUrl: planillaPreciosUrl.trim() || null,
       }
 
       let res
@@ -317,6 +321,23 @@ export function ProveedorModal({
                 Si un pedido supera estos días sin recibirse, se marca como demorado.
               </p>
             </div>
+          </div>
+
+          {/* Planilla de precios en Google Sheets */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Planilla de precios (Google Sheets)
+            </label>
+            <input
+              type="url"
+              value={planillaPreciosUrl}
+              onChange={(e) => setPlanillaPreciosUrl(e.target.value)}
+              placeholder="https://docs.google.com/spreadsheets/d/…"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:outline-hidden min-h-[40px]"
+            />
+            <p className="mt-1 text-[11px] text-slate-500">
+              Si el proveedor mantiene sus precios en una planilla compartida, el ERP la copia sola una vez por día.
+            </p>
           </div>
 
           {/* Estado Activo */}

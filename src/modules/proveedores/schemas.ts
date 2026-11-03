@@ -58,6 +58,17 @@ export const proveedorSchema = z.object({
   activo: z.boolean().default(true),
   // Marcas de cortina que provee (para preseleccionarlo en pedidos de cortinas)
   marcas: z.array(z.enum(["HD", "RS", "MG", "PT"])).default([]),
+  // Planilla de precios de Google Sheets que actualiza el proveedor (link compartido)
+  planillaPreciosUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .nullable()
+    .transform((v) => (v && v.trim() !== "" ? v.trim() : null))
+    .refine((v) => !v || /^https:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+/.test(v), {
+      message: "El link de la planilla tiene que ser de Google Sheets (docs.google.com/spreadsheets/…)",
+    }),
   // Días habituales de entrega (alerta de pedido demorado)
   diasEntrega: z
     .number()

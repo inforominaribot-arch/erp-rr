@@ -22,6 +22,8 @@ import {
 import { recalcularPresupuestosConLista } from "@/modules/presupuestos/lib/recalcular-con-lista"
 import { actualizarItemListaPrecioSchema, type ActualizarItemListaPrecioInput } from "./schemas"
 import type { IProveedor, IOrdenCompra, IProductoProveedor } from "./types"
+import { sincronizarPlanillaProveedor, type IResultadoSyncPlanilla } from "./lib/sincronizar-planilla"
+import { z } from "zod"
 import { formatearNumeroOC } from "./types"
 
 // ─── 1. Crear Proveedor ───────────────────────────────────────────────────────
@@ -48,6 +50,7 @@ export async function crearProveedor(
         activo: validado.activo,
         marcas: validado.marcas,
         diasEntrega: validado.diasEntrega ?? null,
+        planillaPreciosUrl: validado.planillaPreciosUrl ?? null,
       },
     })
 
@@ -111,6 +114,11 @@ export async function actualizarProveedor(
     if (input.marcas !== undefined) {
       dataActualizar.marcas = input.marcas.filter((m) => ["HD", "RS", "MG", "PT"].includes(m))
     }
+    if (input.planillaPreciosUrl !== undefined) {
+      const url = proveedorSchema.shape.planillaPreciosUrl.safeParse(input.planillaPreciosUrl)
+      if (!url.success) return { success: false, error: url.error.issues[0]?.message || "Link de planilla inválido." }
+      dataActualizar.planillaPreciosUrl = url.data ?? null
+    }
     if (input.diasEntrega !== undefined) {
       const d = input.diasEntrega
       if (d !== null && (!Number.isInteger(d) || d < 1 || d > 365)) {
@@ -140,6 +148,7 @@ export async function actualizarProveedor(
         activo: actualizado.activo,
         marcas: actualizado.marcas,
         diasEntrega: actualizado.diasEntrega,
+        planillaPreciosUrl: actualizado.planillaPreciosUrl,
         creadoEn: actualizado.creadoEn.toISOString(),
         actualizadoEn: actualizado.actualizadoEn.toISOString(),
       },
@@ -706,3 +715,26 @@ export async function actualizarItemListaPrecio(
   }
 }
 
+
+
+// ─── Planilla de precios de Google Sheets ─────────────────────────────────────
+
+/** "Actualizar precios ahora": vuelve a copiar la planilla del proveedor. */
+export async function sincronizarPlanillaPreciosAction(
+  proveedorId: string
+): Promise<ActionResponse<IResultadoSyncPlanilla>> {
+  try {
+    const auth = await tienePermisoModuloProveedores("lectura")
+    if (!auth.permitido || !auth.puedeVerCostos) {
+      return { success: false, error: auth.error || "No autorizado" }
+    }
+    const id = z.string().uuid().parse(proveedorId)
+    const resultado = await sincronizarPlanillaProveedor(id)
+    revalidatePath(`/proveedores/${id}`)
+    return { success: true, data: resultado }
+  } catch (error) {
+    console.error(`Error al actualizar la planilla del proveedor ${proveedorId}:`, error)
+    revalidatePath(`/proveedores/${proveedorId}`)
+    return { success: false, error: error instanceof Error ? error.message : "No se pudo leer la planilla." }
+  }
+}

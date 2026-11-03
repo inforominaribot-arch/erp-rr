@@ -32,9 +32,11 @@ import type {
   IOrdenCompra,
   IListaPrecioItem,
   IResumenTablaMedida,
+  IPrecioPlanilla,
 } from "../types"
 import { ListaPreciosProveedor } from "./lista-precios-proveedor"
 import { TablasMedidaProveedor } from "./tablas-medida-proveedor"
+import { PlanillaPreciosProveedor } from "./planilla-precios-proveedor"
 import { ProveedorEstadoBadge } from "./proveedor-estado-badge"
 import { OrdenCompraEstadoBadge } from "./orden-compra-estado-badge"
 import { OrdenCompraWhatsAppButton } from "./orden-compra-whatsapp-button"
@@ -60,6 +62,8 @@ interface ProveedorDetalleViewProps {
   /** Lista de precios del proveedor (vacía si el usuario no puede ver costos) */
   listaPrecios: IListaPrecioItem[]
   tablasMedida?: IResumenTablaMedida[]
+  /** Precios copiados de la planilla de Google Sheets del proveedor */
+  preciosPlanilla?: IPrecioPlanilla[]
   puedeVerCostos: boolean
   puedeAdministrar: boolean
   puedeEmitirOrden: boolean
@@ -73,6 +77,7 @@ export function ProveedorDetalleView({
   catalogoProductos,
   listaPrecios,
   tablasMedida = [],
+  preciosPlanilla = [],
   puedeVerCostos,
   puedeAdministrar,
   puedeEmitirOrden,
@@ -229,6 +234,17 @@ export function ProveedorDetalleView({
       {/* ── LISTA DE PRECIOS (solo para quien puede ver costos) ── */}
       {puedeVerCostos && listaPrecios.length > 0 && (
         <ListaPreciosProveedor items={listaPrecios} puedeAdministrar={puedeAdministrar} />
+      )}
+
+      {/* ── PLANILLA DE PRECIOS DE GOOGLE SHEETS (ej: PRINTEMPS) ── */}
+      {puedeVerCostos && proveedor.planillaPreciosUrl && (
+        <PlanillaPreciosProveedor
+          proveedorId={proveedor.id}
+          url={proveedor.planillaPreciosUrl}
+          sincronizadaEn={proveedor.planillaSincronizadaEn ?? null}
+          errorSync={proveedor.planillaErrorSync ?? null}
+          precios={preciosPlanilla}
+        />
       )}
 
       {/* ── TABLAS DE PRECIOS POR MEDIDA (ej: MagicRoll) ── */}

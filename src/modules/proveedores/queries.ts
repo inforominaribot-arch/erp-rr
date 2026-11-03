@@ -15,7 +15,7 @@ import type {
   IFiltrosOrdenesCompra,
 } from "./types"
 import { formatearNumeroOC } from "./types"
-import type { IListaPrecioItem, IResumenTablaMedida } from "./types"
+import type { IListaPrecioItem, IPrecioPlanilla, IResumenTablaMedida } from "./types"
 
 // ─── Helpers de Serialización ────────────────────────────────────────────────
 
@@ -155,6 +155,9 @@ export async function obtenerProveedores(
       activo: p.activo,
       marcas: p.marcas,
       diasEntrega: p.diasEntrega,
+      planillaPreciosUrl: p.planillaPreciosUrl,
+      planillaSincronizadaEn: p.planillaSincronizadaEn?.toISOString() ?? null,
+      planillaErrorSync: p.planillaErrorSync,
       creadoEn: p.creadoEn.toISOString(),
       actualizadoEn: p.actualizadoEn.toISOString(),
       _count: p._count,
@@ -219,6 +222,9 @@ export async function obtenerProveedorPorId(
       activo: p.activo,
       marcas: p.marcas,
       diasEntrega: p.diasEntrega,
+      planillaPreciosUrl: p.planillaPreciosUrl,
+      planillaSincronizadaEn: p.planillaSincronizadaEn?.toISOString() ?? null,
+      planillaErrorSync: p.planillaErrorSync,
       creadoEn: p.creadoEn.toISOString(),
       actualizadoEn: p.actualizadoEn.toISOString(),
       _count: p._count,
@@ -708,6 +714,28 @@ export async function obtenerResumenTablasMedida(proveedorId: string): Promise<I
     )
   } catch (error) {
     console.error("Error al obtener las tablas por medida del proveedor:", error)
+    return []
+  }
+}
+
+
+/** Precios vigentes copiados de la planilla de Google Sheets del proveedor (en el orden de la planilla). */
+export async function obtenerPreciosPlanilla(proveedorId: string): Promise<IPrecioPlanilla[]> {
+  try {
+    const items = await prisma.precioPlanillaItem.findMany({
+      where: { proveedorId, activo: true },
+      orderBy: { orden: "asc" },
+    })
+    return items.map((it) => ({
+      id: it.id,
+      seccion: it.seccion,
+      descripcion: it.descripcion,
+      precio: Number(it.precio),
+      precioAnterior: it.precioAnterior === null ? null : Number(it.precioAnterior),
+      cambiadoEn: it.cambiadoEn?.toISOString() ?? null,
+    }))
+  } catch (error) {
+    console.error("Error al obtener los precios de la planilla del proveedor:", error)
     return []
   }
 }

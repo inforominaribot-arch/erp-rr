@@ -1,0 +1,5 @@
+{
+  "crons": [
+    { "path": "/api/cron/planillas-precios", "schedule": "0 9 * * *" }
+  ]
+}

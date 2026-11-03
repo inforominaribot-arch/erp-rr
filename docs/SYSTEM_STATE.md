@@ -775,3 +775,21 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 
 ### ⏳ Pendiente
 - Generar el APK nuevo (`npm run build:mobile` + Android Studio).
+
+
+---
+
+## Actualización — Planilla de precios de Google Sheets del proveedor (2026-11-03)
+
+### ✅ Implementado
+- `Proveedor.planillaPreciosUrl` (link de Google Sheets compartido "cualquier persona con el enlace"), `planillaSincronizadaEn`, `planillaErrorSync`. Se carga en el modal del proveedor.
+- Modelo `PrecioPlanillaItem` (tabla `precios_planilla`): sección (título en amarillo), descripción, precio, precio anterior y fecha del cambio, orden, activo. Los renglones que desaparecen quedan inactivos.
+- `lib/planilla-precios.ts`: link → CSV de la hoja, parser CSV, precios "$32.841" → 32841, filas con la sección de arriba (lo anterior al primer título se ignora).
+- `lib/sincronizar-planilla.ts`: copia la planilla en la base (nuevos, cambiados, quitados) en una transacción; si Google falla se conserva la última copia y se guarda el error. `asegurarPlanillaReciente` (copia de más de 6 h → se vuelve a bajar; se usa al abrir el proveedor y se usará al presupuestar toldos).
+- Tarea diaria de Vercel (`vercel.json`, 06:00 hora Argentina) → `/api/cron/planillas-precios` (ruta pública en el middleware; si se configura `CRON_SECRET` en Vercel se exige).
+- Ficha del proveedor: panel "Planilla de precios" con fecha de la última copia, buscador, cambios del último mes (precio anterior ↑/↓) y botón "Actualizar precios ahora".
+
+### ⏳ Pendiente
+- Requiere `npx prisma db push` (columnas nuevas en `proveedores` y tabla `precios_planilla`).
+- Crear el proveedor PRINTEMPS con la marca PT y el link de la planilla.
+- Relacionar cada opción del toldo con su insumo de la planilla y armar el cálculo del presupuesto.

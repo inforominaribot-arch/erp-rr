@@ -18,6 +18,9 @@ export interface IProveedor {
   activo: boolean
   marcas: string[]
   diasEntrega: number | null
+  planillaPreciosUrl?: string | null
+  planillaSincronizadaEn?: string | null
+  planillaErrorSync?: string | null
   creadoEn: string
   actualizadoEn: string
   _count?: {
@@ -224,6 +227,17 @@ export const CATEGORIAS_LISTA_PRECIO: Record<CategoriaListaPrecio, string> = {
   BANDAS_VERTICALES: "Bandas verticales",
   SERVICIO: "Servicios",
   RIELES_BARRALES: "Rieles, barrales y kits",
+}
+
+/** Precio copiado de la planilla de Google Sheets del proveedor */
+export interface IPrecioPlanilla {
+  id: string
+  seccion: string
+  descripcion: string
+  precio: number
+  precioAnterior: number | null
+  /** ISO: cuándo cambió el precio por última vez */
+  cambiadoEn: string | null
 }
 
 export interface IListaPrecioItem {
