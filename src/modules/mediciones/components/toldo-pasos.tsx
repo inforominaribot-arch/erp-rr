@@ -255,8 +255,8 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
 
       {pergola && (
         <>
-          <Paso titulo="1 • Ancho y alto (m)">
-            <div className="grid grid-cols-2 gap-3">
+          <Paso titulo="1 • Ancho, largo y alto (m)">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
                 <span className="block text-[10px] font-bold text-slate-600">Ancho</span>
                 <Medida
@@ -269,8 +269,15 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
                 />
               </div>
               <div className="space-y-1">
-                <span className="block text-[10px] font-bold text-slate-600">Alto</span>
+                <span className="block text-[10px] font-bold text-slate-600">Largo</span>
                 <Medida valor={alto} onCambiar={onAlto} />
+              </div>
+              <div className="space-y-1">
+                <span className="block text-[10px] font-bold text-slate-600">Alto (del piso al toldo)</span>
+                <Medida
+                  valor={t.altoPiso ?? ""}
+                  onCambiar={(v) => cambiar({ altoPiso: typeof v === "number" ? v : undefined })}
+                />
               </div>
             </div>
           </Paso>

@@ -814,7 +814,7 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 ## Actualización — Toldo Pérgola Barrio (2026-11-03)
 
 ### ✅ Implementado
-- Tercer subtipo de Toldos (`PERGOLA_BARRIO`): ancho y alto, división del ancho en 1 a 10 partes (se reparte igual al centímetro y cada parte se puede editar; tienen que sumar el ancho, botón "Repartir igual"), cubre toldo sí/no con color Blanco/Negro, y tela acrílica, vinílica (con Blackout) o media sombra 95% (Gris, Negro, Beige, Azul, Verde; otro distribuidor).
+- Tercer subtipo de Toldos (`PERGOLA_BARRIO`): ancho, largo (va como alto del ítem) y alto desde el piso (`toldo.altoPiso`), división del ancho en 1 a 10 partes (se reparte igual al centímetro y cada parte se puede editar; tienen que sumar el ancho, botón "Repartir igual"), cubre toldo sí/no con color Blanco/Negro, y tela acrílica, vinílica (con Blackout) o media sombra 95% (Gris, Negro, Beige, Azul, Verde; otro distribuidor).
 - No lleva color de perfilería, caño ni mecanismo (esos campos pasaron a ser opcionales en `IToldoConfig` y en el Zod); lo propio de la pérgola se contempla al presupuestar.
 
 ### ⏳ Pendiente

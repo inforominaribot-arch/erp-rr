@@ -67,7 +67,8 @@ const COLORES_PERFILERIA_HEX: Record<string, { bg: string; border: string }> = {
 /** Toldo PRINTEMPS: no se dibuja, se muestra la ficha con medidas y opciones */
 function FichaToldo({ ancho, alto, caracteristicas, modoCompacto }: CortinaDibujoDidacticoProps) {
   const t = caracteristicas?.toldo
-  const vertical = t?.subtipo !== "PROYECCION"
+  const aclaracion =
+    t?.subtipo === "PROYECCION" ? " (ancho × proyección)" : t?.subtipo === "PERGOLA_BARRIO" ? " (ancho × largo)" : ""
   return (
     <div className={`rounded-xl border border-indigo-100 bg-indigo-50/40 ${modoCompacto ? "p-2.5" : "p-3.5"} space-y-2`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -76,7 +77,7 @@ function FichaToldo({ ancho, alto, caracteristicas, modoCompacto }: CortinaDibuj
         </span>
         <span className="flex items-center gap-1 text-xs font-bold text-slate-700">
           <Ruler className="h-3.5 w-3.5" />
-          {fmtMedida(ancho)} × {fmtMedida(alto)} m{vertical ? "" : " (ancho × proyección)"}
+          {fmtMedida(ancho)} × {fmtMedida(alto)} m{aclaracion}
         </span>
       </div>
       {t?.subtipo ? (

@@ -63,7 +63,9 @@ export interface IToldoConfig {
   tipoProyeccion?: TipoProyeccion
   pollerita?: boolean
 
-  // Pérgola Barrio: metros de cada parte del ancho (suman el ancho)
+  // Pérgola Barrio: el ítem guarda ancho × largo; acá van la distancia del piso al toldo
+  // y los metros de cada parte del ancho (suman el ancho)
+  altoPiso?: number
   divisiones?: number[]
 
   /** Vertical y Proyección */
@@ -291,6 +293,7 @@ function telaValida(t: Partial<IToldoConfig>): Partial<IToldoConfig> {
 function limpiarPergola(t: Partial<IToldoConfig>): Partial<IToldoConfig> {
   return sinVacios({
     subtipo: "PERGOLA_BARRIO",
+    altoPiso: t.altoPiso,
     divisiones: t.divisiones?.length ? t.divisiones.slice(0, MAX_DIVISIONES_PERGOLA) : undefined,
     cubreToldo: t.cubreToldo ?? false,
     ...(t.cubreToldo ? { colorCubreToldo: t.colorCubreToldo } : {}),
@@ -344,9 +347,11 @@ function validarTela(t: Partial<IToldoConfig>): string | null {
 
 const fmtM = (v: number) => v.toFixed(2).replace(".", ",")
 
-function validarPergola(t: Partial<IToldoConfig>, ancho: number, alto: number): string | null {
+/** Pérgola: `largo` es el alto del ítem (ancho × largo); el alto desde el piso va en el toldo */
+function validarPergola(t: Partial<IToldoConfig>, ancho: number, largo: number): string | null {
   if (!(ancho > 0)) return "Ingresá el ancho del toldo."
-  if (!(alto > 0)) return "Ingresá el alto del toldo."
+  if (!(largo > 0)) return "Ingresá el largo del toldo."
+  if (!((t.altoPiso ?? 0) > 0)) return "Ingresá el alto (distancia del piso al toldo)."
   const d = t.divisiones ?? []
   if (d.length === 0) return "Elegí en cuántas partes se divide el ancho."
   if (d.some((v) => !(v > 0))) return "Completá los metros de cada parte del ancho."
@@ -378,6 +383,7 @@ export function lineasToldo(t: Partial<IToldoConfig> | null | undefined): string
   if (t.subtipo === "PERGOLA_BARRIO") {
     const d = t.divisiones ?? []
     return [
+      ...(t.altoPiso ? [`Alto desde el piso: ${fmtM(t.altoPiso)} m`] : []),
       d.length > 1 ? `Ancho dividido en ${d.length} partes: ${d.map(fmtM).join(" / ")} m` : "Ancho sin dividir (1 parte)",
       t.cubreToldo ? `Cubre toldo ${t.colorCubreToldo ?? ""}`.trim() : "Sin cubre toldo",
       ...(t.tela ? [`Tela ${textoTelaToldo(t)}`] : []),

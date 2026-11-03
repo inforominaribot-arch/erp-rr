@@ -371,7 +371,13 @@ export function AmbienteManager({
                       </span>
                       <p className="text-[11px] text-slate-500">
                         {item.cantidad && item.cantidad > 1 ? `${item.cantidad} unid. • ` : ""}
-                        {fmtMedida(item.ancho ?? 0)}m (Ancho) × {fmtMedida(item.alto ?? 0)}m (Alto)
+                        {fmtMedida(item.ancho ?? 0)}m (Ancho) × {fmtMedida(item.alto ?? 0)}m (
+                        {item.caracteristicas?.toldo?.subtipo === "PERGOLA_BARRIO"
+                          ? "Largo"
+                          : item.caracteristicas?.toldo?.subtipo === "PROYECCION"
+                          ? "Proyección"
+                          : "Alto"}
+                        )
                       </p>
                     </div>
 
