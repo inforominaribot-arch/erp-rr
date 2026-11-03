@@ -519,27 +519,37 @@ function CortinaDibujoGeneral({
                 <div className="flex flex-1 w-full h-full divide-x divide-slate-700">
                   {divisiones.map((p, idx) => {
                     const peso = p.ancho > 0 ? p.ancho : 1
+                    const pesoTotal = divisiones.reduce((acc, d) => acc + (d.ancho > 0 ? d.ancho : 1), 0)
+                    const medida = `${fmtMedida(
+                      conConfeccion(
+                        p.ancho,
+                        p.tipoTela === "Gaza" ? conConfeccionGaza : conConfeccionBO,
+                        divisiones.length
+                      )
+                    )}m`
+                    // Paño angosto: si la medida no entra a lo ancho, se escribe en vertical (el paño es alto)
+                    const anchoPanoPx = ((boxWidth - 2) * peso) / pesoTotal
+                    const letraPx = medidasConfeccion ? 18 : 9
+                    const vertical = medida.length * letraPx * 0.62 > anchoPanoPx - 4
                     return (
                       <div
                         key={idx}
                         style={{ flex: `${peso} 1 0%` }}
-                        className="flex flex-col justify-between p-0.5 bg-slate-50 text-center"
+                        className="flex min-w-0 flex-col items-center justify-between p-0.5 bg-slate-50 text-center"
                       >
-                        <span className={`${tam("text-[7px] text-slate-600", "text-[11px] text-slate-900")} font-bold`}>
+                        <span className={`${tam("text-[7px] text-slate-600", "text-[11px] text-slate-900")} font-bold whitespace-nowrap`}>
                           {p.etiqueta
                             .replace("Cortina", "C")
                             .replace("Paño", "P")
-                            .replace("Tramo", "T")}
+                            .replace("Tramo", "T")
+                            .replace(" ", "")}
                         </span>
-                        <span className={`${tam("text-[9px]", "text-[18px]")} font-extrabold text-slate-950 whitespace-nowrap`}>
-                          {fmtMedida(
-                            conConfeccion(
-                              p.ancho,
-                              p.tipoTela === "Gaza" ? conConfeccionGaza : conConfeccionBO,
-                              divisiones.length
-                            )
-                          )}
-                          m
+                        <span
+                          className={`${tam("text-[9px]", "text-[18px]")} font-extrabold text-slate-950 whitespace-nowrap ${
+                            vertical ? "[writing-mode:vertical-rl] rotate-180" : ""
+                          }`}
+                        >
+                          {medida}
                         </span>
                       </div>
                     )
