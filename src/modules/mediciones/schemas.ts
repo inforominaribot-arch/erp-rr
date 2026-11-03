@@ -192,9 +192,9 @@ export const caracteristicasItemSchema = z.object({
   // Toldo PRINTEMPS
   toldo: z
     .object({
-      subtipo: z.enum(["VERTICAL", "PROYECCION"]),
-      colorPerfileria: z.enum(COLORES_PERFILERIA_TOLDO),
-      cano: z.enum(CANOS_TOLDO),
+      subtipo: z.enum(["VERTICAL", "PROYECCION", "PERGOLA_BARRIO"]),
+      colorPerfileria: z.enum(COLORES_PERFILERIA_TOLDO).optional(),
+      cano: z.enum(CANOS_TOLDO).optional(),
       barraFrente: z.enum(BARRAS_FRENTE_TOLDO).optional(),
       tensor: z.boolean().optional(),
       brazoCaputa: z.boolean().optional(),
@@ -202,7 +202,8 @@ export const caracteristicasItemSchema = z.object({
       brazos: z.enum(BRAZOS_TP2).optional(),
       tipoProyeccion: z.enum(TIPOS_PROYECCION).optional(),
       pollerita: z.boolean().optional(),
-      mecanismo: z.enum(MECANISMOS_TOLDO),
+      divisiones: z.array(z.number().min(0).max(50)).max(10).optional(),
+      mecanismo: z.enum(MECANISMOS_TOLDO).optional(),
       maquina: z.enum(MAQUINAS_TOLDO).optional(),
       soportePlano: z.number().int().min(0).max(99).optional(),
       escuadra: z.number().int().min(0).max(99).optional(),
@@ -215,6 +216,7 @@ export const caracteristicasItemSchema = z.object({
       cubreToldo: z.boolean(),
       anchoCubreToldo: z.number().min(0).max(50).optional(),
       perchas: z.number().int().min(0).max(99).optional(),
+      colorCubreToldo: z.enum(COLORES_PERFILERIA_TOLDO).optional(),
       tela: z.enum(TELAS_TOLDO),
       tipoTela: z.string().max(40),
       colorTela: z.string().max(80),

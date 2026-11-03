@@ -807,3 +807,16 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 ### ⏳ Pendiente
 - Requiere `npx prisma db push` (columna `id_local_tablet`).
 - Duplicados existentes (Carina Mazzarello, Gabriela Liendo): los borra el usuario desde la lista de pendientes; también hay que borrar la copia vieja en la tablet.
+
+
+---
+
+## Actualización — Toldo Pérgola Barrio (2026-11-03)
+
+### ✅ Implementado
+- Tercer subtipo de Toldos (`PERGOLA_BARRIO`): ancho y alto, división del ancho en 1 a 10 partes (se reparte igual al centímetro y cada parte se puede editar; tienen que sumar el ancho, botón "Repartir igual"), cubre toldo sí/no con color Blanco/Negro, y tela acrílica, vinílica (con Blackout) o media sombra 95% (Gris, Negro, Beige, Azul, Verde; otro distribuidor).
+- No lleva color de perfilería, caño ni mecanismo (esos campos pasaron a ser opcionales en `IToldoConfig` y en el Zod); lo propio de la pérgola se contempla al presupuestar.
+
+### ⏳ Pendiente
+- Generar el APK nuevo para tenerlo en la tablet.
+- Distribuidor de la media sombra para la orden de pedido.

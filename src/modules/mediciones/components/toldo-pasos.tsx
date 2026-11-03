@@ -13,6 +13,7 @@ import {
   CANOS_TOLDO,
   COLORES_PERFILERIA_TOLDO,
   MAQUINAS_TOLDO,
+  MAX_DIVISIONES_PERGOLA,
   MECANISMOS_TOLDO,
   SUBTIPOS_TOLDO,
   TIPOS_PROYECCION,
@@ -21,6 +22,9 @@ import {
   coloresDeTela,
   limpiarToldo,
   motoresDisponibles,
+  nombreTelaToldo,
+  repartirAncho,
+  sumaDivisiones,
   telasPermitidas,
   tiposDeTela,
   type IToldoConfig,
@@ -133,11 +137,108 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
   const [buscando, setBuscando] = useState(false)
   const t = toldo
   const vertical = t.subtipo === "VERTICAL"
+  const pergola = t.subtipo === "PERGOLA_BARRIO"
+  const divisiones = t.divisiones ?? []
+  const anchoNum = typeof ancho === "number" ? ancho : 0
   const cambiar = (cambios: Partial<IToldoConfig>) => onChange(limpiarToldo({ ...t, ...cambios }))
 
   const colores = coloresDeTela(t.tela, t.tipoTela)
   const coloresFiltrados = buscarColoresTela(colores, busqueda).slice(0, 40)
   const accesorios = accesoriosAutomaticosToldo(t)
+
+  /** Tela con buscador de colores (la usan los tres subtipos) */
+  const pasoTela = (titulo: string) => (
+    <Paso titulo={titulo}>
+      <Opciones
+        opciones={telasPermitidas(t.subtipo)}
+        valor={t.tela}
+        etiqueta={nombreTelaToldo}
+        onElegir={(tela) => {
+          setBusqueda("")
+          cambiar({ tela })
+        }}
+      />
+      {t.tela && (
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-white/70 p-3">
+          {tiposDeTela(t.tela).length > 1 && (
+          <div className="space-y-1">
+            <span className="block text-[11px] font-bold text-slate-600">Tipo</span>
+            <Opciones
+              opciones={tiposDeTela(t.tela)}
+              valor={t.tipoTela}
+              onElegir={(tipoTela) => {
+                setBusqueda("")
+                cambiar({ tipoTela })
+              }}
+            />
+          </div>
+          )}
+          {t.tipoTela && (
+            <div className="space-y-1">
+              <span className="block text-[11px] font-bold text-slate-600">Color</span>
+              {t.colorTela && !buscando ? (
+                <div className="flex items-center justify-between gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2">
+                  <span className="text-xs font-bold text-indigo-950">
+                    {t.colorTela}
+                    {t.lineaTela && t.lineaTela !== t.tipoTela && (
+                      <span className="ml-1.5 font-semibold text-indigo-600">· {t.lineaTela}</span>
+                    )}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBusqueda("")
+                      setBuscando(true)
+                    }}
+                    className="text-[11px] font-bold text-indigo-700 underline"
+                  >
+                    Cambiar
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={busqueda}
+                      onChange={(e) => setBusqueda(e.target.value)}
+                      onFocus={() => setBuscando(true)}
+                      placeholder={`Escribí el color (${colores.length} disponibles)`}
+                      className={`${claseInput} pl-8`}
+                    />
+                  </div>
+                  <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+                    {coloresFiltrados.length === 0 ? (
+                      <p className="p-2.5 text-[11px] text-slate-500">No hay colores que coincidan.</p>
+                    ) : (
+                      coloresFiltrados.map((c) => (
+                        <button
+                          key={`${c.linea}-${c.nombre}`}
+                          type="button"
+                          onClick={() => {
+                            setBuscando(false)
+                            setBusqueda("")
+                            cambiar({ colorTela: c.nombre, lineaTela: c.linea })
+                          }}
+                          className={`flex w-full items-center justify-between gap-2 border-b border-slate-100 px-3 py-2 text-left text-xs last:border-b-0 hover:bg-indigo-50 ${
+                            t.colorTela === c.nombre && t.lineaTela === c.linea ? "bg-indigo-50 font-bold" : ""
+                          }`}
+                        >
+                          <span className="font-semibold text-slate-900">{c.nombre}</span>
+                          {c.linea !== t.tipoTela && <span className="text-[10px] text-slate-500">{c.linea}</span>}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </Paso>
+  )
 
   return (
     <div className="space-y-5 rounded-2xl border border-indigo-100 bg-indigo-50/30 p-5 animate-in fade-in duration-150">
@@ -152,7 +253,90 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
         />
       </Paso>
 
-      {t.subtipo && (
+      {pergola && (
+        <>
+          <Paso titulo="1 • Ancho y alto (m)">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <span className="block text-[10px] font-bold text-slate-600">Ancho</span>
+                <Medida
+                  valor={ancho}
+                  onCambiar={(v) => {
+                    onAncho(v)
+                    // El ancho nuevo se vuelve a repartir en la misma cantidad de partes
+                    cambiar({ divisiones: repartirAncho(typeof v === "number" ? v : 0, divisiones.length || 1) })
+                  }}
+                />
+              </div>
+              <div className="space-y-1">
+                <span className="block text-[10px] font-bold text-slate-600">Alto</span>
+                <Medida valor={alto} onCambiar={onAlto} />
+              </div>
+            </div>
+          </Paso>
+
+          <Paso titulo="2 • División del ancho">
+            <span className="block text-[11px] font-bold text-slate-600">¿En cuántas partes se divide?</span>
+            <Opciones
+              opciones={Array.from({ length: MAX_DIVISIONES_PERGOLA }, (_, i) => i + 1)}
+              valor={divisiones.length || undefined}
+              onElegir={(n) => cambiar({ divisiones: repartirAncho(anchoNum, n) })}
+            />
+            {divisiones.length > 0 && (
+              <div className="space-y-2 rounded-xl border border-slate-200 bg-white/70 p-3">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                  {divisiones.map((d, i) => (
+                    <div key={i} className="space-y-1">
+                      <span className="block text-[10px] font-bold text-slate-600">Parte {i + 1} (m)</span>
+                      <Medida
+                        valor={d || ""}
+                        onCambiar={(v) =>
+                          cambiar({ divisiones: divisiones.map((x, j) => (j === i ? (typeof v === "number" ? v : 0) : x)) })
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span
+                    className={`text-[11px] font-semibold ${
+                      anchoNum > 0 && Math.abs(sumaDivisiones(divisiones) - anchoNum) > 0.02 ? "text-amber-700" : "text-slate-500"
+                    }`}
+                  >
+                    Suman {sumaDivisiones(divisiones).toFixed(2).replace(".", ",")} m
+                    {anchoNum > 0 && ` de ${anchoNum.toFixed(2).replace(".", ",")} m`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => cambiar({ divisiones: repartirAncho(anchoNum, divisiones.length) })}
+                    className="text-[11px] font-bold text-indigo-700 underline"
+                  >
+                    Repartir igual
+                  </button>
+                </div>
+              </div>
+            )}
+          </Paso>
+
+          <Paso titulo="3 • Cubre toldo">
+            <SiNo valor={t.cubreToldo} onElegir={(cubreToldo) => cambiar({ cubreToldo })} />
+            {t.cubreToldo && (
+              <div className="space-y-1 rounded-xl border border-slate-200 bg-white/70 p-3">
+                <span className="block text-[11px] font-bold text-slate-600">Color</span>
+                <Opciones
+                  opciones={COLORES_PERFILERIA_TOLDO}
+                  valor={t.colorCubreToldo}
+                  onElegir={(colorCubreToldo) => cambiar({ colorCubreToldo })}
+                />
+              </div>
+            )}
+          </Paso>
+
+          {pasoTela("4 • Tela")}
+        </>
+      )}
+
+      {t.subtipo && !pergola && (
         <>
           <Paso titulo="1 • Color de perfilería e insumos">
             <Opciones opciones={COLORES_PERFILERIA_TOLDO} valor={t.colorPerfileria} onElegir={(colorPerfileria) => cambiar({ colorPerfileria })} />
@@ -297,93 +481,7 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
             )}
           </Paso>
 
-          <Paso titulo="7 • Tela">
-            <Opciones
-              opciones={telasPermitidas(t.subtipo)}
-              valor={t.tela}
-              onElegir={(tela) => {
-                setBusqueda("")
-                cambiar({ tela })
-              }}
-            />
-            {t.tela && (
-              <div className="space-y-3 rounded-xl border border-slate-200 bg-white/70 p-3">
-                <div className="space-y-1">
-                  <span className="block text-[11px] font-bold text-slate-600">Tipo</span>
-                  <Opciones
-                    opciones={tiposDeTela(t.tela)}
-                    valor={t.tipoTela}
-                    onElegir={(tipoTela) => {
-                      setBusqueda("")
-                      cambiar({ tipoTela })
-                    }}
-                  />
-                </div>
-                {t.tipoTela && (
-                  <div className="space-y-1">
-                    <span className="block text-[11px] font-bold text-slate-600">Color</span>
-                    {t.colorTela && !buscando ? (
-                      <div className="flex items-center justify-between gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2">
-                        <span className="text-xs font-bold text-indigo-950">
-                          {t.colorTela}
-                          {t.lineaTela && t.lineaTela !== t.tipoTela && (
-                            <span className="ml-1.5 font-semibold text-indigo-600">· {t.lineaTela}</span>
-                          )}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBusqueda("")
-                            setBuscando(true)
-                          }}
-                          className="text-[11px] font-bold text-indigo-700 underline"
-                        >
-                          Cambiar
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="space-y-1.5">
-                        <div className="relative">
-                          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                          <input
-                            type="text"
-                            value={busqueda}
-                            onChange={(e) => setBusqueda(e.target.value)}
-                            onFocus={() => setBuscando(true)}
-                            placeholder={`Escribí el color (${colores.length} disponibles)`}
-                            className={`${claseInput} pl-8`}
-                          />
-                        </div>
-                        <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white">
-                          {coloresFiltrados.length === 0 ? (
-                            <p className="p-2.5 text-[11px] text-slate-500">No hay colores que coincidan.</p>
-                          ) : (
-                            coloresFiltrados.map((c) => (
-                              <button
-                                key={`${c.linea}-${c.nombre}`}
-                                type="button"
-                                onClick={() => {
-                                  setBuscando(false)
-                                  setBusqueda("")
-                                  cambiar({ colorTela: c.nombre, lineaTela: c.linea })
-                                }}
-                                className={`flex w-full items-center justify-between gap-2 border-b border-slate-100 px-3 py-2 text-left text-xs last:border-b-0 hover:bg-indigo-50 ${
-                                  t.colorTela === c.nombre && t.lineaTela === c.linea ? "bg-indigo-50 font-bold" : ""
-                                }`}
-                              >
-                                <span className="font-semibold text-slate-900">{c.nombre}</span>
-                                {c.linea !== t.tipoTela && <span className="text-[10px] text-slate-500">{c.linea}</span>}
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </Paso>
+          {pasoTela("7 • Tela")}
 
           {!vertical && (
             <Paso titulo="8 • Pollerita">
