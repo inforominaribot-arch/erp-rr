@@ -12,7 +12,7 @@ import {
 } from "../types"
 import type { IPresupuestoDetalle, IAmbientePresupuestoGrupo } from "../types"
 import { PresupuestoWhatsappButton } from "./presupuesto-whatsapp-button"
-import { agruparCortinas, calcularTotalesPorOpcion, esPrincipal, itemsAprobados } from "../lib/alternativas"
+import { agruparCortinas, esPrincipal, itemsAprobados } from "../lib/alternativas"
 import { conGasa, telaDeFila } from "../lib/texto-presupuesto"
 
 /** Logo de Instagram (lucide ya no trae íconos de marcas) */
@@ -79,9 +79,13 @@ export function PresupuestoImprimible({
 
   const listaAmbientes = Object.values(gruposAmbientes)
   const hayAlternativas = items.some((it) => !esPrincipal(it))
-  const totalesPorOpcion = calcularTotalesPorOpcion(items, presupuesto.descuento)
   const estaAceptado =
     presupuesto.estado === "ACEPTADO_TOTAL" || presupuesto.estado === "ACEPTADO_PARCIAL"
+  // Con alternativas sin decidir no se informa ningún total (todavía no se sabe qué opción elige el cliente)
+  const totalPendiente = hayAlternativas && !estaAceptado
+  // Con alternativas ya decididas, el total es el de las opciones elegidas
+  const aprobados = itemsAprobados(items, presupuesto.estado)
+  const subtotalElegido = aprobados.reduce((acc, it) => acc + it.subtotal, 0)
 
   function handleImprimir() {
     const nombreCliente = cliente.nombre ? cliente.nombre.trim() : "Cliente"
@@ -297,11 +301,15 @@ export function PresupuestoImprimible({
                 <span className="text-xs font-bold uppercase tracking-wider text-indigo-900">
                   Ambiente: {grupo.ambiente}
                 </span>
-                <span className="text-xs font-semibold text-indigo-700">
-                  {grupo.items.some((it) => !esPrincipal(it))
-                    ? `Subtotal (opción principal): ${formatearPrecio(grupo.subtotalAmbiente)}`
-                    : `Subtotal: ${formatearPrecio(grupo.subtotalAmbiente)}`}
-                </span>
+                {!(grupo.items.some((it) => !esPrincipal(it)) && !estaAceptado) && (
+                  <span className="text-xs font-semibold text-indigo-700">
+                    {grupo.items.some((it) => !esPrincipal(it))
+                      ? `Subtotal (opciones elegidas): ${formatearPrecio(
+                          grupo.items.filter((it) => aprobados.includes(it)).reduce((acc, it) => acc + it.subtotal, 0)
+                        )}`
+                      : `Subtotal: ${formatearPrecio(grupo.subtotalAmbiente)}`}
+                  </span>
+                )}
               </div>
 
               <div className="overflow-x-auto">
@@ -409,29 +417,43 @@ export function PresupuestoImprimible({
             style={{ flex: "0 0 38%", width: "38%" }}
             className="rounded-xl bg-slate-50 p-3 border border-slate-200 space-y-1.5 text-xs"
           >
-            {totalesPorOpcion ? (
-              <>
+            {totalPendiente ? (
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-slate-900">Presupuesto con alternativas</p>
+                <p className="text-[11px] leading-snug text-slate-600">
+                  Cada cortina tiene el precio de sus opciones. El total se informa cuando elijas las alternativas.
+                </p>
                 {presupuesto.descuento > 0 && (
                   <p className="text-[11px] text-emerald-700 font-semibold">
-                    Incluye descuento del {presupuesto.descuento}%
+                    Los precios tienen un descuento del {presupuesto.descuento}% sobre el total.
                   </p>
                 )}
-                {totalesPorOpcion.map((t) => (
-                  <div
-                    key={t.nombre}
-                    className="flex justify-between items-baseline border-t border-slate-200 pt-1"
-                  >
-                    <span className="text-xs font-bold text-slate-900">Total con {t.nombre}:</span>
-                    <span className="text-base font-black text-indigo-950 font-mono">
-                      {formatearPrecio(t.total)}
+              </div>
+            ) : estaAceptado && hayAlternativas ? (
+              <>
+                <div className="flex justify-between text-slate-600">
+                  <span>Subtotal (opciones elegidas):</span>
+                  <span className="font-mono font-bold text-slate-800">{formatearPrecio(subtotalElegido)}</span>
+                </div>
+                {presupuesto.descuento > 0 && (
+                  <div className="flex justify-between text-emerald-700">
+                    <span>Descuento ({presupuesto.descuento}%):</span>
+                    <span className="font-mono font-bold">
+                      - {formatearPrecio(subtotalElegido * (presupuesto.descuento / 100))}
                     </span>
                   </div>
-                ))}
+                )}
+                <div className="border-t border-slate-300 pt-1.5 flex justify-between items-baseline">
+                  <span className="text-sm font-bold text-slate-900">Total:</span>
+                  <span className="text-lg font-black text-indigo-950 font-mono">
+                    {formatearPrecio(subtotalElegido * (1 - presupuesto.descuento / 100))}
+                  </span>
+                </div>
               </>
             ) : (
             <>
             <div className="flex justify-between text-slate-600">
-              <span>{hayAlternativas ? "Subtotal (opciones principales):" : "Subtotal:"}</span>
+              <span>Subtotal:</span>
               <span className="font-mono font-bold text-slate-800">
                 {formatearPrecio(presupuesto.subtotal)}
               </span>
@@ -460,7 +482,7 @@ export function PresupuestoImprimible({
             </>
             )}
 
-            {estaAceptado && (presupuesto.estado === "ACEPTADO_PARCIAL" || hayAlternativas) && (
+            {estaAceptado && presupuesto.estado === "ACEPTADO_PARCIAL" && !hayAlternativas && (
               <div className="border-t border-indigo-200 pt-1 text-[11px] text-indigo-900">
                 <span className="block font-semibold">
                   {presupuesto.estado === "ACEPTADO_PARCIAL"
