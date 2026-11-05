@@ -16,7 +16,7 @@ export const COLORES_PERFILERIA_TOLDO = ["Blanco", "Negro"] as const
 export const CANOS_TOLDO = ["70", "80"] as const
 export const BARRAS_FRENTE_TOLDO = ["TP1", "TP2"] as const
 /** Largo de los brazos del TP2 (m) */
-export const BRAZOS_TP2 = ["0,8", "1,2", "1,4", "1,6", "1,8"] as const
+export const BRAZOS_TP2 = ["0,8", "1", "1,2", "1,4", "1,6", "1,8"] as const
 export const TIPOS_PROYECCION = ["Punta a Punta", "Barra Cuadra"] as const
 export const MECANISMOS_TOLDO = ["Manual", "Motorizado"] as const
 export const MAQUINAS_TOLDO = ["Máquina importada polifuncional", "Máquina importada súper"] as const

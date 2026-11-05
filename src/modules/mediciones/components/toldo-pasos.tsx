@@ -465,7 +465,7 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
               )}
               {t.barraFrente === "TP2" && (
                 <div className="space-y-1 rounded-xl border border-slate-200 bg-white/70 p-3">
-                  <span className="block text-[11px] font-bold text-slate-600">Brazos (m)</span>
+                  <span className="block text-[11px] font-bold text-slate-600">Brazos con tensor (m)</span>
                   <Opciones opciones={BRAZOS_TP2} valor={t.brazos} onElegir={(brazos) => cambiar({ brazos })} />
                 </div>
               )}

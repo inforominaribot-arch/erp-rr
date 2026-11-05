@@ -1,6 +1,6 @@
 "use client"
 
-// Pestaña "Toldo PT" de la calculadora: Toldo Pérgola Barrio y Toldo Vertical TP1 PRINTEMPS. Insumos de la planilla
+// Pestaña "Toldo PT" de la calculadora: Toldo Pérgola Barrio y Toldo Vertical TP1 y TP2 PRINTEMPS. Insumos de la planilla
 // del proveedor, precios propios editables y lo que se carga a mano (madera o motor, domótica y brazo, confección, instalación).
 
 import { AlertTriangle, Ruler } from "lucide-react"
@@ -56,8 +56,8 @@ export function CalculoToldoPT({ calculo, ancho, opciones, onCambiarOpciones, re
   const anchosTela = telasPosibles(toldo)
   const fmtM = (n: number) => n.toLocaleString("es-AR", { maximumFractionDigits: 2 })
   const esSoloTela = calculo.metodo === "PT_SOLO_TELA"
-  // Vertical TP1 y Solo tela no llevan madera ni los precios propios de la pérgola
-  const esVertical = calculo.metodo === "PT_VERTICAL_TP1" || esSoloTela
+  // Vertical y Solo tela no llevan madera ni los precios propios de la pérgola
+  const esVertical = calculo.metodo === "PT_VERTICAL_TP1" || calculo.metodo === "PT_VERTICAL_TP2" || esSoloTela
   const motorizado = esVertical && toldo.mecanismo === "Motorizado"
   const motorAMano = motorizado && normalizarMotorToldo(toldo.motor) !== "Oximo"
 
@@ -68,7 +68,7 @@ export function CalculoToldoPT({ calculo, ancho, opciones, onCambiarOpciones, re
           {esSoloTela
             ? "Toldo Solo tela PRINTEMPS (insumos × 1,5 + confección + instalación)"
             : esVertical
-            ? "Toldo Vertical TP1 PRINTEMPS (insumos × 1,5 + domótica × 2 + confección + instalación)"
+            ? `Toldo Vertical ${calculo.metodo === "PT_VERTICAL_TP2" ? "TP2" : "TP1"} PRINTEMPS (insumos × 1,5 + domótica × 2 + confección + instalación)`
             : "Toldo Pérgola Barrio PRINTEMPS (insumos × 1,5 + confección + instalación)"}
         </p>
         {lineasToldo(toldo).map((l) => (

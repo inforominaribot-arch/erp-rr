@@ -74,6 +74,7 @@ export function PresupuestoCalculadoraModal({
   const esPT =
     calculoInicial?.metodo === "PT_PERGOLA" ||
     calculoInicial?.metodo === "PT_VERTICAL_TP1" ||
+    calculoInicial?.metodo === "PT_VERTICAL_TP2" ||
     calculoInicial?.metodo === "PT_SOLO_TELA"
   const conListaRS =
     Boolean(calculoInicial) && (esPT ? preciosPT.length > 0 : esMG ? tablaMG.length > 0 : listaRS.length > 0)

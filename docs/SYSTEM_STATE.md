@@ -840,7 +840,7 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
   Calculadora: pestaña "Toldo PT" con el detalle, la madera a comprar, los campos a mano y los precios propios editables.
 
 ### ⏳ Pendiente
-- Presupuesto de los toldos Vertical TP2 y de Proyección (el Vertical TP1 ya está: ver "Presupuesto del Toldo Vertical TP1").
+- Presupuesto del toldo de Proyección (el Vertical TP1 y TP2 ya están).
 - "Recalcular presupuestos con la lista" todavía no recalcula toldos.
 
 
@@ -875,4 +875,13 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 ### ✅ Implementado
 - Medición: en Vertical y Proyección, después del subtipo se elige "¿Solo tela?" (`toldo.soloTela`). Pasos: ancho y largo, pollerita, barra y tensor (Vertical; tensor solo con TP1), tela y sujeción al piso (TP1). La Pérgola no tiene Solo tela.
 - Presupuesto (`calcularToldoSoloTela`, método `PT_SOLO_TELA`, en `lib/toldo-vertical-tp1.ts`): tela (largo + 0,6 con pollerita o + 0,4 sin) × ⌈ancho ÷ ancho de tela⌉ + spaghetti 3 × ancho. Con TP1 suma lo elegido: tensor (soporte, cable, 2 prensas y tapa con pasacable) y sujeción (fijación, perita Nº8 y mosquetón con cadena). Precio = insumos × 1,5 + confección + instalación (a mano).
+- Requiere generar de nuevo el APK de la tablet. No requiere `db push`.
+
+---
+
+## Actualización — Presupuesto del Toldo Vertical TP2 (2026-11-05)
+
+### ✅ Implementado
+- Medición: brazos del TP2 con la medida de 1 m agregada (0,8 · 1 · 1,2 · 1,4 · 1,6 · 1,8).
+- `lib/toldo-vertical.ts` (antes `toldo-vertical-tp1.ts`; `calcularToldoVertical`, método `PT_VERTICAL_TP2`). Lleva lo mismo que el TP1 menos tensor, sujeción al piso y brazo Caduta. Suma frente TP2 ⌈ancho⌉ m, juego de brazos con tensor y tapa al precio de la TP1 con pasacable (la planilla no tiene precio de tapa TP2 usable). Precio = insumos × 1,5 + domótica × 2 + confección + instalación.
 - Requiere generar de nuevo el APK de la tablet. No requiere `db push`.

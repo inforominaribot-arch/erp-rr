@@ -1016,7 +1016,7 @@ export function PresupuestoForm({
                             className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-bold text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 disabled:hover:bg-transparent"
                           >
                             <Plus className="h-3 w-3" />
-                            {it.capa && it.calculoPrecio?.metodo !== "MG_MOSQUITERO" && it.calculoPrecio?.metodo !== "PT_PERGOLA" && it.calculoPrecio?.metodo !== "PT_VERTICAL_TP1" && it.calculoPrecio?.metodo !== "PT_SOLO_TELA"
+                            {it.capa && it.calculoPrecio?.metodo !== "MG_MOSQUITERO" && it.calculoPrecio?.metodo !== "PT_PERGOLA" && it.calculoPrecio?.metodo !== "PT_VERTICAL_TP1" && it.calculoPrecio?.metodo !== "PT_VERTICAL_TP2" && it.calculoPrecio?.metodo !== "PT_SOLO_TELA"
                               ? `Agregar alternativa (${NOMBRE_CAPA[it.capa]})`
                               : "Agregar alternativa"}
                           </button>
