@@ -867,3 +867,12 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 - El desglose de la instalación dice "incluye cubre techo" (vertical y pérgola). Es interno.
 - Comanda: la sujeción al piso muestra la cantidad de tornillos y tuercas.
 - Requiere generar de nuevo el APK de la tablet. No requiere `db push`.
+
+---
+
+## Actualización — Toldo Solo tela (2026-11-05)
+
+### ✅ Implementado
+- Medición: en Vertical y Proyección, después del subtipo se elige "¿Solo tela?" (`toldo.soloTela`). Pasos: ancho y largo, pollerita, barra y tensor (Vertical; tensor solo con TP1), tela y sujeción al piso (TP1). La Pérgola no tiene Solo tela.
+- Presupuesto (`calcularToldoSoloTela`, método `PT_SOLO_TELA`, en `lib/toldo-vertical-tp1.ts`): tela (largo + 0,6 con pollerita o + 0,4 sin) × ⌈ancho ÷ ancho de tela⌉ + spaghetti 3 × ancho. Con TP1 suma lo elegido: tensor (soporte, cable, 2 prensas y tapa con pasacable) y sujeción (fijación, perita Nº8 y mosquetón con cadena). Precio = insumos × 1,5 + confección + instalación (a mano).
+- Requiere generar de nuevo el APK de la tablet. No requiere `db push`.

@@ -3,6 +3,7 @@
 // Módulo: Mediciones
 // Pasos del Toldo PRINTEMPS en el formulario de la cortina (tablet y web): subtipo → color de perfilería →
 // caño → medidas → barra frente / tipo → mecanismo → cubre toldo → tela (con buscador de colores) → pollerita.
+// Solo tela (Vertical y Proyección): medidas → pollerita → barra y tensor (Vertical) → tela → sujeción al piso (TP1).
 
 import { useState } from "react"
 import { Search } from "lucide-react"
@@ -356,6 +357,67 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
       )}
 
       {t.subtipo && !pergola && (
+        <Paso titulo="¿Solo tela?">
+          <SiNo valor={t.soloTela ?? false} onElegir={(soloTela) => cambiar({ soloTela })} />
+        </Paso>
+      )}
+
+      {t.subtipo && !pergola && t.soloTela && (
+        <>
+          <Paso titulo="1 • Ancho y largo (m)">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <span className="block text-[10px] font-bold text-slate-600">Ancho</span>
+                <Medida valor={ancho} onCambiar={onAncho} />
+              </div>
+              <div className="space-y-1">
+                <span className="block text-[10px] font-bold text-slate-600">Largo</span>
+                <Medida valor={alto} onCambiar={onAlto} />
+              </div>
+            </div>
+          </Paso>
+
+          <Paso titulo="2 • Pollerita">
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => cambiar({ pollerita: true })} className={claseOpcion(t.pollerita === true)}>
+                Con pollerita
+              </button>
+              <button type="button" onClick={() => cambiar({ pollerita: false })} className={claseOpcion(t.pollerita === false)}>
+                Sin pollerita
+              </button>
+            </div>
+          </Paso>
+
+          {vertical && (
+            <Paso titulo="3 • Barra frente">
+              <Opciones opciones={BARRAS_FRENTE_TOLDO} valor={t.barraFrente} onElegir={(barraFrente) => cambiar({ barraFrente })} />
+              {t.barraFrente === "TP1" && (
+                <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white/70 p-3">
+                  <button type="button" onClick={() => cambiar({ tensor: true })} className={claseOpcion(t.tensor === true)}>
+                    Con tensor
+                  </button>
+                  <button type="button" onClick={() => cambiar({ tensor: false })} className={claseOpcion(t.tensor === false)}>
+                    Sin tensor
+                  </button>
+                </div>
+              )}
+              {accesorios.length > 0 && (
+                <p className="text-[11px] font-semibold text-indigo-700">Lleva {accesorios.join(", ")}.</p>
+              )}
+            </Paso>
+          )}
+
+          {pasoTela(vertical ? "4 • Tela" : "3 • Tela")}
+
+          {vertical && t.barraFrente === "TP1" && (
+            <Paso titulo="5 • Sujeción al piso (cantidad)">
+              <Cantidad valor={t.sujecionPiso || undefined} onCambiar={(v) => cambiar({ sujecionPiso: v ?? 0 })} />
+            </Paso>
+          )}
+        </>
+      )}
+
+      {t.subtipo && !pergola && !t.soloTela && (
         <>
           <Paso titulo="1 • Color de perfilería e insumos">
             <Opciones opciones={COLORES_PERFILERIA_TOLDO} valor={t.colorPerfileria} onElegir={(colorPerfileria) => cambiar({ colorPerfileria })} />

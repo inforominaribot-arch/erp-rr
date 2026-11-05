@@ -54,6 +54,8 @@ export type TelaToldo = (typeof TELAS_TOLDO)[number]
 /** Configuración del toldo guardada en la medición (caracteristicas.toldo). Ancho y alto/proyección van en el ítem. */
 export interface IToldoConfig {
   subtipo: SubtipoToldo
+  /** Vertical y Proyección: se pide solo la tela (medidas, pollerita, tela y, con TP1, tensor y sujeción al piso) */
+  soloTela?: boolean
   /** Rige el color de plásticos y accesorios (Vertical y Proyección) */
   colorPerfileria?: ColorPerfileriaToldo
   cano?: CanoToldo
@@ -283,6 +285,7 @@ export function descripcionMotorToldo(t: Partial<IToldoConfig> | null | undefine
 /** Accesorios que se agregan solos (no se preguntan): tapas según la barra frente. */
 export function accesoriosAutomaticosToldo(t: Partial<IToldoConfig> | null | undefined): string[] {
   if (!t || t.subtipo !== "VERTICAL") return []
+  if (t.soloTela) return t.barraFrente === "TP1" && t.tensor ? ["Tapa TP1 con pasa cable"] : []
   if (t.barraFrente === "TP1") return [t.tensor ? "Tapa TP1 con pasa cable" : "Tapa TP1 simple"]
   if (t.barraFrente === "TP2") return ["Tapa Frente"]
   return []
@@ -291,6 +294,7 @@ export function accesoriosAutomaticosToldo(t: Partial<IToldoConfig> | null | und
 /** Deja solo los campos que corresponden a lo elegido (al cambiar de subtipo, barra o mecanismo). */
 export function limpiarToldo(t: Partial<IToldoConfig>): Partial<IToldoConfig> {
   if (t.subtipo === "PERGOLA_BARRIO") return limpiarPergola(t)
+  if (t.soloTela) return limpiarSoloTela(t)
   const vertical = t.subtipo === "VERTICAL"
   const tp1 = vertical && t.barraFrente === "TP1"
   const tp2 = vertical && t.barraFrente === "TP2"
@@ -346,6 +350,20 @@ function telaValida(t: Partial<IToldoConfig>): Partial<IToldoConfig> {
   return { tela, tipoTela, ...(colorValido ? { colorTela: t.colorTela, lineaTela: t.lineaTela } : {}) }
 }
 
+function limpiarSoloTela(t: Partial<IToldoConfig>): Partial<IToldoConfig> {
+  const vertical = t.subtipo === "VERTICAL"
+  const tp1 = vertical && t.barraFrente === "TP1"
+  return sinVacios({
+    subtipo: t.subtipo,
+    soloTela: true,
+    ...(vertical ? { barraFrente: t.barraFrente } : {}),
+    ...(tp1 ? { tensor: t.tensor, sujecionPiso: t.sujecionPiso ?? 0 } : {}),
+    pollerita: t.pollerita ?? false,
+    cubreToldo: false,
+    ...telaValida(t),
+  })
+}
+
 function limpiarPergola(t: Partial<IToldoConfig>): Partial<IToldoConfig> {
   return sinVacios({
     subtipo: "PERGOLA_BARRIO",
@@ -363,6 +381,13 @@ export function validarToldo(t: Partial<IToldoConfig> | null | undefined, ancho:
   if (!t?.subtipo) return "Elegí el subtipo de toldo."
   if (t.subtipo === "PERGOLA_BARRIO") return validarPergola(t, ancho, alto)
   const vertical = t.subtipo === "VERTICAL"
+  if (t.soloTela) {
+    if (!(ancho > 0)) return "Ingresá el ancho del toldo."
+    if (!(alto > 0)) return "Ingresá el largo del toldo."
+    if (vertical && !t.barraFrente) return "Elegí la barra frente (TP1 o TP2)."
+    if (vertical && t.barraFrente === "TP1" && t.tensor === undefined) return "Elegí si va con tensor o sin tensor."
+    return validarTela(t)
+  }
   if (!t.colorPerfileria) return "Elegí el color de perfilería e insumos."
   if (!t.cano) return "Elegí el caño galvanizado (70 u 80)."
   if (!(ancho > 0)) return "Ingresá el ancho del toldo."
@@ -462,6 +487,30 @@ export function lineasToldo(t: Partial<IToldoConfig> | null | undefined): string
   }
   const vertical = t.subtipo === "VERTICAL"
   const n = (v: number | undefined) => v ?? 0
+  if (t.soloTela) {
+    const sujecion = n(t.sujecionPiso)
+    const barra =
+      vertical && t.barraFrente === "TP1"
+        ? [
+            `Barra frente TP1 ${t.tensor ? "con tensor" : "sin tensor"}`,
+            sujecion > 0
+              ? `Sujeción al piso × ${sujecion} (${sujecion} ${sujecion === 1 ? "tornillo y 1 tuerca" : `tornillos y ${sujecion} tuercas`})`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")
+        : vertical && t.barraFrente
+        ? `Barra frente ${t.barraFrente}`
+        : null
+    const accesorios = accesoriosAutomaticosToldo(t)
+    return [
+      "Solo tela",
+      ...(barra ? [barra] : []),
+      t.pollerita ? "Con pollerita" : "Sin pollerita",
+      ...(t.tela ? [`Tela ${textoTelaToldo(t)}`] : []),
+      ...(accesorios.length > 0 ? [`Accesorios: ${accesorios.join(", ")}`] : []),
+    ]
+  }
   const lineas: string[] = [
     `Perfilería e insumos ${t.colorPerfileria ?? "-"} · Caño galvanizado ${t.cano ?? "-"}`,
   ]
@@ -535,7 +584,7 @@ export function textoToldo(t: Partial<IToldoConfig> | null | undefined): string 
       : t.subtipo === "PERGOLA_BARRIO"
       ? `${t.divisiones?.length ?? 1} parte${(t.divisiones?.length ?? 1) > 1 ? "s" : ""}`
       : t.tipoProyeccion,
-    t.mecanismo,
+    t.soloTela ? "Solo tela" : t.mecanismo,
     textoTelaToldo(t),
   ]
     .filter(Boolean)

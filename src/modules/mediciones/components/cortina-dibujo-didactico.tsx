@@ -69,7 +69,7 @@ const COLORES_PERFILERIA_HEX: Record<string, { bg: string; border: string }> = {
 function FichaToldo({ ancho, alto, caracteristicas, modoCompacto }: CortinaDibujoDidacticoProps) {
   const t = caracteristicas?.toldo
   const aclaracion =
-    t?.subtipo === "PROYECCION" ? " (ancho × proyección)" : t?.subtipo === "PERGOLA_BARRIO" ? " (ancho × largo)" : ""
+    t?.soloTela || t?.subtipo === "PERGOLA_BARRIO" ? " (ancho × largo)" : t?.subtipo === "PROYECCION" ? " (ancho × proyección)" : ""
   return (
     <div className={`rounded-xl border border-indigo-100 bg-indigo-50/40 ${modoCompacto ? "p-2.5" : "p-3.5"} space-y-2`}>
       <div className="flex flex-wrap items-center justify-between gap-2">

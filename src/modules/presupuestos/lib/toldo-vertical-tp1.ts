@@ -12,6 +12,9 @@
 //  - Tela: (alto + 0,6 con pollerita o + 0,4 sin) × ⌈ancho ÷ ancho de tela⌉ · Spaghetti fino: 3 × ancho
 //  - Soporte plano y escuadra: pares de la medición · Brazo Caduta: a mano (con los insumos)
 //  - Cubre toldo: cubre techo ⌈ancho del cubre toldo + 0,10⌉ ml + perchas al precio de la ménsula
+//
+// Solo tela (Vertical TP1 y TP2, Proyección; método PT_SOLO_TELA): tela + spaghetti, y con TP1 lo que se haya elegido:
+// tensor (soporte, cable, prensas y tapa con pasacable) y sujeción al piso. Precio = insumos × 1,5 + confección + instalación.
 
 import {
   descripcionMotorToldo,
@@ -111,6 +114,7 @@ export function calcularToldoVerticalTP1(
   precios: IPrecioInsumoPT[]
 ): ResultadoCalculoRS {
   const t = entrada.toldo ?? {}
+  const completo = !t.soloTela
   const { ancho, alto } = entrada
   const avisos: string[] = []
   const desglose: LineaDesglose[] = []
@@ -159,7 +163,9 @@ export function calcularToldoVerticalTP1(
   }
 
   // Mecanismo
-  if (t.mecanismo === "Manual") {
+  if (!completo) {
+    // Solo tela: no lleva mecanismo
+  } else if (t.mecanismo === "Manual") {
     if (t.maquina) dePlanilla(t.maquina, MAQUINAS[t.maquina], 1, "u")
     else avisos.push("Falta elegir la máquina en la medición.")
     if (t.medidaManija) dePlanilla(`Manija nacional x${t.medidaManija}`, MANIJAS[t.medidaManija], t.manijas ?? 1, "u")
@@ -181,19 +187,21 @@ export function calcularToldoVerticalTP1(
   }
 
   // Tubo, calotas y frente
-  const metrosTubo = metroEntero(ancho)
-  if (t.cano === "80") {
-    dePlanilla("Tubo 80 nervado", INSUMOS.tubo80, metrosTubo, "m", `ancho ${fmtM(ancho)} redondeado`)
-    dePlanilla("Calotas para tubo 80", INSUMOS.calotaAcople, 2, "u", "cuadrada y redonda")
-  } else {
-    if (!t.cano) avisos.push("Falta elegir el caño en la medición (se calcula con tubo 70).")
-    dePlanilla("Tubo 70 nervado", INSUMOS.tubo70, metrosTubo, "m", `ancho ${fmtM(ancho)} redondeado`)
-    dePlanilla("Calota cuadrada tubo 70", INSUMOS.calotaCuadrada, 1, "u")
-    dePlanilla("Calota redonda tubo 70", INSUMOS.calotaRedonda, 1, "u")
+  if (completo) {
+    const metrosTubo = metroEntero(ancho)
+    if (t.cano === "80") {
+      dePlanilla("Tubo 80 nervado", INSUMOS.tubo80, metrosTubo, "m", `ancho ${fmtM(ancho)} redondeado`)
+      dePlanilla("Calotas para tubo 80", INSUMOS.calotaAcople, 2, "u", "cuadrada y redonda")
+    } else {
+      if (!t.cano) avisos.push("Falta elegir el caño en la medición (se calcula con tubo 70).")
+      dePlanilla("Tubo 70 nervado", INSUMOS.tubo70, metrosTubo, "m", `ancho ${fmtM(ancho)} redondeado`)
+      dePlanilla("Calota cuadrada tubo 70", INSUMOS.calotaCuadrada, 1, "u")
+      dePlanilla("Calota redonda tubo 70", INSUMOS.calotaRedonda, 1, "u")
+    }
+    const frente = frenteTP1(ancho, precios)
+    if (!frente.encontrado) avisos.push(`No está en la planilla: "${INSUMOS.frente}" (va en $0).`)
+    aMano("Frente TP1", frente.detalle, r2(frente.importe))
   }
-  const frente = frenteTP1(ancho, precios)
-  if (!frente.encontrado) avisos.push(`No está en la planilla: "${INSUMOS.frente}" (va en $0).`)
-  aMano("Frente TP1", frente.detalle, r2(frente.importe))
 
   // Sujeción al piso
   const sujeciones = t.sujecionPiso ?? 0
@@ -210,7 +218,7 @@ export function calcularToldoVerticalTP1(
     const metrosCable = r2((alto + 0.2) * 2)
     dePlanilla("Cable de acero 2,5 mm", INSUMOS.cable, metrosCable, "m", `(${fmtM(alto)} + 0,20) × 2`)
     dePlanilla("Prensa linga 5 mm", INSUMOS.prensa, 2, "u")
-  } else {
+  } else if (completo) {
     dePlanilla("Tapa TP1 simple", INSUMOS.tapaSimple, 1, "par")
   }
 
@@ -224,7 +232,7 @@ export function calcularToldoVerticalTP1(
       tela.metros,
       "m",
       tela.item?.precio ?? 0,
-      `${tela.panos} paño(s) de ${fmtM(tela.ancho)} m × (alto ${fmtM(alto)} + ${fmtM(extraTela)}${t.pollerita ? " con pollerita" : ""})`
+      `${tela.panos} paño(s) de ${fmtM(tela.ancho)} m × (${completo ? "alto" : "largo"} ${fmtM(alto)} +${fmtM(extraTela)}${t.pollerita ? " con pollerita" : ""})`
     )
   }
   dePlanilla("Spaghetti fino", INSUMOS.spaghetti, r2(3 * ancho), "m", "3 × ancho")
@@ -262,8 +270,17 @@ export function calcularToldoVerticalTP1(
   return {
     precio: Math.round(conGanancia + domotica + instalacion + confeccion),
     desglose,
-    formula: "insumos × 1,5 + domótica × 2 + confección + instalación",
+    formula: completo ? "insumos × 1,5 + domótica × 2 + confección + instalación" : "insumos × 1,5 + confección + instalación",
     avisos: avisos.slice(0, 10),
     opciones,
   }
+}
+
+/** Solo tela: Vertical (TP1 o TP2) y Proyección. Suma solo lo elegido en la medición. */
+export function calcularToldoSoloTela(
+  entrada: EntradaVerticalTP1,
+  opciones: OpcionesCalculo,
+  precios: IPrecioInsumoPT[]
+): ResultadoCalculoRS {
+  return calcularToldoVerticalTP1({ ...entrada, toldo: { ...entrada.toldo, soloTela: true } }, opciones, precios)
 }

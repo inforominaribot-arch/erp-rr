@@ -195,6 +195,7 @@ export const caracteristicasItemSchema = z.object({
   toldo: z
     .object({
       subtipo: z.enum(["VERTICAL", "PROYECCION", "PERGOLA_BARRIO"]),
+      soloTela: z.boolean().optional(),
       colorPerfileria: z.enum(COLORES_PERFILERIA_TOLDO).optional(),
       cano: z.enum(CANOS_TOLDO).optional(),
       barraFrente: z.enum(BARRAS_FRENTE_TOLDO).optional(),

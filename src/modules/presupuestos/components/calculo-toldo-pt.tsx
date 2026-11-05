@@ -55,7 +55,9 @@ export function CalculoToldoPT({ calculo, ancho, opciones, onCambiarOpciones, re
   const cambiar = (parcial: Partial<OpcionesCalculo>) => onCambiarOpciones({ ...opciones, ...parcial })
   const anchosTela = telasPosibles(toldo)
   const fmtM = (n: number) => n.toLocaleString("es-AR", { maximumFractionDigits: 2 })
-  const esVertical = calculo.metodo === "PT_VERTICAL_TP1"
+  const esSoloTela = calculo.metodo === "PT_SOLO_TELA"
+  // Vertical TP1 y Solo tela no llevan madera ni los precios propios de la pérgola
+  const esVertical = calculo.metodo === "PT_VERTICAL_TP1" || esSoloTela
   const motorizado = esVertical && toldo.mecanismo === "Motorizado"
   const motorAMano = motorizado && normalizarMotorToldo(toldo.motor) !== "Oximo"
 
@@ -63,7 +65,9 @@ export function CalculoToldoPT({ calculo, ancho, opciones, onCambiarOpciones, re
     <div className="space-y-4">
       <div className="rounded-lg bg-violet-50 p-3 border border-violet-100 text-xs text-violet-900 space-y-0.5">
         <p className="font-bold">
-          {esVertical
+          {esSoloTela
+            ? "Toldo Solo tela PRINTEMPS (insumos × 1,5 + confección + instalación)"
+            : esVertical
             ? "Toldo Vertical TP1 PRINTEMPS (insumos × 1,5 + domótica × 2 + confección + instalación)"
             : "Toldo Pérgola Barrio PRINTEMPS (insumos × 1,5 + confección + instalación)"}
         </p>

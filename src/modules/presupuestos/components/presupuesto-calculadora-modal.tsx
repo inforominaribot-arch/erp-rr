@@ -71,7 +71,10 @@ export function PresupuestoCalculadoraModal({
   modoCortina = null,
 }: PresupuestoCalculadoraModalProps) {
   const esMG = calculoInicial?.metodo === "MG_MOSQUITERO" || calculoInicial?.metodo === "MG_NOCHE_TOTAL"
-  const esPT = calculoInicial?.metodo === "PT_PERGOLA" || calculoInicial?.metodo === "PT_VERTICAL_TP1"
+  const esPT =
+    calculoInicial?.metodo === "PT_PERGOLA" ||
+    calculoInicial?.metodo === "PT_VERTICAL_TP1" ||
+    calculoInicial?.metodo === "PT_SOLO_TELA"
   const conListaRS =
     Boolean(calculoInicial) && (esPT ? preciosPT.length > 0 : esMG ? tablaMG.length > 0 : listaRS.length > 0)
   // Dimensiones base
@@ -380,7 +383,7 @@ export function PresupuestoCalculadoraModal({
             </div>
             <div>
               <label className="text-xs font-bold text-slate-700">
-                {calculoInicial?.metodo === "PT_PERGOLA" ? "Largo (metros)" : "Alto (metros)"}
+                {calculoInicial?.metodo === "PT_PERGOLA" || calculoInicial?.metodo === "PT_SOLO_TELA" ? "Largo (metros)" : "Alto (metros)"}
               </label>
               <input
                 type="number"

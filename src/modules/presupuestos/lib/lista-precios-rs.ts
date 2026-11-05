@@ -29,7 +29,7 @@ import { celdaNocheTotal, nombreSistemaNocheTotal } from "@/modules/mediciones/l
 import { VALORES_DEFECTO_PRECIOS } from "./calculadora-precios"
 import type { IToldoConfig } from "@/modules/mediciones/lib/toldos"
 import { calcularToldoPergola, type IPrecioInsumoPT } from "./toldo-pergola"
-import { calcularToldoVerticalTP1 } from "./toldo-vertical-tp1"
+import { calcularToldoSoloTela, calcularToldoVerticalTP1 } from "./toldo-vertical-tp1"
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
@@ -77,6 +77,7 @@ export type MetodoCalculoRS =
   | "MG_NOCHE_TOTAL"
   | "PT_PERGOLA"
   | "PT_VERTICAL_TP1"
+  | "PT_SOLO_TELA"
 
 /** Celda de una tabla por medida con su precio (MagicRoll) */
 export interface ICeldaPrecioMedida extends ICeldaMosquitero {
@@ -146,6 +147,7 @@ export const calculoPrecioSchema = z.object({
     "MG_NOCHE_TOTAL",
     "PT_PERGOLA",
     "PT_VERTICAL_TP1",
+    "PT_SOLO_TELA",
   ]),
   entrada: entradaCalculoSchema.default({}),
   opciones: opcionesCalculoSchema.default({}),
@@ -724,6 +726,14 @@ export function recalcularFila(
   if (calc.metodo === "PT_VERTICAL_TP1") {
     if (preciosPT.length === 0) return null
     return calcularToldoVerticalTP1(
+      { toldo: calc.entrada.toldo as Partial<IToldoConfig> | undefined, ancho: fila.ancho, alto: fila.alto },
+      calc.opciones,
+      preciosPT
+    )
+  }
+  if (calc.metodo === "PT_SOLO_TELA") {
+    if (preciosPT.length === 0) return null
+    return calcularToldoSoloTela(
       { toldo: calc.entrada.toldo as Partial<IToldoConfig> | undefined, ancho: fila.ancho, alto: fila.alto },
       calc.opciones,
       preciosPT

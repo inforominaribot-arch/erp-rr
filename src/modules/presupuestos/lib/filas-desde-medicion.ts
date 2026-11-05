@@ -15,7 +15,7 @@ import {
 } from "@/modules/mediciones/lib/cortinas-fisicas"
 import type { ItemPresupuestoInput } from "../schemas"
 import { calcularToldoPergola, type IPrecioInsumoPT } from "./toldo-pergola"
-import { calcularToldoVerticalTP1 } from "./toldo-vertical-tp1"
+import { calcularToldoSoloTela, calcularToldoVerticalTP1 } from "./toldo-vertical-tp1"
 import type { MedicionImportable } from "../types"
 import { conGasa } from "./texto-presupuesto"
 import {
@@ -178,6 +178,24 @@ export function calcularFilaVerticalTP1(
   }
 }
 
+/** Toldo Solo tela PRINTEMPS (Vertical y Proyección): tela + spaghetti + lo elegido con TP1, × 1,5 (confección e instalación a mano). */
+export function calcularFilaSoloTela(
+  carac: ICaracteristicasItem | null,
+  ancho: number,
+  largo: number,
+  preciosPT: IPrecioInsumoPT[],
+  opciones: OpcionesCalculo = {}
+): Pick<ItemPresupuestoInput, "precioUnitario" | "calculoPrecio"> {
+  const t = carac?.toldo
+  if (preciosPT.length === 0 || !t?.soloTela) return { precioUnitario: 0, calculoPrecio: null }
+  const entrada = { tipoCapa: "Toldo", toldo: t as unknown as Record<string, unknown> }
+  const resultado = calcularToldoSoloTela({ toldo: t, ancho, alto: largo }, opciones, preciosPT)
+  return {
+    precioUnitario: resultado.precio ?? 0,
+    calculoPrecio: armarCalculoPrecio("PT_SOLO_TELA", entrada, resultado),
+  }
+}
+
 /** Filas de una abertura (una por cortina física). Si la medición no tiene capas, una sola fila como antes. */
 export function filasDeAbertura(
   it: { id: string; descripcion: string; ancho: number; alto: number; cantidad: number; caracteristicas: unknown },
@@ -217,7 +235,9 @@ export function filasDeAbertura(
       : esNocheTotalMG
       ? calcularFilaNocheTotal(carac, k.ancho, k.alto, tablaMG)
       : k.tipoCapa === "Toldo"
-      ? carac?.toldo?.subtipo === "VERTICAL"
+      ? carac?.toldo?.soloTela
+        ? calcularFilaSoloTela(carac, k.ancho, k.alto, preciosPT)
+        : carac?.toldo?.subtipo === "VERTICAL"
         ? calcularFilaVerticalTP1(carac, k.ancho, k.alto, preciosPT)
         : calcularFilaPergola(carac, k.ancho, k.alto, preciosPT)
       : calcularFilaCortina(k, k.ancho, k.alto, lista)
