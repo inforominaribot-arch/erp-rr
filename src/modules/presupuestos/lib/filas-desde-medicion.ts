@@ -15,6 +15,7 @@ import {
 } from "@/modules/mediciones/lib/cortinas-fisicas"
 import type { ItemPresupuestoInput } from "../schemas"
 import { calcularToldoPergola, type IPrecioInsumoPT } from "./toldo-pergola"
+import { calcularToldoVerticalTP1 } from "./toldo-vertical-tp1"
 import type { MedicionImportable } from "../types"
 import { conGasa } from "./texto-presupuesto"
 import {
@@ -159,6 +160,24 @@ export function calcularFilaPergola(
   }
 }
 
+/** Toldo Vertical con barra TP1 PRINTEMPS: insumos × 1,5 + domótica × 2 (motor, domótica, brazo, confección e instalación a mano). */
+export function calcularFilaVerticalTP1(
+  carac: ICaracteristicasItem | null,
+  ancho: number,
+  alto: number,
+  preciosPT: IPrecioInsumoPT[],
+  opciones: OpcionesCalculo = {}
+): Pick<ItemPresupuestoInput, "precioUnitario" | "calculoPrecio"> {
+  const t = carac?.toldo
+  if (preciosPT.length === 0 || t?.subtipo !== "VERTICAL" || t.barraFrente !== "TP1") return { precioUnitario: 0, calculoPrecio: null }
+  const entrada = { tipoCapa: "Toldo", toldo: t as unknown as Record<string, unknown> }
+  const resultado = calcularToldoVerticalTP1({ toldo: t, ancho, alto }, opciones, preciosPT)
+  return {
+    precioUnitario: resultado.precio ?? 0,
+    calculoPrecio: armarCalculoPrecio("PT_VERTICAL_TP1", entrada, resultado),
+  }
+}
+
 /** Filas de una abertura (una por cortina física). Si la medición no tiene capas, una sola fila como antes. */
 export function filasDeAbertura(
   it: { id: string; descripcion: string; ancho: number; alto: number; cantidad: number; caracteristicas: unknown },
@@ -198,7 +217,9 @@ export function filasDeAbertura(
       : esNocheTotalMG
       ? calcularFilaNocheTotal(carac, k.ancho, k.alto, tablaMG)
       : k.tipoCapa === "Toldo"
-      ? calcularFilaPergola(carac, k.ancho, k.alto, preciosPT)
+      ? carac?.toldo?.subtipo === "VERTICAL"
+        ? calcularFilaVerticalTP1(carac, k.ancho, k.alto, preciosPT)
+        : calcularFilaPergola(carac, k.ancho, k.alto, preciosPT)
       : calcularFilaCortina(k, k.ancho, k.alto, lista)
     return {
       itemMedicionId: it.id,

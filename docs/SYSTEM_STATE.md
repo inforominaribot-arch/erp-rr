@@ -840,7 +840,7 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
   Calculadora: pestaña "Toldo PT" con el detalle, la madera a comprar, los campos a mano y los precios propios editables.
 
 ### ⏳ Pendiente
-- Presupuesto de los toldos Vertical y de Proyección.
+- Presupuesto de los toldos Vertical TP2 y de Proyección (el Vertical TP1 ya está: ver "Presupuesto del Toldo Vertical TP1").
 - "Recalcular presupuestos con la lista" todavía no recalcula toldos.
 
 
@@ -855,3 +855,15 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 
 ### ⏳ Pendiente
 - Generar el APK nuevo para tener la caída y el lugar de fijación en la tablet.
+
+---
+
+## Actualización — Presupuesto del Toldo Vertical TP1 (2026-11-05)
+
+### ✅ Implementado
+- Medición de toldos: pollerita también en el Vertical, medida de la manija nacional (`toldo.medidaManija`), modelo del motor (`toldo.modeloMotor`: Somfy Altus 40/12, Altus 50/12, LTN 50/12; HUNA 50/12). En toldos Tube pasa a llamarse HUNA (las mediciones viejas guardan "Tube" y se muestran como HUNA con `normalizarMotorToldo`). Caputa pasa a Caduta en pantalla (la clave `brazoCaputa` queda igual).
+- `lib/toldo-vertical-tp1.ts` (`calcularToldoVerticalTP1`, método `PT_VERTICAL_TP1`). Precio = insumos × 1,5 + domótica × 2 + confección + instalación. El detalle de insumos está en el encabezado del archivo. Motor con control, domótica y brazo Caduta van a mano; Oximo por planilla.
+- Redondeos: tubo ⌈ancho⌉ m; frente TP1 al largo con precio en la planilla (5 m se cobra como 6; más de 6 m, por metro); cubre techo ⌈ancho + 0,10⌉ ml, también en la pérgola.
+- El desglose de la instalación dice "incluye cubre techo" (vertical y pérgola). Es interno.
+- Comanda: la sujeción al piso muestra la cantidad de tornillos y tuercas.
+- Requiere generar de nuevo el APK de la tablet. No requiere `db push`.

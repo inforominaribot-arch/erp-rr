@@ -20,7 +20,16 @@ export const BRAZOS_TP2 = ["0,8", "1,2", "1,4", "1,6", "1,8"] as const
 export const TIPOS_PROYECCION = ["Punta a Punta", "Barra Cuadra"] as const
 export const MECANISMOS_TOLDO = ["Manual", "Motorizado"] as const
 export const MAQUINAS_TOLDO = ["Máquina importada polifuncional", "Máquina importada súper"] as const
-export const MOTORES_TOLDO = ["Tube", "Somfy", "Oximo"] as const
+/** En toldos la marca Tube ahora se llama HUNA (las mediciones viejas guardan "Tube": ver normalizarMotorToldo) */
+export const MOTORES_TOLDO = ["HUNA", "Somfy", "Oximo"] as const
+/** Modelos de motor (todos con soporte y accesorios). El Oximo no elige modelo: su precio sale de la planilla. */
+export const MODELOS_MOTOR_TOLDO: Partial<Record<(typeof MOTORES_TOLDO)[number], readonly string[]>> = {
+  Somfy: ["Altus 40/12", "Altus 50/12", "LTN 50/12"],
+  HUNA: ["50/12"],
+}
+export const TODOS_MODELOS_MOTOR_TOLDO = ["Altus 40/12", "Altus 50/12", "LTN 50/12", "50/12"] as const
+/** Medida de la manija nacional en metros */
+export const MEDIDAS_MANIJA_TOLDO = ["1", "1,25", "1,5", "1,75", "2", "2,5"] as const
 export const CANALES_TOLDO = [1, 3, 5, 15, 16] as const
 export const TELAS_TOLDO = ["Acrílica", "Vinílica", "Media sombra"] as const
 /** Pérgola Barrio: en cuántas partes se divide el ancho */
@@ -38,6 +47,7 @@ export type TipoProyeccion = (typeof TIPOS_PROYECCION)[number]
 export type MecanismoToldo = (typeof MECANISMOS_TOLDO)[number]
 export type MaquinaToldo = (typeof MAQUINAS_TOLDO)[number]
 export type MotorToldo = (typeof MOTORES_TOLDO)[number]
+export type MedidaManijaToldo = (typeof MEDIDAS_MANIJA_TOLDO)[number]
 export type CanalesToldo = (typeof CANALES_TOLDO)[number]
 export type TelaToldo = (typeof TELAS_TOLDO)[number]
 
@@ -52,7 +62,7 @@ export interface IToldoConfig {
   barraFrente?: BarraFrenteToldo
   /** TP1 */
   tensor?: boolean
-  /** TP1 */
+  /** TP1: brazo Caduta importado (la clave guardada conserva el nombre viejo) */
   brazoCaputa?: boolean
   /** TP1 */
   sujecionPiso?: number
@@ -79,8 +89,11 @@ export interface IToldoConfig {
   escuadra?: number
   /** Manual */
   manijas?: number
-  /** Motorizado (Oximo solo con TP1) */
-  motor?: MotorToldo
+  medidaManija?: MedidaManijaToldo
+  /** Motorizado (Oximo solo con TP1). "Tube" solo en mediciones viejas: se muestra como HUNA */
+  motor?: MotorToldo | "Tube"
+  /** Somfy y HUNA */
+  modeloMotor?: string
   control?: boolean
   cantidadControles?: number
   /** Solo si lleva control */
@@ -228,7 +241,43 @@ export function buscarColoresTela(colores: IColorTelaToldo[], texto: string): IC
 
 /** Motores disponibles: el Oximo solo va con barra frente TP1 (toldo vertical). */
 export function motoresDisponibles(t: Partial<Pick<IToldoConfig, "subtipo" | "barraFrente">>): readonly MotorToldo[] {
-  return t.subtipo === "VERTICAL" && t.barraFrente === "TP1" ? MOTORES_TOLDO : ["Tube", "Somfy"]
+  return t.subtipo === "VERTICAL" && t.barraFrente === "TP1" ? MOTORES_TOLDO : ["HUNA", "Somfy"]
+}
+
+/** Las mediciones viejas de toldos guardan "Tube": hoy esa marca se llama HUNA. */
+export function normalizarMotorToldo(motor: IToldoConfig["motor"] | null | undefined): MotorToldo | undefined {
+  if (!motor) return undefined
+  return motor === "Tube" ? "HUNA" : motor
+}
+
+export const modelosDeMotorToldo = (motor: IToldoConfig["motor"] | null | undefined): readonly string[] => {
+  const m = normalizarMotorToldo(motor)
+  return m ? MODELOS_MOTOR_TOLDO[m] ?? [] : []
+}
+
+/** Modelo válido para el motor (si hay uno solo se completa solo). */
+export function modeloMotorValido(t: Partial<IToldoConfig>): string | undefined {
+  const modelos = modelosDeMotorToldo(t.motor)
+  if (modelos.length === 1) return modelos[0]
+  return t.modeloMotor && modelos.includes(t.modeloMotor) ? t.modeloMotor : undefined
+}
+
+export const etiquetaMedidaManija = (m: MedidaManijaToldo) => `x${m}`
+
+const textoControles = (t: Partial<IToldoConfig>) => {
+  if (!t.control) return "sin control"
+  const n = t.cantidadControles ?? 1
+  const canales = t.canales ? ` de ${t.canales} canal${t.canales > 1 ? "es" : ""}` : ""
+  return `${n} control${n > 1 ? "es" : ""}${canales}`
+}
+
+/** Qué motor y control hay que cotizar: "Somfy Altus 50/12 con soporte y accesorios + 1 control de 5 canales" */
+export function descripcionMotorToldo(t: Partial<IToldoConfig> | null | undefined): string {
+  const motor = normalizarMotorToldo(t?.motor)
+  if (!t || !motor) return "Motor sin elegir"
+  if (motor === "Oximo") return "Oximo anti enganche (incluye el control)"
+  const modelo = modeloMotorValido(t)
+  return `${motor}${modelo ? ` ${modelo}` : " (falta el modelo)"} con soporte y accesorios ${t.control ? "+" : "·"} ${textoControles(t)}`
 }
 
 /** Accesorios que se agregan solos (no se preguntan): tapas según la barra frente. */
@@ -248,20 +297,23 @@ export function limpiarToldo(t: Partial<IToldoConfig>): Partial<IToldoConfig> {
   const manual = t.mecanismo === "Manual"
   const motorizado = t.mecanismo === "Motorizado"
   const motores = motoresDisponibles(t)
+  const motor = normalizarMotorToldo(t.motor)
   const r: Partial<IToldoConfig> = {
     subtipo: t.subtipo,
     colorPerfileria: t.colorPerfileria,
     cano: t.cano,
-    ...(vertical ? { barraFrente: t.barraFrente } : { tipoProyeccion: t.tipoProyeccion, pollerita: t.pollerita ?? false }),
+    ...(vertical ? { barraFrente: t.barraFrente } : { tipoProyeccion: t.tipoProyeccion }),
+    pollerita: t.pollerita ?? false,
     ...(tp1 ? { tensor: t.tensor, brazoCaputa: t.brazoCaputa, sujecionPiso: t.sujecionPiso ?? 0 } : {}),
     ...(tp2 ? { brazos: t.brazos } : {}),
     mecanismo: t.mecanismo,
     ...(vertical && manual ? { maquina: t.maquina } : {}),
     ...(vertical && (manual || motorizado) ? { soportePlano: t.soportePlano ?? 0, escuadra: t.escuadra ?? 0 } : {}),
-    ...(manual ? { manijas: t.manijas ?? 1 } : {}),
+    ...(manual ? { manijas: t.manijas ?? 1, medidaManija: t.medidaManija } : {}),
     ...(motorizado
       ? {
-          motor: t.motor && motores.includes(t.motor) ? t.motor : undefined,
+          motor: motor && motores.includes(motor) ? motor : undefined,
+          modeloMotor: motor && motores.includes(motor) ? modeloMotorValido({ ...t, motor }) : undefined,
           control: t.control ?? false,
           ...(t.control ? { cantidadControles: t.cantidadControles ?? 1, canales: t.canales } : {}),
           domotica: t.domotica ?? false,
@@ -319,7 +371,7 @@ export function validarToldo(t: Partial<IToldoConfig> | null | undefined, ancho:
     if (!t.barraFrente) return "Elegí la barra frente (TP1 o TP2)."
     if (t.barraFrente === "TP1") {
       if (t.tensor === undefined) return "Elegí si la barra TP1 va con tensor o sin tensor."
-      if (t.brazoCaputa === undefined) return "Elegí si lleva brazo Caputa importado."
+      if (t.brazoCaputa === undefined) return "Elegí si lleva brazo Caduta importado."
     }
     if (t.barraFrente === "TP2" && !t.brazos) return "Elegí el largo de los brazos del TP2."
   } else if (!t.tipoProyeccion) {
@@ -329,8 +381,10 @@ export function validarToldo(t: Partial<IToldoConfig> | null | undefined, ancho:
   if (t.mecanismo === "Manual") {
     if (vertical && !t.maquina) return "Elegí la máquina."
     if (!t.manijas || t.manijas < 1) return "Ingresá la cantidad de manijas."
+    if (!t.medidaManija) return "Elegí la medida de la manija."
   } else {
     if (!t.motor) return "Elegí el tipo de motor."
+    if (modelosDeMotorToldo(t.motor).length > 0 && !modeloMotorValido(t)) return "Elegí el modelo del motor."
     if (t.control) {
       if (!t.cantidadControles || t.cantidadControles < 1) return "Ingresá la cantidad de controles."
       if (!t.canales) return "Elegí los canales del control."
@@ -415,8 +469,10 @@ export function lineasToldo(t: Partial<IToldoConfig> | null | undefined): string
     lineas.push(
       [
         `Barra frente TP1 ${t.tensor ? "con tensor" : "sin tensor"}`,
-        t.brazoCaputa ? "Brazo Caputa importado" : null,
-        n(t.sujecionPiso) > 0 ? `Sujeción al piso × ${t.sujecionPiso}` : null,
+        t.brazoCaputa ? "Brazo Caduta importado" : null,
+        n(t.sujecionPiso) > 0
+          ? `Sujeción al piso × ${t.sujecionPiso} (${t.sujecionPiso} ${t.sujecionPiso === 1 ? "tornillo y 1 tuerca" : `tornillos y ${t.sujecionPiso} tuercas`})`
+          : null,
       ]
         .filter(Boolean)
         .join(" · ")
@@ -431,16 +487,17 @@ export function lineasToldo(t: Partial<IToldoConfig> | null | undefined): string
       [
         "Manual",
         vertical ? t.maquina : null,
-        `Manijas × ${t.manijas ?? 1}`,
+        `Manijas${t.medidaManija ? ` ${etiquetaMedidaManija(t.medidaManija)}` : ""} × ${t.manijas ?? 1}`,
       ]
         .filter(Boolean)
         .join(" · ")
     )
   } else if (t.mecanismo === "Motorizado") {
+    const modelo = modeloMotorValido(t)
     lineas.push(
       [
-        `Motor ${t.motor ?? "-"}`,
-        t.control ? `Control × ${t.cantidadControles ?? 1}${t.canales ? ` (${t.canales} canal${t.canales > 1 ? "es" : ""})` : ""}` : "Sin control",
+        `Motor ${normalizarMotorToldo(t.motor) ?? "-"}${modelo ? ` ${modelo}` : ""}`,
+        t.control ? `Control × ${t.cantidadControles ?? 1}${t.canales ? ` (${t.canales} canal${t.canales > 1 ? "es" : ""})` : ""}` : normalizarMotorToldo(t.motor) === "Oximo" ? "Control incluido" : "Sin control",
         t.domotica ? "Domótica" : null,
       ]
         .filter(Boolean)
@@ -449,7 +506,10 @@ export function lineasToldo(t: Partial<IToldoConfig> | null | undefined): string
   }
   if (vertical && (n(t.soportePlano) > 0 || n(t.escuadra) > 0)) {
     lineas.push(
-      [n(t.soportePlano) > 0 ? `Soporte plano × ${t.soportePlano}` : null, n(t.escuadra) > 0 ? `Escuadra × ${t.escuadra}` : null]
+      [
+        n(t.soportePlano) > 0 ? `Soporte plano × ${t.soportePlano} par${t.soportePlano === 1 ? "" : "es"}` : null,
+        n(t.escuadra) > 0 ? `Escuadra × ${t.escuadra} par${t.escuadra === 1 ? "" : "es"}` : null,
+      ]
         .filter(Boolean)
         .join(" · ")
     )
@@ -457,7 +517,7 @@ export function lineasToldo(t: Partial<IToldoConfig> | null | undefined): string
   if (t.cubreToldo) {
     lineas.push(`Cubre toldo ${t.anchoCubreToldo ? `${String(t.anchoCubreToldo).replace(".", ",")} m` : ""} · Perchas × ${t.perchas ?? 0}`)
   }
-  if (!vertical && t.pollerita) lineas.push("Con pollerita")
+  if (t.pollerita) lineas.push("Con pollerita")
   const tela = textoTelaToldo(t)
   if (tela) lineas.push(`Tela ${tela}`)
   const acc = accesoriosAutomaticosToldo(t)

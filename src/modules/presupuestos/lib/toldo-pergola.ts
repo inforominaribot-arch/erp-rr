@@ -8,7 +8,7 @@
 //  - Pitón cerrado del 10: 2 × X + 3 (los "pitones abiertos" van con el cerrado) · Tensor M8: X · Ojal zincado 25: X
 //  - Soga nylon con alma 6 mm: ⌈2 × largo + 1,5 × alto desde el piso⌉ m · Roldana simple y doble n° 4: 1 c/u
 //  - Puente de media: 1 · Madera listón 3 × 1,5: se compran "ancho" metros (precio total a mano) · Ata soga reforzado: 1 · Alambre: (largo + 0,20) × X m
-//  - Cubre toldo: cubre techo aluminio (ancho + 0,10) ml + ménsulas (cantidad de la medición)
+//  - Cubre toldo: cubre techo aluminio ⌈ancho + 0,10⌉ ml (al metro entero de arriba) + ménsulas (cantidad de la medición)
 
 import type { IToldoConfig } from "@/modules/mediciones/lib/toldos"
 import type { LineaDesglose, OpcionesCalculo, ResultadoCalculoRS } from "./lista-precios-rs"
@@ -99,6 +99,9 @@ export function telasPosibles(toldo: Partial<IToldoConfig> | null | undefined): 
   const t = TELAS_VINILICA[toldo.tipoTela ?? ""]
   return t ? [t] : []
 }
+
+/** Metros de cubre techo a cobrar: ancho + 0,10 redondeado al metro entero de arriba (3,40 → 3,50 → 4 m). */
+export const metrosCubreTecho = (ancho: number) => Math.ceil(ancho + 0.1 - 1e-9)
 
 const fmt$ = (n: number) => `$${Math.round(n).toLocaleString("es-AR")}`
 const fmtM = (n: number) => (Math.round(n * 100) / 100).toLocaleString("es-AR", { maximumFractionDigits: 2 })
@@ -200,7 +203,7 @@ export function calcularToldoPergola(
 
   if (t.cubreToldo) {
     const color = t.colorCubreToldo ? ` ${t.colorCubreToldo.toLowerCase()}` : ""
-    dePlanilla(`Cubre techo aluminio${color}`, INSUMOS.cubreTecho, r2(ancho + 0.1), "ml", `ancho + 0,10`)
+    dePlanilla(`Cubre techo aluminio${color}`, INSUMOS.cubreTecho, metrosCubreTecho(ancho), "ml", `⌈${fmtM(ancho)} + 0,10⌉`)
     agregar(`Ménsula soportes escuadra 20x25${color}`, t.mensulasCubreToldo ?? 0, "u", opciones.precioMensula ?? PRECIO_MENSULA)
   }
 
@@ -210,7 +213,9 @@ export function calcularToldoPergola(
   const confeccion = opciones.confeccion ?? 0
   desglose.push({ concepto: "Insumos × 1,5", detalle: `${fmt$(insumos)} × 1,5`, importe: r2(conGanancia - insumos) })
   if (confeccion > 0) desglose.push({ concepto: "Confección", detalle: "a mano", importe: confeccion })
-  if (instalacion > 0) desglose.push({ concepto: "Instalación", detalle: "a mano", importe: instalacion })
+  if (instalacion > 0) {
+    desglose.push({ concepto: "Instalación", detalle: t.cubreToldo ? "a mano · incluye cubre techo" : "a mano", importe: instalacion })
+  }
 
   if (!opciones.precioMadera) avisos.push(`Falta el precio de la madera (comprar ${fmtM(ancho)} m de listón 3 × 1,5).`)
   if (!confeccion) avisos.push("Falta cargar la confección.")

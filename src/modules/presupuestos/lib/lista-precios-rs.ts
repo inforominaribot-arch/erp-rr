@@ -29,6 +29,7 @@ import { celdaNocheTotal, nombreSistemaNocheTotal } from "@/modules/mediciones/l
 import { VALORES_DEFECTO_PRECIOS } from "./calculadora-precios"
 import type { IToldoConfig } from "@/modules/mediciones/lib/toldos"
 import { calcularToldoPergola, type IPrecioInsumoPT } from "./toldo-pergola"
+import { calcularToldoVerticalTP1 } from "./toldo-vertical-tp1"
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
@@ -75,6 +76,7 @@ export type MetodoCalculoRS =
   | "MG_MOSQUITERO"
   | "MG_NOCHE_TOTAL"
   | "PT_PERGOLA"
+  | "PT_VERTICAL_TP1"
 
 /** Celda de una tabla por medida con su precio (MagicRoll) */
 export interface ICeldaPrecioMedida extends ICeldaMosquitero {
@@ -100,6 +102,10 @@ export const opcionesCalculoSchema = z.object({
   precioMensula: z.number().min(0).max(100_000_000).optional(),
   precioMadera: z.number().min(0).max(100_000_000).optional(),
   confeccion: z.number().min(0).max(100_000_000).optional(),
+  // Toldo Vertical TP1: a mano (el motor incluye el control)
+  precioMotor: z.number().min(0).max(100_000_000).optional(),
+  precioDomotica: z.number().min(0).max(100_000_000).optional(),
+  precioBrazoCaduta: z.number().min(0).max(100_000_000).optional(),
 })
 export type OpcionesCalculo = z.infer<typeof opcionesCalculoSchema>
 
@@ -139,6 +145,7 @@ export const calculoPrecioSchema = z.object({
     "MG_MOSQUITERO",
     "MG_NOCHE_TOTAL",
     "PT_PERGOLA",
+    "PT_VERTICAL_TP1",
   ]),
   entrada: entradaCalculoSchema.default({}),
   opciones: opcionesCalculoSchema.default({}),
@@ -710,6 +717,14 @@ export function recalcularFila(
     if (preciosPT.length === 0) return null
     return calcularToldoPergola(
       { toldo: calc.entrada.toldo as Partial<IToldoConfig> | undefined, ancho: fila.ancho, largo: fila.alto },
+      calc.opciones,
+      preciosPT
+    )
+  }
+  if (calc.metodo === "PT_VERTICAL_TP1") {
+    if (preciosPT.length === 0) return null
+    return calcularToldoVerticalTP1(
+      { toldo: calc.entrada.toldo as Partial<IToldoConfig> | undefined, ancho: fila.ancho, alto: fila.alto },
       calc.opciones,
       preciosPT
     )

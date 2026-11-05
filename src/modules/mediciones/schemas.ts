@@ -12,9 +12,11 @@ import {
   COLORES_PERFILERIA_TOLDO,
   MAQUINAS_TOLDO,
   MECANISMOS_TOLDO,
+  MEDIDAS_MANIJA_TOLDO,
   MOTORES_TOLDO,
   TELAS_TOLDO,
   TIPOS_PROYECCION,
+  TODOS_MODELOS_MOTOR_TOLDO,
 } from "./lib/toldos"
 
 // ─── Telas: Gaza y Black Out ──────────────────────────────────────────────────
@@ -210,7 +212,10 @@ export const caracteristicasItemSchema = z.object({
       soportePlano: z.number().int().min(0).max(99).optional(),
       escuadra: z.number().int().min(0).max(99).optional(),
       manijas: z.number().int().min(1).max(99).optional(),
-      motor: z.enum(MOTORES_TOLDO).optional(),
+      medidaManija: z.enum(MEDIDAS_MANIJA_TOLDO).optional(),
+      // "Tube": mediciones de toldos anteriores al cambio de nombre a HUNA
+      motor: z.enum([...MOTORES_TOLDO, "Tube"]).optional(),
+      modeloMotor: z.enum(TODOS_MODELOS_MOTOR_TOLDO).optional(),
       control: z.boolean().optional(),
       cantidadControles: z.number().int().min(1).max(99).optional(),
       canales: z.union([z.literal(1), z.literal(3), z.literal(5), z.literal(15), z.literal(16)]).optional(),

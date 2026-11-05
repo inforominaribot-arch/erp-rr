@@ -15,14 +15,18 @@ import {
   MAQUINAS_TOLDO,
   MAX_DIVISIONES_PERGOLA,
   MECANISMOS_TOLDO,
+  MEDIDAS_MANIJA_TOLDO,
   SUBTIPOS_TOLDO,
   TIPOS_PROYECCION,
   accesoriosAutomaticosToldo,
   buscarColoresTela,
   coloresDeTela,
+  etiquetaMedidaManija,
   limpiarToldo,
+  modelosDeMotorToldo,
   motoresDisponibles,
   nombreTelaToldo,
+  normalizarMotorToldo,
   repartirAncho,
   sumaDivisiones,
   telasPermitidas,
@@ -388,7 +392,7 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
                     </button>
                   </div>
                   <div className="space-y-1">
-                    <span className="block text-[11px] font-bold text-slate-600">Brazo Caputa importado</span>
+                    <span className="block text-[11px] font-bold text-slate-600">Brazo Caduta importado</span>
                     <SiNo valor={t.brazoCaputa} onElegir={(brazoCaputa) => cambiar({ brazoCaputa })} />
                   </div>
                   <div className="space-y-1">
@@ -426,11 +430,11 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
                 {vertical && (
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <span className="block text-[11px] font-bold text-slate-600">Soporte plano (cantidad)</span>
+                      <span className="block text-[11px] font-bold text-slate-600">Soporte plano (pares)</span>
                       <Cantidad valor={t.soportePlano || undefined} onCambiar={(v) => cambiar({ soportePlano: v ?? 0 })} />
                     </div>
                     <div className="space-y-1">
-                      <span className="block text-[11px] font-bold text-slate-600">Escuadra (cantidad)</span>
+                      <span className="block text-[11px] font-bold text-slate-600">Escuadra (pares)</span>
                       <Cantidad valor={t.escuadra || undefined} onCambiar={(v) => cambiar({ escuadra: v ?? 0 })} />
                     </div>
                   </div>
@@ -439,14 +443,35 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
                   <div className="space-y-1">
                     <span className="block text-[11px] font-bold text-slate-600">Manijas (cantidad)</span>
                     <Cantidad valor={t.manijas} minimo={1} onCambiar={(manijas) => cambiar({ manijas: manijas ?? 1 })} />
+                    <span className="block pt-2 text-[11px] font-bold text-slate-600">Medida de la manija (m)</span>
+                    <Opciones
+                      opciones={MEDIDAS_MANIJA_TOLDO}
+                      valor={t.medidaManija}
+                      etiqueta={etiquetaMedidaManija}
+                      onElegir={(medidaManija) => cambiar({ medidaManija })}
+                    />
                   </div>
                 )}
                 {t.mecanismo === "Motorizado" && (
                   <>
                     <div className="space-y-1">
                       <span className="block text-[11px] font-bold text-slate-600">Tipo de motor</span>
-                      <Opciones opciones={motoresDisponibles(t)} valor={t.motor} onElegir={(motor) => cambiar({ motor })} />
+                      <Opciones
+                        opciones={motoresDisponibles(t)}
+                        valor={normalizarMotorToldo(t.motor)}
+                        onElegir={(motor) => cambiar({ motor })}
+                      />
                     </div>
+                    {modelosDeMotorToldo(t.motor).length > 1 && (
+                      <div className="space-y-1">
+                        <span className="block text-[11px] font-bold text-slate-600">Modelo del motor</span>
+                        <Opciones
+                          opciones={modelosDeMotorToldo(t.motor)}
+                          valor={t.modeloMotor}
+                          onElegir={(modeloMotor) => cambiar({ modeloMotor })}
+                        />
+                      </div>
+                    )}
                     <div className="space-y-1">
                       <span className="block text-[11px] font-bold text-slate-600">Control</span>
                       <SiNo valor={t.control} onElegir={(control) => cambiar({ control })} />
@@ -498,11 +523,9 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
 
           {pasoTela("7 • Tela")}
 
-          {!vertical && (
-            <Paso titulo="8 • Pollerita">
-              <SiNo valor={t.pollerita} onElegir={(pollerita) => cambiar({ pollerita })} />
-            </Paso>
-          )}
+          <Paso titulo="8 • Pollerita">
+            <SiNo valor={t.pollerita} onElegir={(pollerita) => cambiar({ pollerita })} />
+          </Paso>
         </>
       )}
     </div>
