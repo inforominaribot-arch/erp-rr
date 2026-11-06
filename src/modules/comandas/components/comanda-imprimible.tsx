@@ -204,19 +204,35 @@ export function ComandaImprimible({
                   {/* Encabezado de Ambiente */}
                   <div className="comanda-ambiente flex items-center justify-between bg-slate-100 border border-slate-800 px-3 py-1 rounded-md">
                     <span className="text-xs font-black uppercase tracking-wider text-slate-900">
-                      📍 AMBIENTE: {ambiente}
+                      {itemsAmb.every((it) => !(Number(it.ancho) > 0)) ? ambiente : `📍 AMBIENTE: ${ambiente}`}
                     </span>
+                    {itemsAmb.some((it) => Number(it.ancho) > 0) && (
                     <span className="text-[10px] font-bold text-slate-900">
                       {(() => {
                         const n = contarCortinas(itemsAmb)
                         return `${n} cortina${n !== 1 ? "s" : ""}`
                       })()}
                     </span>
+                    )}
                   </div>
 
                   {/* Tarjetas de Cortinas del Ambiente (Layout de tu boceto) */}
                   <div className="space-y-3">
                     {itemsAmb.map((it, idx) => {
+                      // Ítem sin medida (tapizado, respaldo): solo el texto y la cantidad, sin dibujo ni riel
+                      if (!(Number(it.ancho) > 0)) {
+                        return (
+                          <div key={it.id} className="comanda-tarjeta break-inside-avoid border-2 border-slate-900 rounded-xl p-3.5 bg-white shadow-2xs">
+                            <div className="flex items-start justify-between gap-3">
+                              <span className="font-extrabold text-slate-950 text-sm whitespace-pre-line">
+                                {idx + 1}. {it.descripcion}
+                              </span>
+                              <span className="shrink-0 text-[11px] font-black text-slate-900">Cant: {it.cantidad}</span>
+                            </div>
+                            {it.observaciones && <p className="mt-1 text-xs text-slate-900">{it.observaciones}</p>}
+                          </div>
+                        )
+                      }
                       const c = it.caracteristicas
                       const tipo = c?.tipo || "Tradicional"
                       const esProveedor = it.tipo === "PEDIR_PROVEEDOR"

@@ -33,7 +33,7 @@ import type { IItemMedicion, ICaracteristicasItem, ITelaMedicion } from "@/modul
 import { formatearPrecio } from "@/lib/utils"
 import type { ItemPresupuestoInput, PresupuestoFormInput } from "../schemas"
 import type { IPresupuestoDetalle, MedicionImportable } from "../types"
-import { MAX_OPCIONES_POR_CORTINA } from "../types"
+import { MAX_DESCRIPCION_LIBRE, MAX_OPCIONES_POR_CORTINA } from "../types"
 import { calcularTotalesPorOpcion, subtotalPrincipales } from "../lib/alternativas"
 import {
   filasDeAbertura,
@@ -153,7 +153,7 @@ export function PresupuestoForm({
         capa: it.capa === "GAZA" || it.capa === "BO" ? it.capa : null,
         indiceCortina: it.indiceCortina,
         tipoFila:
-          it.tipoFila === "CORTINA" || it.tipoFila === "CONTROL" || it.tipoFila === "CARGADOR"
+          it.tipoFila === "CORTINA" || it.tipoFila === "CONTROL" || it.tipoFila === "CARGADOR" || it.tipoFila === "LIBRE"
             ? it.tipoFila
             : null,
         calculoPrecio: it.calculoPrecio,
@@ -348,6 +348,25 @@ export function PresupuestoForm({
         subtotal: 0,
         aceptado: false,
         esOpcionPrincipal: true,
+      },
+    ])
+  }
+
+  /** Tapizados, respaldos y otros trabajos: texto, cantidad y precio. Sigue con el título del último ítem libre. */
+  function handleAgregarItemLibre() {
+    setItems((prev) => [
+      ...prev,
+      {
+        descripcion: "",
+        ambiente: [...prev].reverse().find((it) => it.tipoFila === "LIBRE")?.ambiente || "Otros trabajos",
+        ancho: 0,
+        alto: 0,
+        cantidad: 1,
+        precioUnitario: 0,
+        subtotal: 0,
+        aceptado: false,
+        esOpcionPrincipal: true,
+        tipoFila: "LIBRE",
       },
     ])
   }
@@ -911,14 +930,24 @@ export function PresupuestoForm({
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleAgregarItem}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-2xs"
-          >
-            <Plus className="h-3.5 w-3.5 text-slate-500" />
-            Agregar Otra Cortina / Ítem
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleAgregarItem}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-2xs"
+            >
+              <Plus className="h-3.5 w-3.5 text-slate-500" />
+              Agregar Otra Cortina
+            </button>
+            <button
+              type="button"
+              onClick={handleAgregarItemLibre}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-800 hover:bg-indigo-100 transition shadow-2xs"
+            >
+              <Plus className="h-3.5 w-3.5 text-indigo-600" />
+              Agregar Ítem (tapizado, respaldo…)
+            </button>
+          </div>
         </div>
 
         {/* Tabla de ítems interactiva */}
@@ -926,7 +955,7 @@ export function PresupuestoForm({
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-wider text-[11px]">
-                <th className="py-2.5 px-2 font-bold w-32">Ambiente</th>
+                <th className="py-2.5 px-2 font-bold w-32">Ambiente / Título</th>
                 <th className="py-2.5 px-2 font-bold">Descripción del Producto</th>
                 <th className="py-2.5 px-2 font-bold text-center w-24">
                   Ancho (m)
@@ -959,13 +988,26 @@ export function PresupuestoForm({
                       onChange={(e) =>
                         handleActualizarItem(idx, "ambiente", e.target.value)
                       }
-                      placeholder="Living, Dorm..."
+                      placeholder={it.tipoFila === "LIBRE" ? "Funda para sillón..." : "Living, Dorm..."}
                       className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-bold text-slate-800"
                     />
                   </td>
 
                   {/* Descripción */}
                   <td className="py-2 px-2">
+                    {it.tipoFila === "LIBRE" ? (
+                      <textarea
+                        value={it.descripcion}
+                        onChange={(e) =>
+                          handleActualizarItem(idx, "descripcion", e.target.value)
+                        }
+                        placeholder="Qué se hizo: tapizado o respaldo, tela, color, medidas..."
+                        rows={3}
+                        maxLength={MAX_DESCRIPCION_LIBRE}
+                        className="w-full min-w-[240px] rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-900"
+                        required
+                      />
+                    ) : (
                     <input
                       type="text"
                       value={it.descripcion}
@@ -976,6 +1018,7 @@ export function PresupuestoForm({
                       className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-900"
                       required
                     />
+                    )}
                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
                       {modoDeFila(it) && (
                         <span className="rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-amber-900">
@@ -1000,7 +1043,7 @@ export function PresupuestoForm({
                           className="w-40 rounded-lg border border-indigo-200 bg-white px-2 py-0.5 text-[11px] font-bold text-indigo-900"
                         />
                       )}
-                      {it.tipoFila !== "CONTROL" && it.tipoFila !== "CARGADOR" && esPrimeraDeOpcion(it, idx) && (() => {
+                      {it.tipoFila !== "CONTROL" && it.tipoFila !== "CARGADOR" && it.tipoFila !== "LIBRE" && esPrimeraDeOpcion(it, idx) && (() => {
                         const cantOpciones = cantidadOpciones(items, it.grupoAlternativa)
                         const lleno = cantOpciones >= MAX_OPCIONES_POR_CORTINA
                         return (
@@ -1026,7 +1069,7 @@ export function PresupuestoForm({
                     {renderAvisosCalculo(it)}
                   </td>
 
-                  {it.tipoFila === "CONTROL" || it.tipoFila === "CARGADOR" ? (
+                  {it.tipoFila === "CONTROL" || it.tipoFila === "CARGADOR" || it.tipoFila === "LIBRE" ? (
                     <td colSpan={2} className="py-2 px-2 text-center text-[11px] text-slate-400">
                       —
                     </td>
@@ -1088,6 +1131,7 @@ export function PresupuestoForm({
                   {/* Precio Unitario + Botón Calculadora */}
                   <td className="py-2 px-2">
                     <div className="flex items-center gap-1.5">
+                      {it.tipoFila !== "LIBRE" && (
                       <button
                         type="button"
                         onClick={() => setCalculadoraIndex(idx)}
@@ -1096,6 +1140,7 @@ export function PresupuestoForm({
                       >
                         <Calculator className="h-3.5 w-3.5" />
                       </button>
+                      )}
                       <input
                         type="number"
                         step="any"

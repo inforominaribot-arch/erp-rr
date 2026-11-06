@@ -421,7 +421,7 @@ export function PresupuestoAprobarModal({
                           className="mt-0.5 h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
                         />
                         <div>
-                          <span className="font-bold text-slate-900 block">
+                          <span className="font-bold text-slate-900 block whitespace-pre-line">
                             {it.ambiente ? `[${it.ambiente}] ` : ""}
                             {conGasa(it.descripcion)}
                           </span>

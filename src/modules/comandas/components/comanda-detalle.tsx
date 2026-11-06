@@ -581,7 +581,7 @@ export function ComandaDetalle({
                           <div className="space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <span
-                                className={`text-sm font-bold ${
+                                className={`text-sm font-bold whitespace-pre-line ${
                                   it.completado
                                     ? "line-through text-slate-400"
                                     : "text-slate-900"
@@ -607,10 +607,14 @@ export function ComandaDetalle({
 
                             {/* Medidas destacadas */}
                             <div className="flex items-center gap-3 text-xs font-mono font-bold text-slate-800">
-                              <span>
-                                {it.ancho}m ancho × {it.alto}m alto
-                              </span>
-                              <span className="text-slate-400">•</span>
+                              {Number(it.ancho) > 0 && (
+                                <>
+                                  <span>
+                                    {it.ancho}m ancho × {it.alto}m alto
+                                  </span>
+                                  <span className="text-slate-400">•</span>
+                                </>
+                              )}
                               <span className="text-indigo-600">
                                 Cantidad: {it.cantidad}
                               </span>
@@ -618,7 +622,8 @@ export function ComandaDetalle({
 
                             {/* Especificaciones Técnicas y Dibujo Esquemático */}
                             <div className="mt-3 flex flex-col sm:flex-row gap-4 items-start">
-                              {/* Dibujo Esquemático Didáctico */}
+                              {/* Dibujo Esquemático Didáctico (los ítems sin medida, como tapizados, no llevan) */}
+                              {Number(it.ancho) > 0 && (
                               <div className="w-full sm:w-44 shrink-0 rounded-xl bg-slate-50 border border-slate-200 p-2 flex items-center justify-center">
                                 <CortinaDibujoDidactico
                                   ancho={Number(it.ancho)}
@@ -628,6 +633,7 @@ export function ComandaDetalle({
                                   medidasConfeccion={true}
                                 />
                               </div>
+                              )}
 
                               {/* Especificaciones Técnicas */}
                               <div className="flex-1 w-full space-y-1">

@@ -514,10 +514,10 @@ export function PresupuestoDetalle({
               >
                 <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/80 px-5 py-3">
                   <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                    Ambiente: {grupo.ambiente}
+                    {grupo.items.every((it) => it.tipoFila === "LIBRE") ? grupo.ambiente : `Ambiente: ${grupo.ambiente}`}
                   </span>
                   <span className="text-xs font-bold text-indigo-900 font-mono">
-                    Subtotal Ambiente: {formatearPrecio(grupo.subtotalAmbiente)}
+                    {grupo.items.every((it) => it.tipoFila === "LIBRE") ? "Subtotal" : "Subtotal Ambiente"}: {formatearPrecio(grupo.subtotalAmbiente)}
                   </span>
                 </div>
 
@@ -559,7 +559,7 @@ export function PresupuestoDetalle({
                         >
                           <td className={`py-3 px-4 ${esPrincipal(it) ? "" : "pl-8"}`}>
                             {esPrincipal(it) ? (
-                              <span className="font-bold text-slate-900 block">
+                              <span className="font-bold text-slate-900 block whitespace-pre-line">
                                 {conGasa(it.descripcion)}
                                 {it.capa && grupo.items.filter((o) => o.grupoAlternativa === it.grupoAlternativa && esPrincipal(o)).length > 1 && (
                                   <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">

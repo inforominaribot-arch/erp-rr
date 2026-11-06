@@ -885,3 +885,13 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 - Medición: brazos del TP2 con la medida de 1 m agregada (0,8 · 1 · 1,2 · 1,4 · 1,6 · 1,8).
 - `lib/toldo-vertical.ts` (antes `toldo-vertical-tp1.ts`; `calcularToldoVertical`, método `PT_VERTICAL_TP2`). Lleva lo mismo que el TP1 menos tensor, sujeción al piso y brazo Caduta. Suma frente TP2 ⌈ancho⌉ m, juego de brazos con tensor y tapa al precio de la TP1 con pasacable (la planilla no tiene precio de tapa TP2 usable). Precio = insumos × 1,5 + domótica × 2 + confección + instalación.
 - Requiere generar de nuevo el APK de la tablet. No requiere `db push`.
+
+---
+
+## Actualización — Ítem libre en el presupuesto (2026-11-06)
+
+### ✅ Implementado
+- Presupuesto: botón "Agregar Ítem (tapizado, respaldo…)". Fila con `tipoFila: "LIBRE"`: título libre (se guarda en `ambiente`), texto de hasta 2000 caracteres, cantidad y precio. No lleva medidas, calculadora ni alternativas. Suma al total como cualquier fila.
+- Detalle e impresión: el título del grupo sale sin la palabra "Ambiente" cuando todas sus filas son libres; el texto respeta los saltos de línea.
+- Comanda: las filas sin medida (ancho 0) muestran solo texto y cantidad, sin dibujo ni riel. No entran en el análisis de rieles y telas.
+- No requiere `db push` ni APK (solo web).

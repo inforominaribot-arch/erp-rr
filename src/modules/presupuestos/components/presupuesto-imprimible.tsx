@@ -299,7 +299,7 @@ export function PresupuestoImprimible({
             >
               <div className="flex items-center justify-between border-b border-indigo-100 bg-indigo-50/50 px-3 py-1 rounded-t-lg">
                 <span className="text-xs font-bold uppercase tracking-wider text-indigo-900">
-                  Ambiente: {grupo.ambiente}
+                  {grupo.items.every((it) => it.tipoFila === "LIBRE") ? grupo.ambiente : `Ambiente: ${grupo.ambiente}`}
                 </span>
                 {!(grupo.items.some((it) => !esPrincipal(it)) && !estaAceptado) && (
                   <span className="text-xs font-semibold text-indigo-700">
@@ -338,7 +338,7 @@ export function PresupuestoImprimible({
                         className={esPrincipal(it) ? "hover:bg-slate-50/50" : "bg-indigo-50/30"}
                       >
                         <td className={`py-1.5 px-3 ${esPrincipal(it) ? "" : "pl-7"}`}>
-                          <p className="font-bold text-slate-900">
+                          <p className="font-bold text-slate-900 whitespace-pre-line">
                             {esPrincipal(it) ? "" : "↳ "}
                             {conGasa(it.descripcion)}
                           </p>

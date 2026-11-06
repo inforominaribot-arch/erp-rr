@@ -2,7 +2,7 @@
 // Esquemas de validación Zod
 
 import { z } from "zod"
-import { MAX_OPCIONES_POR_CORTINA, TIPOS_FILA } from "./types"
+import { MAX_DESCRIPCION_LIBRE, MAX_OPCIONES_POR_CORTINA, TIPOS_FILA } from "./types"
 import { calculoPrecioSchema } from "./lib/lista-precios-rs"
 
 // ─── Esquema de Ítem de Presupuesto ──────────────────────────────────────────
@@ -13,7 +13,7 @@ export const itemPresupuestoSchema = z.object({
   descripcion: z
     .string()
     .min(1, "La descripción del producto es obligatoria")
-    .max(250, "La descripción no puede superar 250 caracteres"),
+    .max(MAX_DESCRIPCION_LIBRE, `La descripción no puede superar ${MAX_DESCRIPCION_LIBRE} caracteres`),
   ambiente: z.string().nullable().optional().default("General"),
   ancho: z.number().min(0, "El ancho no puede ser negativo"),
   alto: z.number().min(0, "El alto no puede ser negativo"),
@@ -68,6 +68,9 @@ export const presupuestoFormSchema = z.object({
 }).superRefine((data, ctx) => {
   const grupos = new Map<string, ItemPresupuestoInput[]>()
   for (const it of data.items) {
+    if (it.tipoFila !== "LIBRE" && it.descripcion.length > 250) {
+      ctx.addIssue({ code: "custom", message: "La descripción de una cortina no puede superar 250 caracteres." })
+    }
     if (!it.grupoAlternativa) {
       if (it.esOpcionPrincipal === false) {
         ctx.addIssue({ code: "custom", message: "Hay una alternativa sin cortina principal." })

@@ -134,7 +134,7 @@ export function medidasOpcion(o: {
 }): string {
   const f0 = o.filas[0]
   if (!f0) return ""
-  if (f0.tipoFila === "CONTROL" || f0.tipoFila === "CARGADOR") return `Cant: ${f0.cantidad ?? 1}`
+  if (f0.tipoFila === "CONTROL" || f0.tipoFila === "CARGADOR" || f0.tipoFila === "LIBRE") return `Cant: ${f0.cantidad ?? 1}`
   const medidas = o.filas.map((f) => `${fmtMedida(f.ancho)} × ${fmtMedida(f.alto)}`)
   return o.filas.length > 1 ? `${o.filas.length} cortinas: ${medidas.join(" · ")} m` : `${medidas[0]} m`
 }

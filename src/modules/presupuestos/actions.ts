@@ -508,9 +508,9 @@ export async function verificarStockPresupuestoAction(
     const resumenRieles: string[] = []
     const resumenTelas: string[] = []
 
-    // Las cortinas de una misma abertura se evalúan juntas (como en la comanda); controles y cargadores no llevan riel ni tela
+    // Las cortinas de una misma abertura se evalúan juntas (como en la comanda); controles, cargadores e ítems libres no llevan riel ni tela
     const aberturas = unirFilasPorAbertura(
-      itemsAEvaluar.filter((it) => it.tipoFila !== "CONTROL" && it.tipoFila !== "CARGADOR")
+      itemsAEvaluar.filter((it) => it.tipoFila !== "CONTROL" && it.tipoFila !== "CARGADOR" && it.tipoFila !== "LIBRE")
     )
     for (const ab of aberturas) {
       // El tipo va en la descripción (como al importar antes): el análisis de rieles lo usa para descartar roller, etc.

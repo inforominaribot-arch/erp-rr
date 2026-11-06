@@ -28,7 +28,7 @@ export interface IItemPresupuesto {
   /** Cortina física: capa ("GAZA" / "BO") y paño/tramo (null = fila libre o dato anterior) */
   capa: string | null
   indiceCortina: number | null
-  /** null / "CORTINA" | "CONTROL" | "CARGADOR" */
+  /** null / "CORTINA" | "CONTROL" | "CARGADOR" | "LIBRE" (tapizados, respaldos: texto, cantidad y precio; ambiente = título libre) */
   tipoFila: string | null
   /** Cálculo con la lista de precios (null = precio cargado a mano / otra calculadora) */
   calculoPrecio: CalculoPrecio | null
@@ -109,7 +109,9 @@ export interface IMetricasPresupuestos {
 // ─── Constantes del Módulo ───────────────────────────────────────────────────
 
 export const VALIDEZ_DIAS_DEFAULT = 14
-export const TIPOS_FILA = ["CORTINA", "CONTROL", "CARGADOR"] as const
+export const TIPOS_FILA = ["CORTINA", "CONTROL", "CARGADOR", "LIBRE"] as const
+/** Largo máximo del texto de un ítem libre (las demás filas: 250) */
+export const MAX_DESCRIPCION_LIBRE = 2000
 export type TipoFila = (typeof TIPOS_FILA)[number]
 export const MAX_OPCIONES_POR_CORTINA = 3
 export const CONDICIONES_PAGO_DEFAULT =
