@@ -31,6 +31,7 @@ import { ComandaEstadoBadge } from "./comanda-estado-badge"
 import { ComandaTipoBadge } from "./comanda-tipo-badge"
 import { ComandaImprimible } from "./comanda-imprimible"
 import { CortinaDibujoDidactico } from "@/modules/mediciones/components/cortina-dibujo-didactico"
+import { textoRielesBarrales } from "@/modules/presupuestos/lib/explosion-materiales"
 import { AvisoMedidaModificada } from "@/components/shared/aviso-medida-modificada"
 import { PedidosProveedorPanel } from "./pedidos-proveedor-panel"
 import { OrdenesPedidoPanel } from "./ordenes-pedido-panel"
@@ -613,6 +614,12 @@ export function ComandaDetalle({
                                     {it.ancho}m ancho × {it.alto}m alto
                                   </span>
                                   <span className="text-slate-400">•</span>
+                                  {textoRielesBarrales(c, Number(it.ancho), it.cantidad) && (
+                                    <>
+                                      <span>{textoRielesBarrales(c, Number(it.ancho), it.cantidad)}</span>
+                                      <span className="text-slate-400">•</span>
+                                    </>
+                                  )}
                                 </>
                               )}
                               <span className="text-indigo-600">

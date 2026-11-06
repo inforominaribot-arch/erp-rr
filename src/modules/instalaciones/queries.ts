@@ -1,6 +1,8 @@
 // Módulo: Agenda & Instalación
 // Consultas de solo lectura con Prisma ORM
 
+import { cantidadDeCortinas } from "@/modules/mediciones/lib/cortinas-fisicas"
+import type { ICaracteristicasItem } from "@/modules/mediciones/types"
 import { prisma } from "@/lib/prisma"
 import type { Prisma, ItemComanda } from "@prisma/client"
 import type {
@@ -40,7 +42,12 @@ function serializarItemsComanda(items: ItemComanda[]) {
     ambiente: item.ambiente,
     ancho: Number(item.ancho),
     alto: Number(item.alto),
-    cantidad: item.cantidad,
+    cantidad: cantidadDeCortinas(
+      item.caracteristicas as unknown as ICaracteristicasItem,
+      Number(item.ancho),
+      Number(item.alto),
+      item.cantidad
+    ),
     tipo: item.tipo,
     caracteristicas: (item.caracteristicas as Record<string, unknown>) || null,
     observaciones: item.observaciones,
@@ -281,7 +288,12 @@ export async function obtenerComandasPendientesAgendar(): Promise<IComandaPendie
           ambiente: i.ambiente,
           ancho: Number(i.ancho),
           alto: Number(i.alto),
-          cantidad: i.cantidad,
+          cantidad: cantidadDeCortinas(
+            i.caracteristicas as unknown as ICaracteristicasItem,
+            Number(i.ancho),
+            Number(i.alto),
+            i.cantidad
+          ),
         })),
       }
     })

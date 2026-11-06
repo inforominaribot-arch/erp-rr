@@ -895,3 +895,14 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 - Detalle e impresión: el título del grupo sale sin la palabra "Ambiente" cuando todas sus filas son libres; el texto respeta los saltos de línea.
 - Comanda: las filas sin medida (ancho 0) muestran solo texto y cantidad, sin dibujo ni riel. No entran en el análisis de rieles y telas.
 - No requiere `db push` ni APK (solo web).
+
+---
+
+## Actualización — Cantidad de cortinas, rieles y barrales en la comanda (2026-11-06)
+
+### ✅ Corregido
+- La cantidad de la comanda es la de cortinas físicas de las capas aprobadas (`cantidadDeCortinas`), calculada al mostrar: también corrige comandas viejas sin tocar la base. Antes copiaba `itemMedicion.cantidad`, que no descontaba capas no aprobadas.
+- Medición: el Black Out de una Tradicional ya no cuenta como roller (`tipoCapaBO` queda en "Roller" por defecto y no se guarda).
+- Pedidos a proveedor (planilla RS y mensaje MG): cada renglón es una cortina física con cantidad 1. Antes repetía la cantidad de la abertura en cada renglón.
+- Comanda impresa y digital: `textoRielesBarrales` cuenta un riel o barral por capa ("Riel: 2 de 2.60m (Gasa y Black Out)"). Más de 4,60 m: 2 tramos por capa. El barral no se corta.
+- Materiales (`analizarRielesItem`): cuenta solo capas colgadas de riel y ya no multiplica capas por la cantidad de la abertura.

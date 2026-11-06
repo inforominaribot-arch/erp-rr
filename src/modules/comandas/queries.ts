@@ -1,6 +1,7 @@
 // Módulo: Comandas & Producción
 // Consultas de solo lectura a la base de datos mediante Prisma ORM
 
+import { cantidadDeCortinas } from "@/modules/mediciones/lib/cortinas-fisicas"
 import { prisma } from "@/lib/prisma"
 import type { Prisma, Comanda, ItemComanda, Presupuesto, Cliente, PedidoProveedorItem } from "@prisma/client"
 import { asegurarPedidosItems } from "./lib/pedidos-proveedor"
@@ -72,7 +73,12 @@ function serializarItemComanda(
     ambiente: item.ambiente,
     ancho: Number(item.ancho),
     alto: Number(item.alto),
-    cantidad: item.cantidad,
+    cantidad: cantidadDeCortinas(
+      item.caracteristicas as unknown as ICaracteristicasItem,
+      Number(item.ancho),
+      Number(item.alto),
+      item.cantidad
+    ),
     tipo: item.tipo,
     caracteristicas: (item.caracteristicas as unknown as ICaracteristicasItem) || null,
     observaciones: item.observaciones,
@@ -519,7 +525,12 @@ export async function obtenerItemsProduccion(
       descripcion: item.descripcion,
       ancho: Number(item.ancho),
       alto: Number(item.alto),
-      cantidad: item.cantidad,
+      cantidad: cantidadDeCortinas(
+        item.caracteristicas as unknown as ICaracteristicasItem,
+        Number(item.ancho),
+        Number(item.alto),
+        item.cantidad
+      ),
       tipo: item.tipo,
       completado: item.completado,
       caracteristicas: (item.caracteristicas as unknown as ICaracteristicasItem) || null,

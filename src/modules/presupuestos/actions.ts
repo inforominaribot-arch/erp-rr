@@ -523,7 +523,8 @@ export async function verificarStockPresupuestoAction(
       const carac = ab.caracteristicas as any
 
       // 1. Análisis de Rieles
-      const rielesCalculados = analizarRielesItem(it.descripcion, ancho, cantidad, carac)
+      // Con especificación se cuenta por capa; la cantidad (cortinas de la abertura) contaría dos veces las mismas capas
+      const rielesCalculados = analizarRielesItem(it.descripcion, ancho, carac?.tipo ? 1 : cantidad, carac)
       if (rielesCalculados) {
         resumenRieles.push(
           `${it.descripcion} (${ancho}m): ${rielesCalculados.descripcionRiel}`

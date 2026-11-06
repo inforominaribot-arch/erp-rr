@@ -133,7 +133,8 @@ export function unirFilasPorAbertura<T extends FilaAbertura>(filas: T[]): Abertu
       descripcion: opciones.length > 0 ? `${descBase} (${opciones.join(" / ")})` : descBase,
       ancho,
       alto,
-      cantidad: medicion?.cantidad || base.cantidad || 1,
+      // Solo las cortinas de las capas aprobadas
+      cantidad: cortinas.filter((k) => aceptadas.has(k.capa)).length || base.cantidad || 1,
       caracteristicas: excluirCapas(carac, capasExcluidas),
       capasExcluidas,
       nota,

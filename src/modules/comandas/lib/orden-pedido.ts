@@ -122,7 +122,7 @@ export function filasOrdenRS(items: IItemComanda[], soloPendientes = true): IFil
         .filter(Boolean)
         .join(" · "),
       pedidoId,
-      cantidad: item.cantidad || 1,
+      cantidad: 1, // cada renglón es una cortina física
       sistema: esBandas ? "BANDAS" : "RS",
       tela: telaSinColor(k.nombreTela, k.colorTela),
       color: mayus(k.colorTela),
@@ -183,7 +183,7 @@ function lineaCortinaMG(item: IItemComanda, k: ICortinaFisica): string {
   } else {
     detalle = [k.tipoCapa, k.nombreTela].filter(Boolean).join(" · ")
   }
-  return `${detalle} — ${fmtM(k.ancho)} x ${fmtM(k.alto)} m — Cant. ${item.cantidad || 1}`
+  return `${detalle} — ${fmtM(k.ancho)} x ${fmtM(k.alto)} m — Cant. 1`
 }
 
 /** Mensaje de WhatsApp con el pedido para MagicRoll */

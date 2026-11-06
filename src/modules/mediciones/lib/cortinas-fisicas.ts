@@ -101,6 +101,19 @@ function anchosDeCapa(total: number, anchos: number[] | undefined, anchoCapa: nu
   return Array.from({ length: total }, (_, i) => lista[i] || r3(anchoCapa / total))
 }
 
+/**
+ * Cantidad de cortinas de una abertura según sus capas (las no aprobadas ya vienen quitadas de la especificación).
+ * Sin capas (filas libres) vale la cantidad cargada. Se calcula al mostrar porque la guardada puede estar mal en comandas viejas.
+ */
+export function cantidadDeCortinas(
+  c: ICaracteristicasItem | null | undefined,
+  ancho: number,
+  alto: number,
+  cantidadCargada: number
+): number {
+  return cortinasFisicas(c, ancho, alto).length || cantidadCargada || 1
+}
+
 /** Separa la abertura en sus cortinas físicas. Devuelve [] si la medición no tiene capas. */
 export function cortinasFisicas(
   c: ICaracteristicasItem | null | undefined,

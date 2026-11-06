@@ -640,17 +640,12 @@ export function CortinaItemForm({
       return cantBO
     }
     if (tipo === "Tradicional" || esMotorizada) {
-      if (gazaActiva && boActiva) {
-        if (formatoBO === "Roller" || tipoCapaBO === "Roller" || tipoCapaBO === "Roller Mot") {
-          return 1 + (Number(tramosBO) || 1)
-        }
-        return 2
-      }
+      // En Tradicional manda formatoBO: tipoCapaBO no se guarda y queda en "Roller" por defecto
+      const boEsRoller =
+        formatoBO === "Roller" || (esMotorizada && (tipoCapaBO === "Roller" || tipoCapaBO === "Roller Mot"))
+      if (gazaActiva && boActiva) return boEsRoller ? 1 + (Number(tramosBO) || 1) : 2
       if (gazaActiva) return 1
-      if (boActiva) {
-        if (formatoBO === "Roller" || tipoCapaBO === "Roller" || tipoCapaBO === "Roller Mot") return Number(tramosBO) || 1
-        return 1
-      }
+      if (boActiva) return boEsRoller ? Number(tramosBO) || 1 : 1
       return 1
     }
     // Para Roller, Bandas: suma de cortinas Gaza + cortinas BO

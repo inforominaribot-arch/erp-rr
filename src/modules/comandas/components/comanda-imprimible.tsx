@@ -8,7 +8,7 @@ import {
   calcularCantidadSoportes,
   determinarVarianteSoporte,
 } from "@/modules/mediciones/types"
-import { calcularCorteRiel } from "@/modules/presupuestos/lib/explosion-materiales"
+import { textoRielesBarrales } from "@/modules/presupuestos/lib/explosion-materiales"
 import { fmtMedida } from "@/lib/utils"
 import { esPergola, etiquetaLugarFijacion } from "@/modules/mediciones/lib/toldos"
 import { contarCortinas, detalleCapasComanda, llevaGanchos } from "../lib/detalle-capas"
@@ -257,21 +257,9 @@ export function ComandaImprimible({
                       const cantidadSoportes = calcularCantidadSoportes(anchoEfectivo)
                       const varianteSoporte = determinarVarianteSoporte(tieneGaza, tieneBO, c?.formatoBO)
                       const detallesCapas = detalleCapasComanda(c)
-                      // Cálculo de medida de Riel o Barral
-                      const esBarral = tipo === "Tradicional" && c?.sistema === "Barral"
-                      const calculoRiel = calcularCorteRiel(Number(it.ancho))
-                      let textoMedidaSoporte = ""
-                      if (esBarral) {
-                        textoMedidaSoporte = `Barral: ${fmtMedida(it.ancho)}m (sin corte)`
-                      } else if (tipo === "Tradicional" || c?.sistema === "Riel") {
-                        if (calculoRiel.cantidadTramos === 1) {
-                          textoMedidaSoporte = `Riel: ${fmtMedida(calculoRiel.medidaPorTramo)}m (1 tramo)`
-                        } else {
-                          textoMedidaSoporte = `Riel: ${fmtMedida(calculoRiel.totalMetros)}m (2 tramos de ${fmtMedida(calculoRiel.medidaPorTramo)}m)`
-                        }
-                      } else {
-                        textoMedidaSoporte = `Sistema: ${fmtMedida(it.ancho)}m`
-                      }
+                      // Cantidad y medida de rieles o barrales (cada capa lleva el suyo)
+                      const textoMedidaSoporte =
+                        textoRielesBarrales(c, Number(it.ancho), it.cantidad) ?? `Sistema: ${fmtMedida(it.ancho)}m`
 
                       return (
                         <div

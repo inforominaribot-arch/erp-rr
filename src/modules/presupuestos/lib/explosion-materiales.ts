@@ -1,6 +1,9 @@
 // Módulo: Presupuestos
 // Lógica de cálculo de explosión de materiales (Rieles, Telas, Accesorios) y cruce contra Stock
 
+import type { ICaracteristicasItem } from "@/modules/mediciones/types"
+import { tipoDeCapa, type CapaCortina } from "@/modules/mediciones/lib/cortinas-fisicas"
+
 export interface IDesgloseRiel {
   cantidadTramos: number
   medidaPorTramo: number // en metros (múltiplo de 0.20)
@@ -68,6 +71,62 @@ export function calcularCorteRiel(anchoMetros: number): {
   }
 }
 
+const NOMBRE_CAPA_SOPORTE: Record<CapaCortina, string> = { GAZA: "Gasa", BO: "Black Out" }
+const fmtM = (n: number) => `${n.toFixed(2)}m`
+
+/** Capas que van colgadas de riel o barral: cada una lleva el suyo, separado de la otra. */
+function capasConSoporte(c: ICaracteristicasItem): CapaCortina[] {
+  return (["GAZA", "BO"] as CapaCortina[]).filter((capa) => {
+    const t = tipoDeCapa(c, capa)
+    return t === "Tradicional" || (t === "Tradicional Mot" && c.sistema === "Riel")
+  })
+}
+
+/**
+ * Texto de rieles o barrales de la comanda, contando cada capa por separado:
+ * "Riel: 2 de 2.60m (Gasa y Black Out)", "Riel: 2 tramos de 2.60m", "Barral: 1 de 3.00m (sin corte)".
+ * Null si la cortina no lleva riel ni barral.
+ */
+export function textoRielesBarrales(
+  c: ICaracteristicasItem | null | undefined,
+  anchoFila: number,
+  cantidadFila: number = 1
+): string | null {
+  const barral = c?.sistema === "Barral"
+  const nombre = barral ? "Barral" : "Riel"
+  // Cuánto lleva cada capa: el riel de más de 4,60 m va en 2 tramos; el barral va entero
+  const deCapa = (ancho: number) => {
+    if (barral) return { cantidad: 1, medida: ancho }
+    const corte = calcularCorteRiel(ancho)
+    return { cantidad: corte.cantidadTramos, medida: corte.medidaPorTramo }
+  }
+  const unidad = (cantidad: number, enTramos: boolean) => (enTramos ? `${cantidad} tramos` : String(cantidad))
+
+  // Fila sin especificación: la cantidad cargada son cortinas iguales
+  if (!c?.tipo) {
+    const d = deCapa(anchoFila)
+    const enTramos = d.cantidad > 1
+    return `${nombre}: ${unidad(d.cantidad * (cantidadFila || 1), enTramos)} de ${fmtM(d.medida)}${barral ? " (sin corte)" : ""}`
+  }
+
+  const capas = capasConSoporte(c).map((capa) => {
+    const config = capa === "GAZA" ? c.gaza : c.bo
+    return { capa, ...deCapa(Number(config?.ancho) || anchoFila) }
+  })
+  if (capas.length === 0) return null
+
+  const nombres = capas.map((k) => NOMBRE_CAPA_SOPORTE[k.capa]).join(" y ")
+  const iguales = capas.every((k) => k.medida === capas[0].medida && k.cantidad === capas[0].cantidad)
+  if (iguales) {
+    const total = capas.reduce((acc, k) => acc + k.cantidad, 0)
+    const aclaracion = capas.length > 1 ? ` (${nombres})` : barral ? " (sin corte)" : ""
+    return `${nombre}: ${unidad(total, capas[0].cantidad > 1)} de ${fmtM(capas[0].medida)}${aclaracion}`
+  }
+  return `${nombre}: ${capas
+    .map((k) => `${unidad(k.cantidad, k.cantidad > 1)} de ${fmtM(k.medida)} (${NOMBRE_CAPA_SOPORTE[k.capa]})`)
+    .join(" + ")}`
+}
+
 /**
  * Analiza un ítem de presupuesto y sus características de medición (si las tiene)
  * para calcular los rieles necesarios y sus capas (simple o doble).
@@ -118,7 +177,11 @@ export function analizarRielesItem(
 
   // Detectar si es doble capa (Gasa + Blackout)
   let capas = 1
-  if (caracteristicas) {
+  if (caracteristicas?.tipo) {
+    // Solo las capas que cuelgan de riel (un B.O. roller, por ejemplo, no lleva)
+    capas = capasConSoporte(caracteristicas).length
+    if (capas === 0) return null
+  } else if (caracteristicas) {
     const gazaActiva = Boolean(caracteristicas.gaza?.activa)
     const boActiva = Boolean(caracteristicas.bo?.activa)
     if (gazaActiva && boActiva) {
