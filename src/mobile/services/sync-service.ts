@@ -10,7 +10,9 @@ import {
   marcarClientesSincronizados,
   guardarTelasLocales,
   guardarCeldasMosquiteroLocales,
+  obtenerClientesLocales,
 } from "./storage-service"
+import { firmaCliente } from "@/modules/mediciones/lib/firma-cliente"
 import type { IMedicionOffline } from "@/modules/mediciones/types"
 import type { IClienteCache } from "@/modules/mediciones/lib/offline-storage"
 
@@ -25,6 +27,48 @@ export interface ResultadoSync {
   /** Mediciones que el ERP no aceptó (quedan pendientes en la tablet con su motivo) */
   rechazadas: Array<{ idLocal: string; error: string }>
   error?: string
+}
+
+/** Cambios en el ERP que la tablet todavía no bajó */
+export interface NovedadesERP {
+  mediciones: number
+  clientes: number
+}
+
+const SEGUNDOS_ESPERA_NOVEDADES = 15
+
+/**
+ * Pregunta al ERP si hay cambios para bajar (no modifica nada).
+ * Devuelve null si no se pudo consultar: sin wifi o con el ERP caído no se cambia el aviso.
+ */
+export async function consultarNovedadesERP(): Promise<NovedadesERP | null> {
+  try {
+    const config = await obtenerConfiguracion()
+    const erpBaseUrl = config.erpUrl.replace(/\/+$/, "")
+    const desde = config.ultimaDescarga ? `?desde=${encodeURIComponent(config.ultimaDescarga)}` : ""
+    const corte = new AbortController()
+    const espera = setTimeout(() => corte.abort(), SEGUNDOS_ESPERA_NOVEDADES * 1000)
+    const resp = await fetch(`${erpBaseUrl}/api/mediciones/novedades${desde}`, {
+      method: "GET",
+      headers: config.apiKey ? { "x-sync-api-key": config.apiKey } : {},
+      signal: corte.signal,
+    }).finally(() => clearTimeout(espera))
+    if (!resp.ok) return null
+    const data = await resp.json()
+    if (!data.success || !Array.isArray(data.clientes)) return null
+
+    // Clientes nuevos o con datos distintos. Los editados acá y sin subir no cuentan: al sincronizar gana la tablet
+    const locales = new Map((await obtenerClientesLocales()).map((c) => [c.id, c]))
+    const clientes = (data.clientes as Array<{ id: string; firma: string }>).filter((remoto) => {
+      const local = locales.get(remoto.id)
+      if (!local) return true
+      return !local.pendienteSync && firmaCliente(local) !== remoto.firma
+    }).length
+
+    return { mediciones: Number(data.mediciones) || 0, clientes }
+  } catch {
+    return null
+  }
 }
 
 export async function sincronizarTodo(): Promise<ResultadoSync> {

@@ -906,3 +906,17 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 - Pedidos a proveedor (planilla RS y mensaje MG): cada renglón es una cortina física con cantidad 1. Antes repetía la cantidad de la abertura en cada renglón.
 - Comanda impresa y digital: `textoRielesBarrales` cuenta un riel o barral por capa ("Riel: 2 de 2.60m (Gasa y Black Out)"). Más de 4,60 m: 2 tramos por capa. El barral no se corta.
 - Materiales (`analizarRielesItem`): cuenta solo capas colgadas de riel y ya no multiplica capas por la cantidad de la abertura.
+
+---
+
+## Actualización — Avisos entre el ERP y la tablet (2026-11-06)
+
+### ✅ Implementado
+- Tablet: cada minuto (app abierta y con conexión), y al abrirla, al volver a ella o al recuperar conexión, consulta `/api/mediciones/novedades`. Si hay mediciones modificadas desde la última descarga, o clientes nuevos o con datos distintos, el botón Sincronizar se pone violeta y aparece una franja con el detalle.
+- Los clientes se comparan con `firmaCliente` (`lib/firma-cliente.ts`), que no incluye el estado: la tablet no lo muestra.
+- ERP: tabla `notificaciones_tablet` (`NotificacionTablet`). Las rutas `/api/mediciones/sync` y `clientes-sync` registran el aviso (`avisarDesdeTablet`, sin frenar la sincronización si falla). Campana de la barra superior (`NotificacionesCampana`, consulta cada minuto `/api/notificaciones`). Los leídos se comparten entre usuarios.
+- Requiere `prisma db push` y generar de nuevo el APK.
+
+### ⏳ Pendiente
+- Notificaciones con la app cerrada (Firebase), si hacen falta.
+- Los borrados en el ERP no generan aviso ni llegan a la tablet.

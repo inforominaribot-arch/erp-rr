@@ -8,7 +8,12 @@ import {
   eliminarMedicionLocal,
   obtenerConfiguracion,
 } from "./services/storage-service"
-import { sincronizarTodo, type ResultadoSync } from "./services/sync-service"
+import {
+  consultarNovedadesERP,
+  sincronizarTodo,
+  type NovedadesERP,
+  type ResultadoSync,
+} from "./services/sync-service"
 import type { IMedicionOffline } from "@/modules/mediciones/types"
 import {
   Wifi,
@@ -20,6 +25,11 @@ import {
   AlertCircle,
   Layers,
 } from "lucide-react"
+
+/** Cada cuánto pregunta al ERP si hay cambios (con la app abierta y conexión) */
+const INTERVALO_NOVEDADES_MS = 60_000
+
+const plural = (n: number, singular: string, varios: string) => `${n} ${n === 1 ? singular : varios}`
 
 export function App() {
   const [isOnline, setIsOnline] = useState(true)
@@ -69,6 +79,27 @@ export function App() {
     }
   }, [])
 
+  // 2b. Avisar si hay cambios en el ERP: cada minuto, al abrir la app, al volver a ella y al recuperar conexión
+  const [novedades, setNovedades] = useState<NovedadesERP | null>(null)
+  const revisarNovedades = useCallback(async () => {
+    const res = await consultarNovedadesERP()
+    if (res) setNovedades(res)
+  }, [])
+
+  useEffect(() => {
+    if (!isOnline || sincronizando) return
+    const revisarSiSeVe = () => {
+      if (!document.hidden) revisarNovedades()
+    }
+    revisarSiSeVe()
+    const intervalo = setInterval(revisarSiSeVe, INTERVALO_NOVEDADES_MS)
+    document.addEventListener("visibilitychange", revisarSiSeVe)
+    return () => {
+      clearInterval(intervalo)
+      document.removeEventListener("visibilitychange", revisarSiSeVe)
+    }
+  }, [isOnline, sincronizando, revisarNovedades])
+
   // 3. Sincronización completa con el ERP
   const handleSincronizar = async () => {
     if (sincronizando) return
@@ -103,6 +134,15 @@ export function App() {
   }, [notificacion])
 
   const pendientesCount = mediciones.filter((m) => !m.sincronizado).length
+  const hayNovedades = Boolean(novedades && (novedades.mediciones > 0 || novedades.clientes > 0))
+  const textoNovedades = novedades
+    ? [
+        novedades.mediciones > 0 ? plural(novedades.mediciones, "medición", "mediciones") : null,
+        novedades.clientes > 0 ? plural(novedades.clientes, "cliente", "clientes") : null,
+      ]
+        .filter(Boolean)
+        .join(", ")
+    : ""
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col antialiased">
@@ -146,11 +186,17 @@ export function App() {
               onClick={handleSincronizar}
               disabled={sincronizando}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all min-h-[40px] ${
-                pendientesCount > 0
+                hayNovedades
+                  ? "bg-violet-600 hover:bg-violet-700 text-white shadow-sm shadow-violet-200"
+                  : pendientesCount > 0
                   ? "bg-amber-500 hover:bg-amber-600 text-white shadow-sm shadow-amber-200"
                   : "bg-slate-100 hover:bg-slate-200 text-slate-700"
               }`}
-              title="Sincronizar mediciones y clientes con el ERP"
+              title={
+                hayNovedades
+                  ? `Hay cambios en el ERP: ${textoNovedades}`
+                  : "Sincronizar mediciones y clientes con el ERP"
+              }
             >
               <RefreshCw
                 className={`w-3.5 h-3.5 ${sincronizando ? "animate-spin" : ""}`}
@@ -178,6 +224,17 @@ export function App() {
           </div>
         </div>
       </header>
+
+      {/* ── AVISO DE CAMBIOS EN EL ERP ── */}
+      {hayNovedades && !sincronizando && (
+        <button
+          type="button"
+          onClick={handleSincronizar}
+          className="w-full bg-violet-600 px-4 py-1.5 text-center text-xs font-bold text-white hover:bg-violet-700"
+        >
+          Hay cambios en el ERP: {textoNovedades}. Tocá para sincronizar.
+        </button>
+      )}
 
       {/* ── NOTIFICACIONES FLOTANTES ── */}
       {notificacion && (

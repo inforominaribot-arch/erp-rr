@@ -14,6 +14,7 @@ import {
   aplicarCambiosMedicion,
   MedicionBloqueadaError,
 } from "@/modules/mediciones/lib/aplicar-cambios-medicion"
+import { avisarDesdeTablet, type IAvisoTablet } from "@/modules/notificaciones/lib/avisos-tablet"
 
 export async function OPTIONS() {
   return handleCorsPreflight()
@@ -83,6 +84,7 @@ export async function POST(req: Request) {
       yaExistia?: boolean
     }> = []
     const rechazadas: Array<{ idLocal: string; idServidor?: string | null; error: string }> = []
+    const avisos: IAvisoTablet[] = []
 
     // 4. Procesamiento transaccional de cada medición
     for (const med of medicionesParaSincronizar) {
@@ -122,6 +124,12 @@ export async function POST(req: Request) {
               clienteId: existente.clienteId,
               yaExistia: true,
             })
+            avisos.push({
+              tipo: "MEDICION_EDITADA",
+              mensaje: `Se editó la medición de ${med.clienteNombre || "un cliente"}`,
+              medicionId: existente.id,
+              clienteId: existente.clienteId,
+            })
           } catch (err) {
             if (err instanceof MedicionBloqueadaError) {
               rechazadas.push({ idLocal: med.idLocal, idServidor: existente.id, error: err.message })
@@ -139,6 +147,7 @@ export async function POST(req: Request) {
       }
 
       let resultado: { idLocal: string; idServidor: string; clienteId: string; yaExistia?: boolean }
+      let clienteCreado = false
       try {
         resultado = await prisma.$transaction(async (tx) => {
           let clienteFinalId = med.clienteId
@@ -173,6 +182,7 @@ export async function POST(req: Request) {
                 },
               })
               clienteFinalId = nuevoCliente.id
+              clienteCreado = true
             }
           }
 
@@ -227,7 +237,21 @@ export async function POST(req: Request) {
       }
 
       resultadosSincronizacion.push(resultado)
+      if (!resultado.yaExistia) {
+        const nombre = med.clienteNombre || "Cliente Relevamiento"
+        if (clienteCreado) {
+          avisos.push({ tipo: "CLIENTE_NUEVO", mensaje: `Cliente nuevo: ${nombre}`, clienteId: resultado.clienteId })
+        }
+        avisos.push({
+          tipo: "MEDICION_NUEVA",
+          mensaje: `Medición nueva de ${nombre}`,
+          medicionId: resultado.idServidor,
+          clienteId: resultado.clienteId,
+        })
+      }
     }
+
+    for (const aviso of avisos) await avisarDesdeTablet(aviso)
 
     // 5. Invalidación de caché para el ERP Web
     revalidatePath("/mediciones")

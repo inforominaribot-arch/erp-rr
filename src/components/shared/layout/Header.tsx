@@ -1,8 +1,9 @@
 "use client"
 
-import { Bell, Search, LogOut, User, Menu } from "lucide-react"
+import { Search, LogOut, Menu } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { NotificacionesCampana } from "./NotificacionesCampana"
 
 interface HeaderProps {
   titulo?: string
@@ -48,15 +49,7 @@ export function Header({ titulo, onAbrirMobileMenu }: HeaderProps) {
       {/* Acciones del usuario */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {/* Notificaciones */}
-        <button
-          type="button"
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 active:scale-95 transition-transform"
-          aria-label="Notificaciones"
-        >
-          <Bell className="h-4 w-4" />
-          {/* Badge de notificaciones */}
-          <span className="absolute right-1.5 top-1.5 flex h-2 w-2 rounded-full bg-indigo-500" />
-        </button>
+        <NotificacionesCampana />
 
         {/* Separador */}
         <div className="h-6 w-px bg-slate-200" />

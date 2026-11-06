@@ -9,6 +9,8 @@ import {
   clienteTabletSyncSchema,
   clientesTabletSyncBatchSchema,
 } from "@/modules/mediciones/schemas"
+import { firmaCliente } from "@/modules/mediciones/lib/firma-cliente"
+import { avisarDesdeTablet } from "@/modules/notificaciones/lib/avisos-tablet"
 
 export async function OPTIONS() {
   return handleCorsPreflight()
@@ -134,7 +136,10 @@ export async function POST(req: Request) {
       }
 
       const c = validacion.data
-      const existe = await prisma.cliente.findUnique({ where: { id: c.id }, select: { id: true } })
+      const existe = await prisma.cliente.findUnique({
+        where: { id: c.id },
+        select: { id: true, nombre: true, telefono: true, email: true, direccion: true, localidad: true, notas: true },
+      })
       if (!existe) {
         noEncontrados.push(c.id)
         continue
@@ -152,6 +157,10 @@ export async function POST(req: Request) {
         },
       })
       actualizados.push(c.id)
+      // Solo se avisa si de verdad cambió algo
+      if (firmaCliente(existe) !== firmaCliente(c)) {
+        await avisarDesdeTablet({ tipo: "CLIENTE_EDITADO", mensaje: `Se editó el cliente ${c.nombre}`, clienteId: c.id })
+      }
     }
 
     if (actualizados.length > 0) {
