@@ -929,6 +929,9 @@ export function CortinaItemForm({
   const usarListaBO = marcaBO === "RS" && capaConLista(tipoFisicoBO)
   const gazaEsBandas = tipoFisicoGaza === "Bandas verticales"
   const boEsBandas = tipoFisicoBO === "Bandas verticales"
+  // Capas tradicionales: al escribir la tela se sugieren las de las listas de las tiendas
+  const gazaEsTradicional = tipoFisicoGaza === "Tradicional" || tipoFisicoGaza === "Tradicional Mot"
+  const boEsTradicional = tipoFisicoBO === "Tradicional" || tipoFisicoBO === "Tradicional Mot"
   // Si la capa deja de ser RS, la tela vuelve a ser texto libre
   if (caracteristicasActuales?.gaza && !usarListaGaza) {
     caracteristicasActuales.gaza.telaId = null
@@ -2142,6 +2145,7 @@ export function CortinaItemForm({
                       <SelectorTelaLista
                         usarLista={usarListaGaza}
                         esBandas={gazaEsBandas}
+                        tradicional={gazaEsTradicional}
                         valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
                         onCambiar={cambiarTelaGaza}
                         placeholder="Ej: Gasa de Lino Blanco, Gasa Pañalera"
@@ -2413,6 +2417,7 @@ export function CortinaItemForm({
                       <SelectorTelaLista
                         usarLista={usarListaGaza}
                         esBandas={gazaEsBandas}
+                        tradicional={gazaEsTradicional}
                         valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
                         onCambiar={cambiarTelaGaza}
                         placeholder="Ej: Gasa de Lino Blanco, Screen 5%"
@@ -2638,6 +2643,7 @@ export function CortinaItemForm({
                       <SelectorTelaLista
                         usarLista={usarListaGaza}
                         esBandas={gazaEsBandas}
+                        tradicional={gazaEsTradicional}
                         valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
                         onCambiar={cambiarTelaGaza}
                         placeholder="Ej: Screen 5%, Sunscreen Blanco"
@@ -2807,6 +2813,7 @@ export function CortinaItemForm({
                       <SelectorTelaLista
                         usarLista={usarListaGaza}
                         esBandas={gazaEsBandas}
+                        tradicional={gazaEsTradicional}
                         valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
                         onCambiar={cambiarTelaGaza}
                         placeholder="Ej: Gasa de Lino Blanco, Gasa Pañalera"
@@ -3609,6 +3616,7 @@ export function CortinaItemForm({
                             <SelectorTelaLista
                         usarLista={usarListaGaza}
                         esBandas={gazaEsBandas}
+                        tradicional={gazaEsTradicional}
                         valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
                         onCambiar={cambiarTelaGaza}
                         placeholder="Ej: Gasa de Lino Blanco, Gasa Pañalera"
@@ -3880,6 +3888,7 @@ export function CortinaItemForm({
                             <SelectorTelaLista
                         usarLista={usarListaGaza}
                         esBandas={gazaEsBandas}
+                        tradicional={gazaEsTradicional}
                         valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
                         onCambiar={cambiarTelaGaza}
                         placeholder="Ej: Gasa de Lino Blanco, Screen 5%"
@@ -4105,6 +4114,7 @@ export function CortinaItemForm({
                             <SelectorTelaLista
                         usarLista={usarListaGaza}
                         esBandas={gazaEsBandas}
+                        tradicional={gazaEsTradicional}
                         valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
                         onCambiar={cambiarTelaGaza}
                         placeholder="Ej: Screen 5%, Sunscreen Blanco"
@@ -4276,6 +4286,7 @@ export function CortinaItemForm({
                             <SelectorTelaLista
                         usarLista={usarListaGaza}
                         esBandas={gazaEsBandas}
+                        tradicional={gazaEsTradicional}
                         valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
                         onCambiar={cambiarTelaGaza}
                         placeholder="Ej: Gasa de Lino Blanco, Gasa Pañalera"
@@ -4669,6 +4680,7 @@ export function CortinaItemForm({
                         <SelectorTelaLista
                         usarLista={usarListaGaza}
                         esBandas={gazaEsBandas}
+                        tradicional={gazaEsTradicional}
                         valor={{ nombreTela: nombreTelaGaza, telaId: telaIdGaza, colorTela: colorTelaGaza }}
                         onCambiar={cambiarTelaGaza}
                         placeholder="Ej: Gasa de Lino Blanco, Gasa Pañalera"
@@ -5133,6 +5145,7 @@ export function CortinaItemForm({
                         <SelectorTelaLista
                           usarLista={usarListaBO}
                           esBandas={boEsBandas}
+                          tradicional={boEsTradicional}
                           valor={{ nombreTela: nombreTelaBO, telaId: telaIdBO, colorTela: colorTelaBO }}
                           onCambiar={cambiarTelaBO}
                           placeholder="Ej: Black Out Texturado Gris, Vinílico Blanco"

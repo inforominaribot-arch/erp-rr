@@ -25,6 +25,11 @@ import type { IProveedor, IOrdenCompra, IProductoProveedor } from "./types"
 import { sincronizarPlanillaProveedor, type IResultadoSyncPlanilla } from "./lib/sincronizar-planilla"
 import { z } from "zod"
 import { formatearNumeroOC } from "./types"
+import {
+  confirmarListaSinCambios,
+  subirListaProveedor,
+  type IResultadoListaSubida,
+} from "./lib/listas-telas/aplicar-lista"
 
 // ─── 1. Crear Proveedor ───────────────────────────────────────────────────────
 
@@ -736,5 +741,56 @@ export async function sincronizarPlanillaPreciosAction(
     console.error(`Error al actualizar la planilla del proveedor ${proveedorId}:`, error)
     revalidatePath(`/proveedores/${proveedorId}`)
     return { success: false, error: error instanceof Error ? error.message : "No se pudo leer la planilla." }
+  }
+}
+
+// ─── Listas de precios por archivo (telas de tradicionales y accesorios RS) ──
+
+/** Sube el Excel / PDF de la lista del proveedor y la deja como vigente. */
+export async function subirListaPreciosAction(
+  formData: FormData
+): Promise<ActionResponse<IResultadoListaSubida>> {
+  try {
+    const auth = await tienePermisoModuloProveedores("administracion")
+    if (!auth.permitido || !auth.puedeAdministrar) {
+      return { success: false, error: auth.error || "No tenés permisos para actualizar listas de precios." }
+    }
+    const proveedorId = z.string().uuid().parse(formData.get("proveedorId"))
+    const archivo = formData.get("archivo")
+    if (!(archivo instanceof File) || archivo.size === 0) {
+      return { success: false, error: "Elegí el archivo de la lista (Excel o PDF)." }
+    }
+    if (archivo.size > 4 * 1024 * 1024) {
+      return { success: false, error: "El archivo es demasiado grande (máximo 4 MB)." }
+    }
+    const datos = new Uint8Array(await archivo.arrayBuffer())
+    const resultado = await subirListaProveedor(proveedorId, archivo.name, datos)
+    revalidatePath(`/proveedores/${proveedorId}`)
+    revalidatePath("/")
+    return { success: true, data: resultado }
+  } catch (error) {
+    console.error("Error al subir la lista de precios:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "No se pudo leer la lista de precios.",
+    }
+  }
+}
+
+/** "No cambiaron los precios": la lista queda como está y se da por actualizada este mes. */
+export async function confirmarListaSinCambiosAction(proveedorId: string): Promise<ActionResponse<null>> {
+  try {
+    const auth = await tienePermisoModuloProveedores("administracion")
+    if (!auth.permitido || !auth.puedeAdministrar) {
+      return { success: false, error: auth.error || "No autorizado" }
+    }
+    const id = z.string().uuid().parse(proveedorId)
+    await confirmarListaSinCambios(id)
+    revalidatePath(`/proveedores/${id}`)
+    revalidatePath("/")
+    return { success: true, data: null }
+  } catch (error) {
+    console.error("Error al confirmar la lista sin cambios:", error)
+    return { success: false, error: "No se pudo guardar." }
   }
 }

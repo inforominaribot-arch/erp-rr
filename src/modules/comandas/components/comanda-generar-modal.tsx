@@ -41,7 +41,7 @@ export function ComandaGenerarModal({
       (presupuestosAceptados.length > 0 ? presupuestosAceptados[0].id : "")
   )
 
-  // Fecha de entrega: 25 días desde la aceptación del presupuesto (se puede cambiar)
+  // Fecha de entrega: 30 días desde la aceptación del presupuesto (se puede cambiar)
   const fechaSugerida = (id: string) =>
     fechaEntregaParaInput(presupuestosAceptados.find((p) => p.id === id)?.fechaAceptacion)
   const [fechaEntrega, setFechaEntrega] = useState<string>(() => (presupuestoId ? fechaSugerida(presupuestoId) : ""))

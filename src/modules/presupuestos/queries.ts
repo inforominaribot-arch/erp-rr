@@ -1,6 +1,8 @@
 // Módulo: Presupuestos
 // Consultas de solo lectura con Prisma y serialización Decimal -> number
 
+import { armarCatalogoTelas, type ITelaTradicional } from "./lib/tradicional"
+import { esFormatoListaTelas, FORMATOS_LISTA_TELAS } from "@/modules/proveedores/lib/listas-telas/parsear-listas"
 import { prisma } from "@/lib/prisma"
 import type { Prisma, ItemPresupuesto, Presupuesto, Cliente, Comanda } from "@prisma/client"
 import { asegurarPlanillaReciente } from "@/modules/proveedores/lib/sincronizar-planilla"
@@ -454,6 +456,41 @@ export async function obtenerPreciosInsumosPT(): Promise<IPrecioInsumoPT[]> {
     return items.map((it) => ({ descripcion: it.descripcion, precio: Number(it.precio) }))
   } catch (error) {
     console.error("Error al obtener los precios de insumos PRINTEMPS:", error)
+    return []
+  }
+}
+
+/**
+ * Telas de las listas de las tiendas (Alhambra, Bia Brem, Sirota) para las cortinas tradicionales,
+ * con el recargo de cada proveedor y agrupadas por nombre (la más cara primero).
+ */
+export async function obtenerTelasTradicional(): Promise<ITelaTradicional[]> {
+  try {
+    const items = await prisma.listaTelaItem.findMany({
+      where: { activo: true, proveedor: { activo: true, formatoListaTelas: { not: null } } },
+      include: { proveedor: { select: { nombre: true, formatoListaTelas: true } } },
+      orderBy: [{ proveedorId: "asc" }, { orden: "asc" }],
+    })
+    return armarCatalogoTelas(
+      items.flatMap((it) => {
+        const formato = it.proveedor.formatoListaTelas
+        if (!esFormatoListaTelas(formato)) return []
+        const precioLista = Number(it.precio)
+        return [
+          {
+            id: it.id,
+            proveedor: it.proveedor.nombre,
+            nombre: it.nombre,
+            descripcion: it.descripcion,
+            ancho: it.ancho !== null ? Number(it.ancho) : null,
+            precioLista,
+            precio: Math.round(precioLista * FORMATOS_LISTA_TELAS[formato].recargo),
+          },
+        ]
+      })
+    )
+  } catch (error) {
+    console.error("Error al obtener las telas de tradicionales:", error)
     return []
   }
 }

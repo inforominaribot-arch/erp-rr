@@ -1,5 +1,6 @@
 // Telas de la lista de precios RS para el selector de la tablet (sentido web → tablet).
-// GET /api/mediciones/telas → { success, telas: ITelaMedicion[], mosquiteros: ICeldaMosquitero[] } (sin precios)
+// GET /api/mediciones/telas → { success, telas: ITelaMedicion[], mosquiteros: ICeldaMosquitero[], telasTradicional: string[] } (sin precios)
+// "telasTradicional": nombres de las telas de las tiendas (Alhambra, Bia Brem, Sirota) para sugerir en capas Tradicionales.
 // "mosquiteros": medidas que se fabrican en cada modelo MagicRoll, mosquiteros y Noche Total (para ofrecer solo
 // los modelos / sistemas posibles).
 
@@ -8,7 +9,11 @@ import {
   handleCorsPreflight,
   jsonResponse,
 } from "@/lib/api-auth"
-import { obtenerCeldasMosquitero, obtenerTelasParaMedicion } from "@/modules/mediciones/queries"
+import {
+  obtenerCeldasMosquitero,
+  obtenerNombresTelasTradicional,
+  obtenerTelasParaMedicion,
+} from "@/modules/mediciones/queries"
 
 export async function OPTIONS() {
   return handleCorsPreflight()
@@ -23,8 +28,12 @@ export async function GET(req: Request) {
         { status: 401 }
       )
     }
-    const [telas, mosquiteros] = await Promise.all([obtenerTelasParaMedicion(), obtenerCeldasMosquitero()])
-    return jsonResponse({ success: true, telas, mosquiteros })
+    const [telas, mosquiteros, telasTradicional] = await Promise.all([
+      obtenerTelasParaMedicion(),
+      obtenerCeldasMosquitero(),
+      obtenerNombresTelasTradicional(),
+    ])
+    return jsonResponse({ success: true, telas, mosquiteros, telasTradicional })
   } catch (error) {
     console.error("Error al descargar las telas para la tablet:", error)
     return jsonResponse(

@@ -5,6 +5,7 @@ import {
   obtenerMedicionPorId,
   obtenerClientesParaMedicion,
   obtenerTelasParaMedicion,
+  obtenerNombresTelasTradicional,
   obtenerCeldasMosquitero,
 } from "@/modules/mediciones/queries"
 import { TelasListaProvider } from "@/modules/mediciones/components/selector-tela-lista"
@@ -26,12 +27,13 @@ export default async function EditarMedicionPage({
 
   const { id } = await params
 
-  const [medicion, clientes, bloqueada, telas, celdasMosquitero] = await Promise.all([
+  const [medicion, clientes, bloqueada, telas, celdasMosquitero, telasTradicional] = await Promise.all([
     obtenerMedicionPorId(id),
     obtenerClientesParaMedicion(),
     medicionTienePresupuestoAceptado(prisma, id),
     obtenerTelasParaMedicion(),
     obtenerCeldasMosquitero(),
+    obtenerNombresTelasTradicional(),
   ])
 
   if (!medicion) {
@@ -45,7 +47,7 @@ export default async function EditarMedicionPage({
         descripcion="Modificá las aberturas, ambientes o especificaciones técnicas del relevamiento"
       />
 
-      <TelasListaProvider telas={telas} celdasMosquitero={celdasMosquitero}>
+      <TelasListaProvider telas={telas} celdasMosquitero={celdasMosquitero} telasTradicional={telasTradicional}>
       <MedicionForm
         clientesIniciales={clientes}
         medicionExistente={medicion}

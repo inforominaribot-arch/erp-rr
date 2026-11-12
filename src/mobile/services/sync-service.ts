@@ -10,6 +10,7 @@ import {
   marcarClientesSincronizados,
   guardarTelasLocales,
   guardarCeldasMosquiteroLocales,
+  guardarTelasTradicionalLocales,
   obtenerClientesLocales,
 } from "./storage-service"
 import { firmaCliente } from "@/modules/mediciones/lib/firma-cliente"
@@ -214,6 +215,9 @@ export async function sincronizarTodo(): Promise<ResultadoSync> {
         }
         if (dataTelas.success && Array.isArray(dataTelas.mosquiteros)) {
           await guardarCeldasMosquiteroLocales(dataTelas.mosquiteros)
+        }
+        if (dataTelas.success && Array.isArray(dataTelas.telasTradicional)) {
+          await guardarTelasTradicionalLocales(dataTelas.telasTradicional)
         }
       }
     } catch (err) {

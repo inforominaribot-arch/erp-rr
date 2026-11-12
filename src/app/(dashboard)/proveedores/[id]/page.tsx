@@ -11,6 +11,7 @@ import {
   obtenerPreciosPlanilla,
 } from "@/modules/proveedores/queries"
 import { asegurarPlanillaReciente } from "@/modules/proveedores/lib/sincronizar-planilla"
+import { obtenerListaArchivoProveedor } from "@/modules/proveedores/lib/listas-telas/aplicar-lista"
 import { ProveedorDetalleView } from "@/modules/proveedores/components/proveedor-detalle-view"
 import { ShieldAlert } from "lucide-react"
 
@@ -57,13 +58,19 @@ export default async function ProveedorDetallePage({
   // Planilla de Google Sheets del proveedor: si la copia tiene más de unas horas, se vuelve a bajar
   if (auth.puedeVerCostos) await asegurarPlanillaReciente(id)
 
-  const [detalle, catalogoProductos, listaPrecios, tablasMedida, preciosPlanilla] = await Promise.all([
+  const [detalle, catalogoProductos, listaPrecios, tablasMedida, preciosPlanilla, listaArchivo] = await Promise.all([
     obtenerProveedorPorId(id, !auth.puedeVerCostos),
     obtenerCatalogoProductosParaCompras(),
     // La lista de precios y las tablas por medida son costos: solo para quien puede verlos
     auth.puedeVerCostos ? obtenerListaPreciosProveedor(id) : Promise.resolve([]),
     auth.puedeVerCostos ? obtenerResumenTablasMedida(id) : Promise.resolve([]),
     auth.puedeVerCostos ? obtenerPreciosPlanilla(id) : Promise.resolve([]),
+    auth.puedeVerCostos
+      ? obtenerListaArchivoProveedor(id).catch((err) => {
+          console.error("Error al obtener la lista por archivo del proveedor:", err)
+          return null
+        })
+      : Promise.resolve(null),
   ])
 
   if (!detalle) {
@@ -80,6 +87,7 @@ export default async function ProveedorDetallePage({
         listaPrecios={listaPrecios}
         tablasMedida={tablasMedida}
         preciosPlanilla={preciosPlanilla}
+        listaArchivo={listaArchivo}
         puedeVerCostos={auth.puedeVerCostos}
         puedeAdministrar={auth.puedeAdministrar}
         puedeEmitirOrden={auth.puedeEmitirOrden}

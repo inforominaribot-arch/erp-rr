@@ -27,6 +27,7 @@ import {
   obtenerMedicionesClienteAction,
 } from "../actions"
 import { PresupuestoCalculadoraModal } from "./presupuesto-calculadora-modal"
+import { capasConTela, type ITelaTradicional } from "../lib/tradicional"
 import { CortinaItemForm } from "@/modules/mediciones/components/cortina-item-form"
 import { TelasListaProvider } from "@/modules/mediciones/components/selector-tela-lista"
 import type { IItemMedicion, ICaracteristicasItem, ITelaMedicion } from "@/modules/mediciones/types"
@@ -95,6 +96,8 @@ interface PresupuestoFormProps {
   tablaMG?: ICeldaPrecioMedida[]
   /** Insumos de la planilla de PRINTEMPS para calcular los toldos */
   preciosPT?: IPrecioInsumoPT[]
+  /** Telas de las listas de las tiendas (Alhambra, Bia Brem, Sirota) para las tradicionales */
+  telasTradicional?: ITelaTradicional[]
 }
 
 export function PresupuestoForm({
@@ -105,6 +108,7 @@ export function PresupuestoForm({
   listaRS = [],
   tablaMG = [],
   preciosPT = [],
+  telasTradicional = [],
 }: PresupuestoFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -193,6 +197,9 @@ export function PresupuestoForm({
     [listaRS]
   )
 
+  // Nombres de las telas de las tiendas para sugerir en capas Tradicionales (editor de alternativas)
+  const nombresTelasTradicional = useMemo(() => telasTradicional.map((t) => t.nombre), [telasTradicional])
+
   // Estado para la calculadora modal
   const [calculadoraIndex, setCalculadoraIndex] = useState<number | null>(null)
 
@@ -205,7 +212,7 @@ export function PresupuestoForm({
   // Importar la medición: una fila por cortina física (paño / tramo de cada capa) con su precio de lista,
   // más los cargadores Li-ion por abertura y los controles remotos del cliente
   function aplicarImportacionMedicion(medicion: MedicionImportable) {
-    const nuevosItems = filasDesdeMedicion(medicion, listaRS, tablaMG, preciosPT)
+    const nuevosItems = filasDesdeMedicion(medicion, listaRS, tablaMG, preciosPT, telasTradicional)
     if (nuevosItems.length > 0) {
       setItems(nuevosItems)
     }
@@ -482,7 +489,8 @@ export function PresupuestoForm({
       { caracteristicas: carac, nombreOpcion: nombre, esOpcionPrincipal: false },
       principal.capa,
       tablaMG,
-      preciosPT
+      preciosPT,
+      telasTradicional
     ).map((f) => ({ ...f, itemMedicionId: principal.itemMedicionId ?? null, grupoAlternativa: grupo }))
   }
 
@@ -639,6 +647,16 @@ export function PresupuestoForm({
     return items.findIndex((o) => mismaOpcion(o, it)) === idx
   }
 
+  /** Especificación de la cortina de la fila: la de la alternativa o la de la medición importada */
+  function caracteristicasDeFila(it: ItemPresupuestoInput): ICaracteristicasItem | null {
+    if (it.caracteristicas) return it.caracteristicas as unknown as ICaracteristicasItem
+    if (!it.itemMedicionId) return null
+    for (const m of medicionesDisponibles)
+      for (const a of m.ambientes)
+        for (const x of a.items) if (x.id === it.itemMedicionId) return (x.caracteristicas as ICaracteristicasItem | null) ?? null
+    return null
+  }
+
   /** Cantidad de cortinas de la opción (para mostrar el paño / tramo solo si hay más de una) */
   function cortinasDeOpcion(it: ItemPresupuestoInput) {
     return it.grupoAlternativa ? items.filter((o) => mismaOpcion(o, it)).length : 1
@@ -648,8 +666,36 @@ export function PresupuestoForm({
   function renderAvisosCalculo(it: ItemPresupuestoInput) {
     const calc = it.calculoPrecio
     if (!calc) return null
+    const telasTrad = calc.metodo === "TRADICIONAL" && calc.tradicional ? capasConTela(calc.tradicional) : []
     return (
       <div className="mt-1 space-y-0.5">
+        {telasTrad.map(({ capa, tela }) => (
+          <div key={capa} className="text-[11px]">
+            <p className="font-semibold text-slate-700">
+              {capa === "Tela" ? "Tela" : capa}: {tela.nombre || "sin elegir"}
+              {tela.proveedor && !tela.manual && (
+                <span className="font-normal text-slate-500">
+                  {" "}
+                  ({tela.proveedor} · {formatearPrecio(tela.precio)}/m
+                  {tela.ancho ? ` · ancho ${tela.ancho.toLocaleString("es-AR")} m` : ""})
+                </span>
+              )}
+            </p>
+            {tela.masBaratas.length > 0 && (
+              <p className="text-sky-800">
+                <span className="mr-1 rounded bg-sky-100 px-1 text-[10px] font-black uppercase">Interno</span>
+                Pedirla en{" "}
+                {tela.masBaratas
+                  .map(
+                    (o) =>
+                      `${o.proveedor} ${formatearPrecio(o.precio)}/m${o.ancho ? ` (ancho ${o.ancho.toLocaleString("es-AR")} m)` : ""}`
+                  )
+                  .join(" · ")}
+                {tela.masBaratas.some((o) => o.ancho !== tela.ancho) && " · ojo, otro ancho"}
+              </p>
+            )}
+          </div>
+        ))}
         {calc.avisos.map((a) => (
           <p key={a} className="flex items-start gap-1 text-[11px] font-semibold text-amber-700">
             <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" />
@@ -1345,6 +1391,9 @@ export function PresupuestoForm({
           altoInicial={items[calculadoraIndex].alto}
           cantidadInicial={items[calculadoraIndex].cantidad}
           modoCortina={modoDeFila(items[calculadoraIndex])}
+          telasTradicional={telasTradicional}
+          capaFila={items[calculadoraIndex].capa === "GAZA" || items[calculadoraIndex].capa === "BO" ? (items[calculadoraIndex].capa as "GAZA" | "BO") : null}
+          caracteristicasFila={caracteristicasDeFila(items[calculadoraIndex])}
           descripcionInicial={
             items[calculadoraIndex].grupoAlternativa && items[calculadoraIndex].nombreOpcion
               ? `${items[calculadoraIndex].descripcion} (${items[calculadoraIndex].nombreOpcion})`
@@ -1415,7 +1464,7 @@ export function PresupuestoForm({
                 </div>
               )}
             </div>
-            <TelasListaProvider telas={telasMedicion}>
+            <TelasListaProvider telas={telasMedicion} telasTradicional={nombresTelasTradicional}>
             <CortinaItemForm
               key={
                 editorAlternativa.modo === "nueva"

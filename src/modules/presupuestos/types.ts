@@ -116,7 +116,7 @@ export type TipoFila = (typeof TIPOS_FILA)[number]
 export const MAX_OPCIONES_POR_CORTINA = 3
 export const CONDICIONES_PAGO_DEFAULT =
   "50% de seña y 50% contra entrega e instalación de la mercadería."
-export const PLAZO_ENTREGA_DEFAULT = "25 días a partir de la aprobación."
+export const PLAZO_ENTREGA_DEFAULT = "30 días a partir de la aprobación."
 
 export const DATOS_EMPRESA_DEFAULT = {
   nombre: "ROMINA RIBOT",

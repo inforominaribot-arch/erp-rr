@@ -5,28 +5,39 @@
 // (o si no hay lista cargada, ej: tablet sin sincronizar) queda el texto libre de siempre.
 // Las telas llegan por contexto: en la web desde el servidor y en la tablet desde la copia local.
 
-import { createContext, useContext, type ReactNode } from "react"
+import { createContext, useContext, useId, type ReactNode } from "react"
 import type { ITelaMedicion } from "../types"
 import type { ICeldaMosquitero } from "../lib/mosquiteros"
 
 const TelasListaContext = createContext<ITelaMedicion[]>([])
 // Medidas de los mosquiteros MagicRoll (sin precios) para ofrecer solo los modelos que se fabrican
 const CeldasMosquiteroContext = createContext<ICeldaMosquitero[]>([])
+// Nombres de las telas de las listas de las tiendas (Alhambra, Bia Brem, Sirota), sin precios:
+// se sugieren al escribir la tela de una capa Tradicional
+const TelasTradicionalContext = createContext<string[]>([])
 
 export function TelasListaProvider({
   telas,
   celdasMosquitero = [],
+  telasTradicional = [],
   children,
 }: {
   telas: ITelaMedicion[]
   celdasMosquitero?: ICeldaMosquitero[]
+  telasTradicional?: string[]
   children: ReactNode
 }) {
   return (
     <TelasListaContext.Provider value={telas}>
-      <CeldasMosquiteroContext.Provider value={celdasMosquitero}>{children}</CeldasMosquiteroContext.Provider>
+      <CeldasMosquiteroContext.Provider value={celdasMosquitero}>
+        <TelasTradicionalContext.Provider value={telasTradicional}>{children}</TelasTradicionalContext.Provider>
+      </CeldasMosquiteroContext.Provider>
     </TelasListaContext.Provider>
   )
+}
+
+export function useTelasTradicional(): string[] {
+  return useContext(TelasTradicionalContext)
 }
 
 export function useTelasLista(): ITelaMedicion[] {
@@ -53,6 +64,8 @@ interface SelectorTelaListaProps {
   usarLista: boolean
   /** Bandas verticales usa las telas "(BV)" */
   esBandas: boolean
+  /** Capa Tradicional: al escribir se sugieren las telas de las listas de las tiendas */
+  tradicional?: boolean
   valor: ValorTela
   onCambiar: (valor: ValorTela) => void
   placeholder?: string
@@ -62,23 +75,38 @@ interface SelectorTelaListaProps {
 export function SelectorTelaLista({
   usarLista,
   esBandas,
+  tradicional = false,
   valor,
   onCambiar,
   placeholder,
   className,
 }: SelectorTelaListaProps) {
   const todas = useTelasLista()
+  const nombresTradicional = useTelasTradicional()
+  const idSugerencias = useId()
+  const sugerir = tradicional && nombresTradicional.length > 0
   const telas = todas.filter((t) => (esBandas ? t.categoria === "BANDAS_VERTICALES" : t.categoria === "TELA"))
 
   if (!usarLista || telas.length === 0) {
     return (
-      <input
-        type="text"
-        value={valor.nombreTela}
-        onChange={(e) => onCambiar({ nombreTela: e.target.value, telaId: null, colorTela: null })}
-        placeholder={placeholder}
-        className={className}
-      />
+      <>
+        <input
+          type="text"
+          value={valor.nombreTela}
+          onChange={(e) => onCambiar({ nombreTela: e.target.value, telaId: null, colorTela: null })}
+          placeholder={sugerir ? "Escribí y elegí la tela de la lista (o escribila)" : placeholder}
+          list={sugerir ? idSugerencias : undefined}
+          autoComplete="off"
+          className={className}
+        />
+        {sugerir && (
+          <datalist id={idSugerencias}>
+            {nombresTradicional.map((n) => (
+              <option key={n} value={n} />
+            ))}
+          </datalist>
+        )}
+      </>
     )
   }
 

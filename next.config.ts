@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      // Listas de precios de proveedores (Excel / PDF) que se suben desde Administración
+      bodySizeLimit: "4mb",
+    },
+  },
   async headers() {
     return [
       {

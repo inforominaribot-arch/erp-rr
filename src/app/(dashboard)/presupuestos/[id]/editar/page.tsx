@@ -7,6 +7,7 @@ import {
   obtenerListaCalculoRS,
   obtenerTablaMedidaMG,
   obtenerPreciosInsumosPT,
+  obtenerTelasTradicional,
 } from "@/modules/presupuestos/queries"
 import { formatearNumeroPresupuesto } from "@/modules/presupuestos/types"
 
@@ -18,12 +19,13 @@ export default async function EditarPresupuestoPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const [presupuesto, clientes, listaRS, tablaMG, preciosPT] = await Promise.all([
+  const [presupuesto, clientes, listaRS, tablaMG, preciosPT, telasTradicional] = await Promise.all([
     obtenerPresupuestoPorId(id),
     obtenerClientesParaPresupuesto(),
     obtenerListaCalculoRS(),
     obtenerTablaMedidaMG(),
     obtenerPreciosInsumosPT(),
+    obtenerTelasTradicional(),
   ])
 
   if (!presupuesto) {
@@ -45,6 +47,7 @@ export default async function EditarPresupuestoPage({
         listaRS={listaRS}
         tablaMG={tablaMG}
         preciosPT={preciosPT}
+        telasTradicional={telasTradicional}
       />
     </div>
   )

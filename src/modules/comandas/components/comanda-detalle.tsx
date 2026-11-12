@@ -35,6 +35,8 @@ import { textoRielesBarrales } from "@/modules/presupuestos/lib/explosion-materi
 import { AvisoMedidaModificada } from "@/components/shared/aviso-medida-modificada"
 import { PedidosProveedorPanel } from "./pedidos-proveedor-panel"
 import { OrdenesPedidoPanel } from "./ordenes-pedido-panel"
+import { TelasAPedirPanel } from "./telas-a-pedir-panel"
+import type { ITelaAPedir } from "../lib/telas-a-pedir"
 import type { IProveedorPedido } from "../types"
 import {
   cambiarEstadoComanda,
@@ -52,6 +54,8 @@ interface ComandaDetalleProps {
   puedeEditar?: boolean
   iniciarEnImpresion?: boolean
   proveedores?: IProveedorPedido[]
+  /** Telas de las tradicionales para pedir a las tiendas (solo Administración) */
+  telasAPedir?: ITelaAPedir[]
 }
 
 export function ComandaDetalle({
@@ -59,6 +63,7 @@ export function ComandaDetalle({
   puedeEditar = true,
   iniciarEnImpresion = false,
   proveedores = [],
+  telasAPedir = [],
 }: ComandaDetalleProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -512,6 +517,9 @@ export function ComandaDetalle({
 
           {/* ── ÓRDENES DE PEDIDO A PROVEEDOR (HD / MG / RS) ── */}
           {puedeEditar && <OrdenesPedidoPanel comanda={comanda} proveedores={proveedores} />}
+
+          {/* ── TELAS DE TRADICIONALES PARA PEDIR A LAS TIENDAS ── */}
+          {puedeEditar && <TelasAPedirPanel telas={telasAPedir} />}
 
           {/* ── DESGLOSE DE CORTINAS POR AMBIENTE ── */}
           <div className="space-y-4">

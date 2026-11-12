@@ -39,7 +39,7 @@ import type { ICaracteristicasItem } from "@/modules/mediciones/types"
 import { Package, AlertTriangle, Check } from "lucide-react"
 import { formatearPrecio, formatearFecha, fmtMedida } from "@/lib/utils"
 import { AvisoMedidaModificada } from "@/components/shared/aviso-medida-modificada"
-import { conGasa } from "../lib/texto-presupuesto"
+import { conGasa, telaDeFila, telasMasBaratasDeFila } from "../lib/texto-presupuesto"
 import {
   calcularTotalesPorOpcion,
   descripcionConOpcion,
@@ -585,6 +585,15 @@ export function PresupuestoDetalle({
                                   </span>
                                 )}
                               </span>
+                            )}
+                            {telaDeFila(it) && (
+                              <p className="mt-0.5 text-[11px] text-slate-600">Tela: {telaDeFila(it)}</p>
+                            )}
+                            {telasMasBaratasDeFila(it.calculoPrecio) && (
+                              <p className="mt-0.5 text-[11px] text-sky-800">
+                                <span className="mr-1 rounded bg-sky-100 px-1 text-[10px] font-black uppercase">Interno</span>
+                                {telasMasBaratasDeFila(it.calculoPrecio)}
+                              </p>
                             )}
                             {puedeEditar && it.avisoMedida && (
                               <AvisoMedidaModificada

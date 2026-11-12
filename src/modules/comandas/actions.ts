@@ -153,7 +153,7 @@ export async function generarComandaDesdePresupuesto(
       }
     })
 
-    // Sin fecha cargada: 25 días desde la aceptación del presupuesto
+    // Sin fecha cargada: 30 días desde la aceptación del presupuesto
     const fechaEntregaDate =
       fechaEntrega && fechaEntrega.trim() !== ""
         ? new Date(fechaEntrega)

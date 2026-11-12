@@ -12,6 +12,8 @@ import {
 } from "@/modules/metricas/queries"
 import { DashboardPedidosProveedor } from "@/modules/metricas/components/dashboard-pedidos-proveedor"
 import { DashboardAvisosMedida } from "@/modules/metricas/components/dashboard-avisos-medida"
+import { DashboardListasPrecios } from "@/modules/metricas/components/dashboard-listas-precios"
+import { obtenerListasPendientes } from "@/modules/proveedores/lib/listas-telas/aplicar-lista"
 import { DashboardKpiCard } from "@/modules/metricas/components/dashboard-kpi-card"
 import { DashboardVisitasHoy } from "@/modules/metricas/components/dashboard-visitas-hoy"
 import { DashboardInstalacionesProximas } from "@/modules/metricas/components/dashboard-instalaciones-proximas"
@@ -95,9 +97,13 @@ export default async function DashboardPage() {
   }
 
   // Vista completa para ADMIN_GENERAL y ADMINISTRACION
-  const [avisosMedida, resumenPedidos] = await Promise.all([
+  const [avisosMedida, resumenPedidos, listasPendientes] = await Promise.all([
     obtenerAvisosMedidaModificada(),
     obtenerResumenPedidosProveedor(),
+    obtenerListasPendientes().catch((err) => {
+      console.error("Error al obtener las listas de precios pendientes:", err)
+      return []
+    }),
   ])
 
   return (
@@ -123,6 +129,9 @@ export default async function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Aviso del día 1: listas de precios de proveedores para actualizar */}
+      <DashboardListasPrecios pendientes={listasPendientes} />
 
       {/* Alerta: medidas modificadas después de presupuestar */}
       <DashboardAvisosMedida avisos={avisosMedida} />

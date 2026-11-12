@@ -37,6 +37,8 @@ import type {
 import { ListaPreciosProveedor } from "./lista-precios-proveedor"
 import { TablasMedidaProveedor } from "./tablas-medida-proveedor"
 import { PlanillaPreciosProveedor } from "./planilla-precios-proveedor"
+import { ListaArchivoProveedor } from "./lista-archivo-proveedor"
+import type { IListaArchivoProveedor } from "../lib/listas-telas/aplicar-lista"
 import { ProveedorEstadoBadge } from "./proveedor-estado-badge"
 import { OrdenCompraEstadoBadge } from "./orden-compra-estado-badge"
 import { OrdenCompraWhatsAppButton } from "./orden-compra-whatsapp-button"
@@ -64,6 +66,8 @@ interface ProveedorDetalleViewProps {
   tablasMedida?: IResumenTablaMedida[]
   /** Precios copiados de la planilla de Google Sheets del proveedor */
   preciosPlanilla?: IPrecioPlanilla[]
+  /** Lista que se actualiza subiendo el archivo del proveedor (telas o accesorios RS) */
+  listaArchivo?: IListaArchivoProveedor | null
   puedeVerCostos: boolean
   puedeAdministrar: boolean
   puedeEmitirOrden: boolean
@@ -78,6 +82,7 @@ export function ProveedorDetalleView({
   listaPrecios,
   tablasMedida = [],
   preciosPlanilla = [],
+  listaArchivo = null,
   puedeVerCostos,
   puedeAdministrar,
   puedeEmitirOrden,
@@ -230,6 +235,11 @@ export function ProveedorDetalleView({
           </div>
         </div>
       </div>
+
+      {/* ── LISTA POR ARCHIVO (telas de tradicionales / accesorios RS) ── */}
+      {puedeVerCostos && listaArchivo && (
+        <ListaArchivoProveedor proveedorId={proveedor.id} lista={listaArchivo} puedeAdministrar={puedeAdministrar} />
+      )}
 
       {/* ── LISTA DE PRECIOS (solo para quien puede ver costos) ── */}
       {puedeVerCostos && listaPrecios.length > 0 && (

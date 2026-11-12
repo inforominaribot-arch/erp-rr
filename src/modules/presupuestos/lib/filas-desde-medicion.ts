@@ -11,8 +11,15 @@ import { textoToldo } from "@/modules/mediciones/lib/toldos"
 import {
   cortinasFisicas,
   etiquetaCortinaFisica,
+  tipoDeCapa,
   type ICortinaFisica,
 } from "@/modules/mediciones/lib/cortinas-fisicas"
+import {
+  accesoriosBarral,
+  calcularTradicional,
+  configDesdeMedicion,
+  type ITelaTradicional,
+} from "./tradicional"
 import type { ItemPresupuestoInput } from "../schemas"
 import { calcularToldoPergola, type IPrecioInsumoPT } from "./toldo-pergola"
 import { calcularToldoSoloTela, calcularToldoVertical } from "./toldo-vertical"
@@ -103,6 +110,53 @@ export function calcularFilaCortina(
   return {
     precioUnitario: resultado.precio ?? 0,
     calculoPrecio: armarCalculoPrecio(metodo, entrada, resultado),
+  }
+}
+
+/** Cortina tradicional: tela de la medición buscada en las listas de las tiendas, riel / barral y accesorios. */
+export function calcularFilaTradicional(
+  k: Pick<ICortinaFisica, "capa" | "nombreTela">,
+  carac: ICaracteristicasItem | null,
+  ancho: number,
+  alto: number,
+  telas: ITelaTradicional[],
+  lista: IItemListaCalculo[]
+): Pick<ItemPresupuestoInput, "precioUnitario" | "calculoPrecio"> {
+  const dosCapas =
+    Boolean(carac?.gaza?.activa && carac?.bo?.activa) &&
+    tipoDeCapa(carac as ICaracteristicasItem, "GAZA") === "Tradicional" &&
+    tipoDeCapa(carac as ICaracteristicasItem, "BO") === "Tradicional"
+  const cfg = configDesdeMedicion(
+    ancho,
+    alto,
+    {
+      capa: k.capa === "GAZA" || k.capa === "BO" ? k.capa : null,
+      nombreTela: k.nombreTela,
+      sistema: carac?.sistema ?? null,
+      tipoSoporte: carac?.tipoSoporte ?? null,
+      varianteSoporte: carac?.varianteSoporte ?? null,
+      cantidadSoportes: carac?.cantidadSoportes ?? null,
+      dosCapasTradicionales: dosCapas,
+    },
+    telas,
+    accesoriosBarral(lista)
+  )
+  const r = calcularTradicional(ancho, alto, cfg)
+  return {
+    precioUnitario: r.precio ?? 0,
+    calculoPrecio: {
+      metodo: "TRADICIONAL",
+      entrada: {},
+      opciones: {},
+      desglose: r.desglose,
+      formula: r.formula,
+      precioCalculado: r.precio,
+      precioManual: false,
+      avisos: r.avisos,
+      avisoActualizacion: null,
+      calculadoEn: new Date().toISOString(),
+      tradicional: cfg,
+    },
   }
 }
 
@@ -204,7 +258,8 @@ export function filasDeAbertura(
   opcion?: { caracteristicas: Record<string, unknown> | null; nombreOpcion: string; esOpcionPrincipal: boolean },
   soloCapa?: string | null,
   tablaMG: ICeldaPrecioMedida[] = [],
-  preciosPT: IPrecioInsumoPT[] = []
+  preciosPT: IPrecioInsumoPT[] = [],
+  telas: ITelaTradicional[] = []
 ): ItemPresupuestoInput[] {
   const carac = (opcion?.caracteristicas ?? it.caracteristicas) as ICaracteristicasItem | null
   const cortinas = cortinasFisicas(carac, it.ancho, it.alto).filter((k) => !soloCapa || k.capa === soloCapa)
@@ -240,6 +295,8 @@ export function filasDeAbertura(
         : carac?.toldo?.subtipo === "VERTICAL"
         ? calcularFilaVertical(carac, k.ancho, k.alto, preciosPT)
         : calcularFilaPergola(carac, k.ancho, k.alto, preciosPT)
+      : k.tipoCapa === "Tradicional"
+      ? calcularFilaTradicional(k, carac, k.ancho, k.alto, telas, lista)
       : calcularFilaCortina(k, k.ancho, k.alto, lista)
     return {
       itemMedicionId: it.id,
@@ -252,6 +309,8 @@ export function filasDeAbertura(
             ...carac.nocheTotal,
             cajones: [carac.nocheTotal.cajones?.[k.indice] ?? null],
           })}`.slice(0, 250)
+        : k.tipoCapa === "Tradicional" && carac?.sistema
+        ? `${descripcionCortina(it.descripcion, k)} con ${carac.sistema.toLowerCase()}`.slice(0, 250)
         : descripcionCortina(it.descripcion, k),
       ambiente,
       ancho: k.ancho,
@@ -277,7 +336,8 @@ export function filasDesdeMedicion(
   medicion: MedicionImportable,
   lista: IItemListaCalculo[],
   tablaMG: ICeldaPrecioMedida[] = [],
-  preciosPT: IPrecioInsumoPT[] = []
+  preciosPT: IPrecioInsumoPT[] = [],
+  telas: ITelaTradicional[] = []
 ): ItemPresupuestoInput[] {
   const filas: ItemPresupuestoInput[] = []
   const controles = new Map<string, { marca: string; canales: number; cantidad: number }>()
@@ -285,7 +345,7 @@ export function filasDesdeMedicion(
   for (const amb of medicion.ambientes) {
     const ambiente = amb.nombre || "General"
     for (const it of amb.items) {
-      const deAbertura = filasDeAbertura(it, ambiente, lista, undefined, null, tablaMG, preciosPT)
+      const deAbertura = filasDeAbertura(it, ambiente, lista, undefined, null, tablaMG, preciosPT, telas)
       // Cada capa es un grupo (se acepta entera y puede tener alternativas)
       const grupos = new Map<string, string>()
       for (const f of deAbertura) {

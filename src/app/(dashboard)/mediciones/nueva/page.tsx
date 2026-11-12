@@ -3,6 +3,7 @@ import { MedicionForm } from "@/modules/mediciones/components/medicion-form"
 import {
   obtenerClientesParaMedicion,
   obtenerTelasParaMedicion,
+  obtenerNombresTelasTradicional,
   obtenerCeldasMosquitero,
 } from "@/modules/mediciones/queries"
 import { TelasListaProvider } from "@/modules/mediciones/components/selector-tela-lista"
@@ -24,10 +25,11 @@ export default async function NuevaMedicionPage({
   const params = await searchParams
   const clienteIdParam = params?.clienteId
 
-  const [clientes, telas, celdasMosquitero] = await Promise.all([
+  const [clientes, telas, celdasMosquitero, telasTradicional] = await Promise.all([
     obtenerClientesParaMedicion(),
     obtenerTelasParaMedicion(),
     obtenerCeldasMosquitero(),
+    obtenerNombresTelasTradicional(),
   ])
 
   // Si vino un clienteId por URL, preparar objeto inicial con ese cliente
@@ -49,7 +51,7 @@ export default async function NuevaMedicionPage({
         descripcion="Relevá aberturas, ambientes, telas y especificaciones técnicas para presupuesto y confección"
       />
 
-      <TelasListaProvider telas={telas} celdasMosquitero={celdasMosquitero}>
+      <TelasListaProvider telas={telas} celdasMosquitero={celdasMosquitero} telasTradicional={telasTradicional}>
       <MedicionForm
         clientesIniciales={clientes}
         medicionExistente={medicionInicial}

@@ -204,7 +204,7 @@ model Presupuesto {
   total           Decimal           @default(0) @db.Decimal(12, 2)
   notas           String?
   validezDias     Int               @default(15) @map("validez_dias")
-  // Cuándo se aceptó (total o parcial): la entrega de la comanda es 25 días después
+  // Cuándo se aceptó (total o parcial): la entrega de la comanda es 30 días después
   fechaAceptacion DateTime?         @map("fecha_aceptacion")
   creadoEn        DateTime          @default(now()) @map("creado_en")
   actualizadoEn   DateTime          @updatedAt @map("actualizado_en")
@@ -406,6 +406,14 @@ model Proveedor {
   planillaPreciosUrl     String?   @map("planilla_precios_url")
   planillaSincronizadaEn DateTime? @map("planilla_sincronizada_en")
   planillaErrorSync      String?   @map("planilla_error_sync")
+  // Lista de telas para cortinas tradicionales (ALHAMBRA | BIA_BREM | SIROTA): define cómo se lee el archivo
+  // y el recargo que se aplica al presupuestar
+  formatoListaTelas      String?   @map("formato_lista_telas")
+  listaTelasVigencia     String?   @map("lista_telas_vigencia")
+  // Último día en que se subió la lista o se confirmó "no cambiaron los precios" (aviso del día 1 de cada mes)
+  listaConfirmadaEn      DateTime? @map("lista_confirmada_en")
+  // Se avisa el día 1 de cada mes que hay que actualizar la lista de este proveedor
+  avisoListaMensual      Boolean   @default(false) @map("aviso_lista_mensual")
   creadoEn               DateTime  @default(now()) @map("creado_en")
   actualizadoEn          DateTime  @updatedAt @map("actualizado_en")
 
@@ -416,8 +424,33 @@ model Proveedor {
   listaPrecios    ListaPrecioItem[]
   preciosMedida   PrecioMedidaItem[]
   preciosPlanilla PrecioPlanillaItem[]
+  telas           ListaTelaItem[]
 
   @@map("proveedores")
+}
+
+// Tela de la lista de precios de una tienda de telas (Alhambra, Bia Brem, Sirota) para las cortinas tradicionales.
+// "precio" es el de la lista tal cual (sin recargo): el recargo depende del formato del proveedor.
+model ListaTelaItem {
+  id             String    @id @default(uuid())
+  proveedorId    String    @map("proveedor_id")
+  nombre         String // Nombre que se busca al presupuestar (único por proveedor)
+  descripcion    String? // Composición / aclaración de la lista
+  rubro          String? // Rubro o sección de la lista (ej: "BLACK OUT")
+  codigo         String?
+  ancho          Decimal?  @db.Decimal(6, 2) // Ancho del rollo en metros
+  precio         Decimal   @db.Decimal(12, 2)
+  precioAnterior Decimal?  @map("precio_anterior") @db.Decimal(12, 2)
+  orden          Int       @default(0)
+  activo         Boolean   @default(true)
+  creadoEn       DateTime  @default(now()) @map("creado_en")
+  actualizadoEn  DateTime  @updatedAt @map("actualizado_en")
+
+  proveedor Proveedor @relation(fields: [proveedorId], references: [id], onDelete: Cascade)
+
+  @@unique([proveedorId, nombre])
+  @@index([proveedorId, activo])
+  @@map("lista_telas_items")
 }
 
 // Categorías de la lista de precios (definen el recargo que se aplica al presupuestar)

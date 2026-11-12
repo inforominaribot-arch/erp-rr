@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import { obtenerComandaPorId, obtenerProveedoresParaPedidos } from "@/modules/comandas/queries"
 import { tienePermisoModuloComandas } from "@/modules/comandas/lib/auth"
 import { ComandaDetalle } from "@/modules/comandas/components/comanda-detalle"
+import { obtenerTelasAPedirComanda } from "@/modules/comandas/lib/telas-a-pedir"
 import { AlertCircle } from "lucide-react"
 
 export const dynamic = "force-dynamic"
@@ -49,6 +50,13 @@ export default async function ComandaDetallePage({
   }
 
   const iniciarEnImpresion = imprimir === "true"
+  // Telas de tradicionales para pedir a las tiendas (muestra costos: solo Administración)
+  const telasAPedir = authEscritura.permitido
+    ? await obtenerTelasAPedirComanda(id).catch((err) => {
+        console.error("Error al armar las telas a pedir de la comanda:", err)
+        return []
+      })
+    : []
 
   return (
     <ComandaDetalle
@@ -56,6 +64,7 @@ export default async function ComandaDetallePage({
       puedeEditar={authEscritura.permitido}
       iniciarEnImpresion={iniciarEnImpresion}
       proveedores={proveedores}
+      telasAPedir={telasAPedir}
     />
   )
 }

@@ -11,8 +11,6 @@ import {
   Check,
 } from "lucide-react"
 import {
-  calcularTradicionalEstandar,
-  calcularTradicionalInvertido,
   calcularRollerRS,
   calcularHunterDouglas,
   VALORES_DEFECTO_PRECIOS,
@@ -20,6 +18,18 @@ import {
 import { formatearPrecio } from "@/lib/utils"
 import { CalculoListaRS } from "./calculo-lista-rs"
 import { CalculoToldoPT } from "./calculo-toldo-pt"
+import { CalculoTradicional } from "./calculo-tradicional"
+import type { ICaracteristicasItem } from "@/modules/mediciones/types"
+import { tipoDeCapa } from "@/modules/mediciones/lib/cortinas-fisicas"
+import {
+  ALTO_MAX_ESTANDAR,
+  accesoriosBarral,
+  calcularTradicional,
+  configDesdeMedicion,
+  refrescarCapa,
+  type ConfigTradicional,
+  type ITelaTradicional,
+} from "../lib/tradicional"
 import type { IPrecioInsumoPT } from "../lib/toldo-pergola"
 import {
   recalcularFila,
@@ -54,6 +64,11 @@ interface PresupuestoCalculadoraModalProps {
   preciosPT?: IPrecioInsumoPT[]
   /** La cortina se pide solo tela / solo riel (se avisa al cotizar, ej: en la página de HD) */
   modoCortina?: "Solo tela" | "Solo riel" | null
+  /** Telas de las listas de las tiendas (cortinas tradicionales) */
+  telasTradicional?: ITelaTradicional[]
+  /** Capa de la fila (Gasa / B.O.) y especificación de la medición, para armar la tradicional por defecto */
+  capaFila?: "GAZA" | "BO" | null
+  caracteristicasFila?: ICaracteristicasItem | null
 }
 
 export function PresupuestoCalculadoraModal({
@@ -69,7 +84,11 @@ export function PresupuestoCalculadoraModal({
   tablaMG = [],
   preciosPT = [],
   modoCortina = null,
+  telasTradicional = [],
+  capaFila = null,
+  caracteristicasFila = null,
 }: PresupuestoCalculadoraModalProps) {
+  const esTrad = calculoInicial?.metodo === "TRADICIONAL"
   const esMG = calculoInicial?.metodo === "MG_MOSQUITERO" || calculoInicial?.metodo === "MG_NOCHE_TOTAL"
   const esPT =
     calculoInicial?.metodo === "PT_PERGOLA" ||
@@ -77,7 +96,7 @@ export function PresupuestoCalculadoraModal({
     calculoInicial?.metodo === "PT_VERTICAL_TP2" ||
     calculoInicial?.metodo === "PT_SOLO_TELA"
   const conListaRS =
-    Boolean(calculoInicial) && (esPT ? preciosPT.length > 0 : esMG ? tablaMG.length > 0 : listaRS.length > 0)
+    Boolean(calculoInicial) && !esTrad && (esPT ? preciosPT.length > 0 : esMG ? tablaMG.length > 0 : listaRS.length > 0)
   // Dimensiones base
   const [ancho, setAncho] = useState<number>(anchoInicial)
   const [alto, setAlto] = useState<number>(altoInicial)
@@ -86,14 +105,17 @@ export function PresupuestoCalculadoraModal({
   // Determinar pestaña sugerida según descripción y medidas
   const sugerirTipo = (): TipoCalculo => {
     if (conListaRS) return "LISTA_RS"
+    if (esTrad && calculoInicial?.tradicional) {
+      return calculoInicial.tradicional.modo === "INVERTIDO" ? "TRADICIONAL_INVERTIDO" : "TRADICIONAL_ESTANDAR"
+    }
     const desc = descripcionInicial.toLowerCase()
     if (desc.includes("hd") || desc.includes("hunter")) return "HUNTER_DOUGLAS"
     if (desc.includes("mg")) return "DIRECTO_MG"
     if (desc.includes("roller") || desc.includes("rs")) return "ROLLER_RS"
     if (desc.includes("tradicional") || desc.includes("gaza") || desc.includes("riel") || desc.includes("barral")) {
-      return altoInicial > 2.85 ? "TRADICIONAL_INVERTIDO" : "TRADICIONAL_ESTANDAR"
+      return altoInicial > ALTO_MAX_ESTANDAR ? "TRADICIONAL_INVERTIDO" : "TRADICIONAL_ESTANDAR"
     }
-    return altoInicial > 2.85 ? "TRADICIONAL_INVERTIDO" : "TRADICIONAL_ESTANDAR"
+    return altoInicial > ALTO_MAX_ESTANDAR ? "TRADICIONAL_INVERTIDO" : "TRADICIONAL_ESTANDAR"
   }
 
   const [tipo, setTipo] = useState<TipoCalculo>(sugerirTipo())
@@ -108,35 +130,59 @@ export function PresupuestoCalculadoraModal({
     }
   }, [abierto, anchoInicial, altoInicial, cantidadInicial, descripcionInicial])
 
-  // 1. Estado Tradicional Estándar (<= 2.85 m)
-  const [tradLlevaGaza, setTradLlevaGaza] = useState(true)
-  const [tradPrecioGaza, setTradPrecioGaza] = useState(25000)
-  const [tradLlevaBO1_5, setTradLlevaBO1_5] = useState(false)
-  const [tradPrecioBO1_5, setTradPrecioBO1_5] = useState(28000)
-  const [tradLlevaBO2, setTradLlevaBO2] = useState(false)
-  const [tradPrecioBO2, setTradPrecioBO2] = useState(30000)
-  const [tradPrecioRiel, setTradPrecioRiel] = useState(
-    VALORES_DEFECTO_PRECIOS.precioRielMetroTradicional
-  )
-  const [tradPrecioConfeccion, setTradPrecioConfeccion] = useState(
-    VALORES_DEFECTO_PRECIOS.precioConfeccionMetroTradicional
-  )
-  const [tradPrecioInstalacion, setTradPrecioInstalacion] = useState(
-    VALORES_DEFECTO_PRECIOS.precioInstalacionTradicional
-  )
-
-  // 2. Estado Tradicional Invertido (> 2.85 m)
-  const [invPrecioTelaMetro, setInvPrecioTelaMetro] = useState(35000)
-  const [invAnchoRollo, setInvAnchoRollo] = useState(2.8)
-  const [invPrecioRiel, setInvPrecioRiel] = useState(
-    VALORES_DEFECTO_PRECIOS.precioRielMetroInvertido
-  )
-  const [invPrecioConfeccion, setInvPrecioConfeccion] = useState(
-    VALORES_DEFECTO_PRECIOS.precioConfeccionMetroInvertido
-  )
-  const [invPrecioInstalacion, setInvPrecioInstalacion] = useState(
-    VALORES_DEFECTO_PRECIOS.precioInstalacionInvertido
-  )
+  // 1 y 2. Tradicional (estándar / paño invertido): lo guardado en la fila, o armado desde la medición
+  const accesoriosTrad = accesoriosBarral(listaRS)
+  const [cfgTrad, setCfgTrad] = useState<ConfigTradicional>(() => {
+    const guardada = calculoInicial?.tradicional
+    if (guardada) {
+      return {
+        ...guardada,
+        gasa: refrescarCapa(guardada.gasa, telasTradicional),
+        bo: refrescarCapa(guardada.bo, telasTradicional),
+        tela: refrescarCapa(guardada.tela, telasTradicional),
+      }
+    }
+    const c = caracteristicasFila
+    const dosCapas =
+      Boolean(c?.gaza?.activa && c?.bo?.activa) &&
+      tipoDeCapa(c as ICaracteristicasItem, "GAZA") === "Tradicional" &&
+      tipoDeCapa(c as ICaracteristicasItem, "BO") === "Tradicional"
+    return configDesdeMedicion(
+      anchoInicial,
+      altoInicial,
+      {
+        capa: capaFila,
+        nombreTela: capaFila === "BO" ? c?.bo?.nombreTela : c?.gaza?.nombreTela,
+        sistema: c?.sistema ?? null,
+        tipoSoporte: c?.tipoSoporte ?? null,
+        varianteSoporte: c?.varianteSoporte ?? null,
+        cantidadSoportes: c?.cantidadSoportes ?? null,
+        dosCapasTradicionales: dosCapas,
+      },
+      telasTradicional,
+      accesoriosTrad
+    )
+  })
+  // La pestaña elegida define el modo; la confección por defecto cambia con el modo
+  const modoTrad = tipo === "TRADICIONAL_INVERTIDO" ? "INVERTIDO" : "ESTANDAR"
+  const cfgTradActual: ConfigTradicional =
+    cfgTrad.modo === modoTrad
+      ? cfgTrad
+      : {
+          ...cfgTrad,
+          modo: modoTrad,
+          precioConfeccionMetro:
+            modoTrad === "INVERTIDO" && cfgTrad.precioConfeccionMetro === VALORES_DEFECTO_PRECIOS.precioConfeccionMetroTradicional
+              ? VALORES_DEFECTO_PRECIOS.precioConfeccionMetroInvertido
+              : modoTrad === "ESTANDAR" && cfgTrad.precioConfeccionMetro === VALORES_DEFECTO_PRECIOS.precioConfeccionMetroInvertido
+              ? VALORES_DEFECTO_PRECIOS.precioConfeccionMetroTradicional
+              : cfgTrad.precioConfeccionMetro,
+          // Paño invertido sin tela elegida: la de la capa de la fila
+          ...(modoTrad === "INVERTIDO" && !cfgTrad.tela.nombre
+            ? { tela: { ...(cfgTrad.bo.lleva && !cfgTrad.gasa.lleva ? cfgTrad.bo : cfgTrad.gasa), lleva: true } }
+            : {}),
+        }
+  const resultadoTrad = calcularTradicional(ancho, alto, cfgTradActual)
 
   // 3. Estado Roller RS
   const [rsPrecioTelaM2, setRsPrecioTelaM2] = useState(35000)
@@ -176,33 +222,12 @@ export function PresupuestoCalculadoraModal({
   let precioCalculadoUnitario = 0
   let desgloseTexto = ""
 
-  if (tipo === "TRADICIONAL_ESTANDAR") {
-    const res = calcularTradicionalEstandar({
-      ancho,
-      llevaGaza: tradLlevaGaza,
-      precioTelaGaza: tradPrecioGaza,
-      llevaBO1_5: tradLlevaBO1_5,
-      precioTelaBO1_5: tradPrecioBO1_5,
-      llevaBO2: tradLlevaBO2,
-      precioTelaBO2: tradPrecioBO2,
-      precioRielMetro: tradPrecioRiel,
-      precioConfeccionMetro: tradPrecioConfeccion,
-      precioInstalacion: tradPrecioInstalacion,
-    })
-    precioCalculadoUnitario = res.total
-    desgloseTexto = res.formulaTexto
-  } else if (tipo === "TRADICIONAL_INVERTIDO") {
-    const res = calcularTradicionalInvertido({
-      ancho,
-      alto,
-      precioTelaMetro: invPrecioTelaMetro,
-      anchoRolloTela: invAnchoRollo,
-      precioRielMetro: invPrecioRiel,
-      precioConfeccionMetro: invPrecioConfeccion,
-      precioInstalacion: invPrecioInstalacion,
-    })
-    precioCalculadoUnitario = res.total
-    desgloseTexto = res.formulaTexto
+  if (tipo === "TRADICIONAL_ESTANDAR" || tipo === "TRADICIONAL_INVERTIDO") {
+    precioCalculadoUnitario = resultadoTrad.precio ?? 0
+    desgloseTexto =
+      resultadoTrad.precio === null
+        ? "Falta elegir algo para calcular el precio (ver avisos)."
+        : `${resultadoTrad.formula} = ${formatearPrecio(resultadoTrad.precio)}`
   } else if (tipo === "ROLLER_RS") {
     const res = calcularRollerRS({
       ancho,
@@ -237,6 +262,21 @@ export function PresupuestoCalculadoraModal({
 
   /** Cálculo con la lista para guardar en la fila (al aplicar desde la pestaña Lista RS) */
   function calculoParaAplicar(): CalculoPrecio | null {
+    if (tipo === "TRADICIONAL_ESTANDAR" || tipo === "TRADICIONAL_INVERTIDO") {
+      return {
+        metodo: "TRADICIONAL",
+        entrada: {},
+        opciones: {},
+        desglose: resultadoTrad.desglose,
+        formula: resultadoTrad.formula,
+        precioCalculado: resultadoTrad.precio,
+        precioManual: false,
+        avisos: resultadoTrad.avisos,
+        avisoActualizacion: null,
+        calculadoEn: new Date().toISOString(),
+        tradicional: cfgTradActual,
+      }
+    }
     if (tipo !== "LISTA_RS" || !calculoInicial || !resultadoRS) return null
     return {
       ...calculoInicial,
@@ -395,9 +435,9 @@ export function PresupuestoCalculadoraModal({
                   const val = parseFloat(e.target.value) || 0
                   setAlto(val)
                   // Sugerir cambio de pestaña si supera 2.85m en tradicionales
-                  if (val > 2.85 && tipo === "TRADICIONAL_ESTANDAR") {
+                  if (val > ALTO_MAX_ESTANDAR && tipo === "TRADICIONAL_ESTANDAR") {
                     setTipo("TRADICIONAL_INVERTIDO")
-                  } else if (val <= 2.85 && tipo === "TRADICIONAL_INVERTIDO") {
+                  } else if (val <= ALTO_MAX_ESTANDAR && tipo === "TRADICIONAL_INVERTIDO") {
                     setTipo("TRADICIONAL_ESTANDAR")
                   }
                 }}
@@ -406,231 +446,28 @@ export function PresupuestoCalculadoraModal({
             </div>
           </div>
 
-          {/* 1. TRADICIONAL ESTÁNDAR */}
-          {tipo === "TRADICIONAL_ESTANDAR" && (
+          {/* 1 y 2. TRADICIONAL (estándar o paño invertido) */}
+          {(tipo === "TRADICIONAL_ESTANDAR" || tipo === "TRADICIONAL_INVERTIDO") && (
             <div className="space-y-4">
-              <div className="rounded-lg bg-blue-50/60 p-3 border border-blue-100 text-xs text-blue-900">
-                Fórmula de taller: Riel ($50k/m) + Confección ($50k/m) + Telas (Gasa x2 o BO) + Instalación ($40k por capa).
+              <div
+                className={`rounded-lg p-3 border text-xs ${
+                  tipo === "TRADICIONAL_INVERTIDO"
+                    ? "bg-amber-50 border-amber-200 text-amber-900"
+                    : "bg-blue-50/60 border-blue-100 text-blue-900"
+                }`}
+              >
+                {tipo === "TRADICIONAL_INVERTIDO"
+                  ? "Alto mayor a 2,85 m: paños = ancho × 2 / ancho del rollo (redondeado para arriba), metros de tela = paños × (alto + 0,20). Tela con el recargo de cada tienda."
+                  : "Por capa: riel o barral + confección (por metro) + tela (ancho × frunce) + instalación. Tela con el recargo de cada tienda; con barral se suman argollas, terminales y soportes."}
               </div>
-
-              {/* Capas de Tela */}
-              <div className="space-y-2.5">
-                <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  Capas y Telas Seleccionadas
-                </label>
-
-                {/* Gaza */}
-                <div className="flex items-center justify-between rounded-xl border border-slate-200 p-3 bg-white">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-800">
-                    <input
-                      type="checkbox"
-                      checked={tradLlevaGaza}
-                      onChange={(e) => setTradLlevaGaza(e.target.checked)}
-                      className="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
-                    />
-                    Gasa (Frunce x2)
-                  </label>
-                  {tradLlevaGaza && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500">Precio/m: $</span>
-                      <input
-                        type="number"
-                        step="500"
-                        value={tradPrecioGaza}
-                        onChange={(e) =>
-                          setTradPrecioGaza(parseFloat(e.target.value) || 0)
-                        }
-                        className="w-28 rounded-lg border border-slate-300 px-2.5 py-1 text-xs text-right font-bold"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* BO 1.5 */}
-                <div className="flex items-center justify-between rounded-xl border border-slate-200 p-3 bg-white">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-800">
-                    <input
-                      type="checkbox"
-                      checked={tradLlevaBO1_5}
-                      onChange={(e) => {
-                        setTradLlevaBO1_5(e.target.checked)
-                        if (e.target.checked) setTradLlevaBO2(false)
-                      }}
-                      className="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
-                    />
-                    Blackout (Frunce x1.5)
-                  </label>
-                  {tradLlevaBO1_5 && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500">Precio/m: $</span>
-                      <input
-                        type="number"
-                        step="500"
-                        value={tradPrecioBO1_5}
-                        onChange={(e) =>
-                          setTradPrecioBO1_5(parseFloat(e.target.value) || 0)
-                        }
-                        className="w-28 rounded-lg border border-slate-300 px-2.5 py-1 text-xs text-right font-bold"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* BO 2 */}
-                <div className="flex items-center justify-between rounded-xl border border-slate-200 p-3 bg-white">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-800">
-                    <input
-                      type="checkbox"
-                      checked={tradLlevaBO2}
-                      onChange={(e) => {
-                        setTradLlevaBO2(e.target.checked)
-                        if (e.target.checked) setTradLlevaBO1_5(false)
-                      }}
-                      className="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
-                    />
-                    Blackout (Frunce x2)
-                  </label>
-                  {tradLlevaBO2 && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500">Precio/m: $</span>
-                      <input
-                        type="number"
-                        step="500"
-                        value={tradPrecioBO2}
-                        onChange={(e) =>
-                          setTradPrecioBO2(parseFloat(e.target.value) || 0)
-                        }
-                        className="w-28 rounded-lg border border-slate-300 px-2.5 py-1 text-xs text-right font-bold"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Ajustes de Costos Fijos */}
-              <div className="grid grid-cols-3 gap-2.5 pt-2">
-                <div>
-                  <span className="text-[11px] font-semibold text-slate-500">
-                    Riel ($/m)
-                  </span>
-                  <input
-                    type="number"
-                    value={tradPrecioRiel}
-                    onChange={(e) =>
-                      setTradPrecioRiel(parseFloat(e.target.value) || 0)
-                    }
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-semibold"
-                  />
-                </div>
-                <div>
-                  <span className="text-[11px] font-semibold text-slate-500">
-                    Confección ($/m)
-                  </span>
-                  <input
-                    type="number"
-                    value={tradPrecioConfeccion}
-                    onChange={(e) =>
-                      setTradPrecioConfeccion(parseFloat(e.target.value) || 0)
-                    }
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-semibold"
-                  />
-                </div>
-                <div>
-                  <span className="text-[11px] font-semibold text-slate-500">
-                    Instalación ($/capa)
-                  </span>
-                  <input
-                    type="number"
-                    value={tradPrecioInstalacion}
-                    onChange={(e) =>
-                      setTradPrecioInstalacion(parseFloat(e.target.value) || 0)
-                    }
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-semibold"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 2. TRADICIONAL PAÑO INVERTIDO */}
-          {tipo === "TRADICIONAL_INVERTIDO" && (
-            <div className="space-y-4">
-              <div className="rounded-lg bg-amber-50 p-3 border border-amber-200 text-xs text-amber-900">
-                Alto mayor a 2.85m: calcula unión de paños verticales. Metros de tela = Paños × (Alto + 0.20m). Ganancia 1.5 e IVA 1.21 sobre tela.
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-700">
-                    Precio tela por metro lineal ($)
-                  </label>
-                  <input
-                    type="number"
-                    value={invPrecioTelaMetro}
-                    onChange={(e) =>
-                      setInvPrecioTelaMetro(parseFloat(e.target.value) || 0)
-                    }
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-700">
-                    Ancho rollo de tela (metros)
-                  </label>
-                  <select
-                    value={invAnchoRollo}
-                    onChange={(e) =>
-                      setInvAnchoRollo(parseFloat(e.target.value) || 2.8)
-                    }
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold bg-white"
-                  >
-                    <option value="2.8">2.80 m (Estándar)</option>
-                    <option value="3.0">3.00 m (Extra ancho)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2.5 pt-2">
-                <div>
-                  <span className="text-[11px] font-semibold text-slate-500">
-                    Riel ($/m)
-                  </span>
-                  <input
-                    type="number"
-                    value={invPrecioRiel}
-                    onChange={(e) =>
-                      setInvPrecioRiel(parseFloat(e.target.value) || 0)
-                    }
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-semibold"
-                  />
-                </div>
-                <div>
-                  <span className="text-[11px] font-semibold text-slate-500">
-                    Confección Invertida ($/m)
-                  </span>
-                  <input
-                    type="number"
-                    value={invPrecioConfeccion}
-                    onChange={(e) =>
-                      setInvPrecioConfeccion(parseFloat(e.target.value) || 0)
-                    }
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-semibold"
-                  />
-                </div>
-                <div>
-                  <span className="text-[11px] font-semibold text-slate-500">
-                    Instalación ($)
-                  </span>
-                  <input
-                    type="number"
-                    value={invPrecioInstalacion}
-                    onChange={(e) =>
-                      setInvPrecioInstalacion(parseFloat(e.target.value) || 0)
-                    }
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-semibold"
-                  />
-                </div>
-              </div>
+              <CalculoTradicional
+                cfg={cfgTradActual}
+                onCambiar={setCfgTrad}
+                ancho={ancho}
+                telas={telasTradicional}
+                accesorios={accesoriosTrad}
+                resultado={resultadoTrad}
+              />
             </div>
           )}
 
@@ -845,7 +682,10 @@ export function PresupuestoCalculadoraModal({
             </button>
             <button
               type="button"
-              disabled={tipo === "LISTA_RS" && resultadoRS?.precio == null}
+              disabled={
+                (tipo === "LISTA_RS" && resultadoRS?.precio == null) ||
+                ((tipo === "TRADICIONAL_ESTANDAR" || tipo === "TRADICIONAL_INVERTIDO") && resultadoTrad.precio === null)
+              }
               onClick={() => {
                 onAplicarPrecio(precioCalculadoUnitario, calculoParaAplicar())
                 onCerrar()

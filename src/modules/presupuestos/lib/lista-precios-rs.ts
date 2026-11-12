@@ -30,6 +30,7 @@ import { VALORES_DEFECTO_PRECIOS } from "./calculadora-precios"
 import type { IToldoConfig } from "@/modules/mediciones/lib/toldos"
 import { calcularToldoPergola, type IPrecioInsumoPT } from "./toldo-pergola"
 import { calcularToldoSoloTela, calcularToldoVertical } from "./toldo-vertical"
+import { calcularTradicional, configTradicionalSchema } from "./tradicional"
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
@@ -79,6 +80,7 @@ export type MetodoCalculoRS =
   | "PT_VERTICAL_TP1"
   | "PT_VERTICAL_TP2"
   | "PT_SOLO_TELA"
+  | "TRADICIONAL"
 
 /** Celda de una tabla por medida con su precio (MagicRoll) */
 export interface ICeldaPrecioMedida extends ICeldaMosquitero {
@@ -150,6 +152,7 @@ export const calculoPrecioSchema = z.object({
     "PT_VERTICAL_TP1",
     "PT_VERTICAL_TP2",
     "PT_SOLO_TELA",
+    "TRADICIONAL",
   ]),
   entrada: entradaCalculoSchema.default({}),
   opciones: opcionesCalculoSchema.default({}),
@@ -162,6 +165,8 @@ export const calculoPrecioSchema = z.object({
   /** Último aviso del recálculo automático (ej: no se actualizó por precio corregido a mano) */
   avisoActualizacion: z.string().max(200).nullable().optional(),
   calculadoEn: z.string().max(40).optional(),
+  /** Cortina tradicional: telas, riel / barral, accesorios y precios cargados en la calculadora */
+  tradicional: configTradicionalSchema.optional(),
 })
 export type CalculoPrecio = z.infer<typeof calculoPrecioSchema>
 
@@ -717,6 +722,11 @@ export function recalcularFila(
   preciosPT: IPrecioInsumoPT[] = []
 ): ResultadoCalculoRS | null {
   const calc = fila.calculoPrecio
+  if (calc.metodo === "TRADICIONAL") {
+    if (!calc.tradicional) return null
+    const r = calcularTradicional(fila.ancho, fila.alto, calc.tradicional)
+    return { ...r, opciones: calc.opciones }
+  }
   if (calc.metodo === "PT_PERGOLA") {
     if (preciosPT.length === 0) return null
     return calcularToldoPergola(

@@ -5,6 +5,7 @@ import {
   guardarMedicionLocal,
   obtenerCeldasMosquiteroLocales,
   obtenerTelasLocales,
+  obtenerTelasTradicionalLocales,
 } from "../services/storage-service"
 import type { ICeldaMosquitero } from "@/modules/mediciones/lib/mosquiteros"
 import type { IMedicionOffline, ITelaMedicion } from "@/modules/mediciones/types"
@@ -38,9 +39,11 @@ export function MedicionFormMobile({
   // Telas de la lista bajadas en la última sincronización (selector de tela en capas RS)
   const [telas, setTelas] = useState<ITelaMedicion[]>([])
   const [celdasMosquitero, setCeldasMosquitero] = useState<ICeldaMosquitero[]>([])
+  const [telasTradicional, setTelasTradicional] = useState<string[]>([])
   useEffect(() => {
     obtenerTelasLocales().then(setTelas)
     obtenerCeldasMosquiteroLocales().then(setCeldasMosquitero)
+    obtenerTelasTradicionalLocales().then(setTelasTradicional)
   }, [])
 
   const [ambientes, setAmbientes] = useState<any[]>(
@@ -215,7 +218,7 @@ export function MedicionFormMobile({
             Elegí el cliente para que la medición se guarde automáticamente.
           </p>
         )}
-        <TelasListaProvider telas={telas} celdasMosquitero={celdasMosquitero}>
+        <TelasListaProvider telas={telas} celdasMosquitero={celdasMosquitero} telasTradicional={telasTradicional}>
           <AmbienteManager
             ambientes={ambientes}
             onAmbientesChange={cambiarAmbientes}

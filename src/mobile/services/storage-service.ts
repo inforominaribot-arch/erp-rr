@@ -425,3 +425,22 @@ export async function obtenerCeldasMosquiteroLocales(): Promise<ICeldaMosquitero
 export async function guardarCeldasMosquiteroLocales(celdas: ICeldaMosquitero[]): Promise<void> {
   await Preferences.set({ key: KEY_MOSQUITEROS, value: JSON.stringify(celdas) })
 }
+
+// ─── Nombres de las telas de las tiendas (sugerencias en capas Tradicionales) ─
+
+const KEY_TELAS_TRADICIONAL = "telas_tradicional"
+
+export async function obtenerTelasTradicionalLocales(): Promise<string[]> {
+  try {
+    const { value } = await Preferences.get({ key: KEY_TELAS_TRADICIONAL })
+    const datos = value ? JSON.parse(value) : []
+    return Array.isArray(datos) ? datos.filter((x): x is string => typeof x === "string") : []
+  } catch (err) {
+    console.error("Error al leer las telas de tradicionales locales:", err)
+    return []
+  }
+}
+
+export async function guardarTelasTradicionalLocales(nombres: string[]): Promise<void> {
+  await Preferences.set({ key: KEY_TELAS_TRADICIONAL, value: JSON.stringify(nombres) })
+}

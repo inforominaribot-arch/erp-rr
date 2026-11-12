@@ -1,6 +1,7 @@
 // Módulo: App Medición (PWA)
 // Consultas de solo-lectura con Prisma
 
+import { obtenerTelasTradicional } from "@/modules/presupuestos/queries"
 import { prisma } from "@/lib/prisma"
 import type { FiltrosMedicionInput } from "./schemas"
 import type { IMedicion, IItemMedicion, IAmbiente, ITelaMedicion } from "./types"
@@ -291,6 +292,20 @@ export async function obtenerCeldasMosquitero(): Promise<ICeldaMosquitero[]> {
     })
   } catch (error) {
     console.error("Error al obtener las medidas de los mosquiteros:", error)
+    return []
+  }
+}
+
+/**
+ * Nombres de las telas de las listas de las tiendas (Alhambra, Bia Brem, Sirota), sin precios,
+ * para sugerir al escribir la tela de una capa Tradicional (web y tablet).
+ */
+export async function obtenerNombresTelasTradicional(): Promise<string[]> {
+  try {
+    const telas = await obtenerTelasTradicional()
+    return telas.map((t) => t.nombre)
+  } catch (error) {
+    console.error("Error al obtener los nombres de telas de tradicionales:", error)
     return []
   }
 }
