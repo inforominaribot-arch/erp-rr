@@ -30,6 +30,7 @@ import { VALORES_DEFECTO_PRECIOS } from "./calculadora-precios"
 import type { IToldoConfig } from "@/modules/mediciones/lib/toldos"
 import { calcularToldoPergola, type IPrecioInsumoPT } from "./toldo-pergola"
 import { calcularToldoSoloTela, calcularToldoVertical } from "./toldo-vertical"
+import { calcularToldoProyeccion } from "./toldo-proyeccion"
 import { calcularTradicional, configTradicionalSchema } from "./tradicional"
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
@@ -80,6 +81,7 @@ export type MetodoCalculoRS =
   | "PT_VERTICAL_TP1"
   | "PT_VERTICAL_TP2"
   | "PT_SOLO_TELA"
+  | "PT_PROYECCION"
   | "TRADICIONAL"
 
 /** Celda de una tabla por medida con su precio (MagicRoll) */
@@ -112,6 +114,9 @@ export const opcionesCalculoSchema = z.object({
   precioBrazoCaduta: z.number().min(0).max(100_000_000).optional(),
   // Toldo Vertical con tela Cristal: se terceriza, va directo (sin × 1,5)
   precioCristal: z.number().min(0).max(100_000_000).optional(),
+  // Toldo de Proyección: origen y medida del brazo (si no se eligen acá, los de la medición)
+  origenBrazo: z.enum(["Italiano", "Italmec", "Nacional"]).nullable().optional(),
+  brazoProyeccion: z.string().max(10).nullable().optional(),
 })
 export type OpcionesCalculo = z.infer<typeof opcionesCalculoSchema>
 
@@ -154,6 +159,7 @@ export const calculoPrecioSchema = z.object({
     "PT_VERTICAL_TP1",
     "PT_VERTICAL_TP2",
     "PT_SOLO_TELA",
+    "PT_PROYECCION",
     "TRADICIONAL",
   ]),
   entrada: entradaCalculoSchema.default({}),
@@ -740,6 +746,14 @@ export function recalcularFila(
   if (calc.metodo === "PT_VERTICAL_TP1" || calc.metodo === "PT_VERTICAL_TP2") {
     if (preciosPT.length === 0) return null
     return calcularToldoVertical(
+      { toldo: calc.entrada.toldo as Partial<IToldoConfig> | undefined, ancho: fila.ancho, alto: fila.alto },
+      calc.opciones,
+      preciosPT
+    )
+  }
+  if (calc.metodo === "PT_PROYECCION") {
+    if (preciosPT.length === 0) return null
+    return calcularToldoProyeccion(
       { toldo: calc.entrada.toldo as Partial<IToldoConfig> | undefined, ancho: fila.ancho, alto: fila.alto },
       calc.opciones,
       preciosPT

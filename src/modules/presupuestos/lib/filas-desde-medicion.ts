@@ -23,6 +23,7 @@ import {
 import type { ItemPresupuestoInput } from "../schemas"
 import { calcularToldoPergola, type IPrecioInsumoPT } from "./toldo-pergola"
 import { calcularToldoSoloTela, calcularToldoVertical } from "./toldo-vertical"
+import { calcularToldoProyeccion } from "./toldo-proyeccion"
 import type { MedicionImportable } from "../types"
 import { conGasa } from "./texto-presupuesto"
 import {
@@ -234,6 +235,24 @@ export function calcularFilaVertical(
   }
 }
 
+/** Toldo de Proyección completo PRINTEMPS: sistema brazo escondido + insumos × 1,5 + domótica × 2 (motor, domótica, confección e instalación a mano). */
+export function calcularFilaProyeccion(
+  carac: ICaracteristicasItem | null,
+  ancho: number,
+  proyeccion: number,
+  preciosPT: IPrecioInsumoPT[],
+  opciones: OpcionesCalculo = {}
+): Pick<ItemPresupuestoInput, "precioUnitario" | "calculoPrecio"> {
+  const t = carac?.toldo
+  if (preciosPT.length === 0 || t?.subtipo !== "PROYECCION" || t.soloTela) return { precioUnitario: 0, calculoPrecio: null }
+  const entrada = { tipoCapa: "Toldo", toldo: t as unknown as Record<string, unknown> }
+  const resultado = calcularToldoProyeccion({ toldo: t, ancho, alto: proyeccion }, opciones, preciosPT)
+  return {
+    precioUnitario: resultado.precio ?? 0,
+    calculoPrecio: armarCalculoPrecio("PT_PROYECCION", entrada, resultado),
+  }
+}
+
 /** Toldo Solo tela PRINTEMPS (Vertical y Proyección): tela + spaghetti + lo elegido con TP1, × 1,5 (confección e instalación a mano). */
 export function calcularFilaSoloTela(
   carac: ICaracteristicasItem | null,
@@ -296,6 +315,8 @@ export function filasDeAbertura(
         ? calcularFilaSoloTela(carac, k.ancho, k.alto, preciosPT)
         : carac?.toldo?.subtipo === "VERTICAL"
         ? calcularFilaVertical(carac, k.ancho, k.alto, preciosPT)
+        : carac?.toldo?.subtipo === "PROYECCION"
+        ? calcularFilaProyeccion(carac, k.ancho, k.alto, preciosPT)
         : calcularFilaPergola(carac, k.ancho, k.alto, preciosPT)
       : k.tipoCapa === "Tradicional"
       ? calcularFilaTradicional(k, carac, k.ancho, k.alto, telas, lista)

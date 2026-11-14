@@ -18,6 +18,13 @@ export const BARRAS_FRENTE_TOLDO = ["TP1", "TP2"] as const
 /** Largo de los brazos del TP2 (m) */
 export const BRAZOS_TP2 = ["0,8", "1", "1,2", "1,4", "1,6", "1,8"] as const
 export const TIPOS_PROYECCION = ["Punta a Punta", "Barra Cuadra"] as const
+/** Proyección completa: origen del sistema brazo escondido */
+export const ORIGENES_BRAZO_PROYECCION = ["Italiano", "Italmec", "Nacional"] as const
+/** Proyección completa: ancho mínimo y máximo (más de 5,50 m lleva compensador: no se hace) */
+export const ANCHO_MIN_PROYECCION = 2
+export const ANCHO_MAX_PROYECCION = 5.5
+/** La proyección tiene que ser al menos 40 cm menor que el ancho */
+export const MARGEN_PROYECCION = 0.4
 export const MECANISMOS_TOLDO = ["Manual", "Motorizado"] as const
 export const MAQUINAS_TOLDO = ["Máquina importada polifuncional", "Máquina importada súper"] as const
 /** En toldos la marca Tube ahora se llama HUNA (las mediciones viejas guardan "Tube": ver normalizarMotorToldo) */
@@ -47,6 +54,7 @@ export type CanoToldo = (typeof CANOS_TOLDO)[number]
 export type BarraFrenteToldo = (typeof BARRAS_FRENTE_TOLDO)[number]
 export type BrazoTP2 = (typeof BRAZOS_TP2)[number]
 export type TipoProyeccion = (typeof TIPOS_PROYECCION)[number]
+export type OrigenBrazoProyeccion = (typeof ORIGENES_BRAZO_PROYECCION)[number]
 export type MecanismoToldo = (typeof MECANISMOS_TOLDO)[number]
 export type MaquinaToldo = (typeof MAQUINAS_TOLDO)[number]
 export type MotorToldo = (typeof MOTORES_TOLDO)[number]
@@ -76,6 +84,10 @@ export interface IToldoConfig {
 
   // Proyección
   tipoProyeccion?: TipoProyeccion
+  /** Proyección completa: sistema brazo escondido */
+  origenBrazo?: OrigenBrazoProyeccion
+  /** Proyección completa: largo del brazo ("1,60"), de las medidas del sistema según el ancho */
+  brazoProyeccion?: string
   pollerita?: boolean
 
   // Pérgola Barrio: el ítem guarda ancho × largo; acá van la distancia del piso al toldo
@@ -119,6 +131,64 @@ export interface IToldoConfig {
   colorTela: string
   /** Línea del color (Sauleda, Printemps, Muaari Lisas…) */
   lineaTela?: string
+}
+
+// ─── Brazos de Proyección ───────────────────────────────────────────────────
+
+const B160 = ["1,60"]
+const B160_260 = ["1,60", "2,10", "2,60"]
+const B160_310 = ["1,60", "2,10", "2,60", "3,10"]
+const B150 = ["1,50"]
+const B150_250 = ["1,50", "2,00", "2,50"]
+const B150_300 = ["1,50", "2,00", "2,50", "3,00"]
+const B150_350 = ["1,50", "2,00", "2,50", "3,00", "3,50"]
+
+/**
+ * Medidas de brazo del "SISTEMA BRAZO ESCONDIDO" de la planilla de PRINTEMPS, por tipo, origen y ancho del sistema
+ * (2 a 5 m, sin compensador). Si PRINTEMPS agrega medidas, hay que actualizarlo acá (la tablet mide sin conexión).
+ */
+export const BRAZOS_PROYECCION: Record<TipoProyeccion, Record<OrigenBrazoProyeccion, Record<number, readonly string[]>>> = {
+  "Barra Cuadra": {
+    Italiano: { 2: B160, 3: B160_260, 4: B160_310, 5: B160_310 },
+    Italmec: { 2: B150, 3: B150_250, 4: B150_350, 5: B150_350 },
+    Nacional: { 2: B160, 3: B160_260, 4: B160_310, 5: B160_310 },
+  },
+  "Punta a Punta": {
+    Italiano: { 2: B160, 3: B160_260, 4: B160_260, 5: B160_260 },
+    Italmec: { 2: B150, 3: B150_250, 4: B150_300, 5: B150_300 },
+    Nacional: { 2: B160, 3: B160_260, 4: B160_260, 5: B160_260 },
+  },
+}
+
+/** Ancho del sistema con el que se ofrecen los brazos al medir: el ancho redondeado para abajo (3,50 → 3 m) */
+export function anchoSistemaMedicion(ancho: number): number {
+  return Math.min(5, Math.max(2, Math.floor(ancho + 1e-9)))
+}
+
+/** Ancho del sistema que se cobra: redondeado para arriba; de 5,01 a 5,50 m va el de 5 m (sin compensador) */
+export function anchoSistemaPrecio(ancho: number): number {
+  if (ancho > 5 && ancho <= ANCHO_MAX_PROYECCION + 1e-9) return 5
+  return Math.max(2, Math.ceil(ancho - 1e-9))
+}
+
+/** Medidas de brazo que ofrece la medición para el tipo, origen y ancho */
+export function opcionesBrazoProyeccion(
+  tipo: TipoProyeccion | undefined,
+  origen: OrigenBrazoProyeccion | undefined,
+  ancho: number
+): readonly string[] {
+  if (!tipo || !origen || !(ancho >= ANCHO_MIN_PROYECCION - 1e-9) || ancho > ANCHO_MAX_PROYECCION + 1e-9) return []
+  return BRAZOS_PROYECCION[tipo][origen][anchoSistemaMedicion(ancho)] ?? []
+}
+
+/** Ancho y proyección posibles para la Proyección completa (null si están bien) */
+export function errorMedidasProyeccion(ancho: number, proyeccion: number): string | null {
+  if (ancho < ANCHO_MIN_PROYECCION - 1e-9) return "El toldo de proyección no se hace de menos de 2,00 m de ancho."
+  if (ancho > ANCHO_MAX_PROYECCION + 1e-9) return "El toldo de proyección no se hace de más de 5,50 m de ancho."
+  if (proyeccion > ancho - MARGEN_PROYECCION + 1e-9) {
+    return `La proyección tiene que ser al menos 40 cm menor que el ancho (máximo ${(ancho - MARGEN_PROYECCION).toFixed(2).replace(".", ",")} m).`
+  }
+  return null
 }
 
 // ─── Catálogo de telas ──────────────────────────────────────────────────────
@@ -315,7 +385,9 @@ export function limpiarToldo(t: Partial<IToldoConfig>): Partial<IToldoConfig> {
     subtipo: t.subtipo,
     colorPerfileria: t.colorPerfileria,
     cano: t.cano,
-    ...(vertical ? { barraFrente: t.barraFrente } : { tipoProyeccion: t.tipoProyeccion }),
+    ...(vertical
+      ? { barraFrente: t.barraFrente }
+      : { tipoProyeccion: t.tipoProyeccion, origenBrazo: t.origenBrazo, brazoProyeccion: t.origenBrazo ? t.brazoProyeccion : undefined }),
     pollerita: t.pollerita ?? false,
     ...(tp1 ? { tensor: t.tensor, brazoCaputa: t.brazoCaputa, sujecionPiso: t.sujecionPiso ?? 0 } : {}),
     ...(tp2 ? { brazos: t.brazos } : {}),
@@ -412,8 +484,14 @@ export function validarToldo(t: Partial<IToldoConfig> | null | undefined, ancho:
       if (t.brazoCaputa === undefined) return "Elegí si lleva brazo Caduta importado."
     }
     if (t.barraFrente === "TP2" && !t.brazos) return "Elegí el largo de los brazos del TP2."
-  } else if (!t.tipoProyeccion) {
-    return "Elegí el tipo (Punta a Punta o Barra Cuadra)."
+  } else {
+    const errorMedidas = errorMedidasProyeccion(ancho, alto)
+    if (errorMedidas) return errorMedidas
+    if (!t.tipoProyeccion) return "Elegí el tipo (Punta a Punta o Barra Cuadra)."
+    if (!t.origenBrazo) return "Elegí el origen del brazo (Italiano, Italmec o Nacional)."
+    if (!t.brazoProyeccion || !opcionesBrazoProyeccion(t.tipoProyeccion, t.origenBrazo, ancho).includes(t.brazoProyeccion)) {
+      return "Elegí la medida del brazo."
+    }
   }
   if (!t.mecanismo) return "Elegí el mecanismo (Manual o Motorizado)."
   if (t.mecanismo === "Manual") {
@@ -544,7 +622,11 @@ export function lineasToldo(t: Partial<IToldoConfig> | null | undefined): string
   } else if (vertical && t.barraFrente === "TP2") {
     lineas.push(`Barra frente TP2 · Brazos ${t.brazos ?? "-"} m`)
   } else if (!vertical && t.tipoProyeccion) {
-    lineas.push(t.tipoProyeccion)
+    lineas.push(
+      [t.tipoProyeccion, t.origenBrazo ? `Brazo ${t.origenBrazo}${t.brazoProyeccion ? ` ${t.brazoProyeccion} m` : ""}` : null]
+        .filter(Boolean)
+        .join(" · ")
+    )
   }
   if (t.mecanismo === "Manual") {
     lineas.push(

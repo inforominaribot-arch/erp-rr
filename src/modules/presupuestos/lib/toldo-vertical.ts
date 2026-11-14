@@ -16,7 +16,8 @@
 //  - Cubre toldo: cubre techo ⌈ancho del cubre toldo + 0,10⌉ ml + perchas al precio de la ménsula
 //
 // Solo tela (Vertical TP1 y TP2, Proyección; método PT_SOLO_TELA): tela + spaghetti, y con TP1 lo que se haya elegido:
-// tensor (soporte, cable, prensas y tapa con pasacable) y sujeción al piso. Precio = insumos × 1,5 + confección + instalación.
+// tensor (soporte, cable, prensas y tapa con pasacable) y sujeción al piso. Proyección: también spaghetti grueso
+// del frente (3 × ancho). Precio = insumos × 1,5 + confección + instalación.
 
 import {
   descripcionMotorToldo,
@@ -43,7 +44,7 @@ export const FACTOR_DOMOTICA_TOLDO = 2
 const LARGOS_FRENTE_TP1 = [2, 3, 4, 5, 6]
 
 // Insumos de la planilla de PRINTEMPS (se buscan por el comienzo del texto, sin tildes ni mayúsculas)
-const INSUMOS = {
+export const INSUMOS = {
   tubo70: "TUBO 70 NERVADO",
   tubo80: "TUBO 80 NERVADO",
   frente: "FRENTE TP1 PARA CORTINA VERTICAL",
@@ -60,6 +61,7 @@ const INSUMOS = {
   cable: "CABLE DE ACERO 2,5 mm x ml",
   prensa: "PRENSA LINGA 5 mm",
   spaghetti: "SPAGUETTI FINO TUBO NERVADO",
+  spaghettiGrueso: "SPAGUETTI GRUESO FRENTE DE TOLDO",
   soportePlano: "JUEGO DE ESCUADRAS PLANAS",
   escuadra: "JUEGO DE ESCUADRAS BLANCAS O NEGRAS",
   cubreTecho: "CUBRE TECHO ALUMINIO PARA TOLDOS X ML",
@@ -71,7 +73,7 @@ const MAQUINAS: Record<MaquinaToldo, string> = {
   "Máquina importada súper": "MAQUINA SUPER 11:1 SIN ESCUADRAS",
 }
 
-const MANIJAS: Record<MedidaManijaToldo, string> = {
+export const MANIJAS: Record<MedidaManijaToldo, string> = {
   "1": "MANIJA DE 1,00 m, NEGRA / BLANCA NACIONAL",
   "1,25": "MANIJA DE 1,25 m. NEGRA / BLANCA NACIONAL",
   "1,5": "MANIJA DE 1,50 m. NEGRA / BLANCA NACIONAL",
@@ -266,6 +268,9 @@ export function calcularToldoVertical(
     )
   }
   if (!cristal) dePlanilla("Spaghetti fino", INSUMOS.spaghetti, r2(3 * ancho), "m", "3 × ancho")
+  if (!completo && t.subtipo === "PROYECCION") {
+    dePlanilla("Spaghetti grueso frente", INSUMOS.spaghettiGrueso, r2(3 * ancho), "m", "3 × ancho")
+  }
 
   // Adicionales de la medición
   if ((t.soportePlano ?? 0) > 0) dePlanilla("Soporte plano", INSUMOS.soportePlano, t.soportePlano ?? 0, "par")

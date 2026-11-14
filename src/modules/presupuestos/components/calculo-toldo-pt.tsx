@@ -1,11 +1,19 @@
 "use client"
 
-// Pestaña "Toldo PT" de la calculadora: Toldo Pérgola Barrio y Toldo Vertical TP1 y TP2 PRINTEMPS. Insumos de la planilla
+// Pestaña "Toldo PT" de la calculadora: Toldo Pérgola Barrio, Toldo Vertical TP1 y TP2 y de Proyección PRINTEMPS. Insumos de la planilla
 // del proveedor, precios propios editables y lo que se carga a mano (madera o motor, domótica y brazo, confección, instalación).
 
 import { AlertTriangle, Ruler } from "lucide-react"
 import { formatearPrecio } from "@/lib/utils"
-import { descripcionMotorToldo, lineasToldo, normalizarMotorToldo, type IToldoConfig } from "@/modules/mediciones/lib/toldos"
+import {
+  ORIGENES_BRAZO_PROYECCION,
+  descripcionMotorToldo,
+  lineasToldo,
+  normalizarMotorToldo,
+  opcionesBrazoProyeccion,
+  type IToldoConfig,
+  type OrigenBrazoProyeccion,
+} from "@/modules/mediciones/lib/toldos"
 import type { CalculoPrecio, OpcionesCalculo, ResultadoCalculoRS } from "../lib/lista-precios-rs"
 import { PRECIO_ALAMBRE_METRO, PRECIO_MENSULA, PRECIO_PUENTE_MEDIA, telasPosibles } from "../lib/toldo-pergola"
 
@@ -56,8 +64,12 @@ export function CalculoToldoPT({ calculo, ancho, opciones, onCambiarOpciones, re
   const anchosTela = telasPosibles(toldo)
   const fmtM = (n: number) => n.toLocaleString("es-AR", { maximumFractionDigits: 2 })
   const esSoloTela = calculo.metodo === "PT_SOLO_TELA"
-  // Vertical y Solo tela no llevan madera ni los precios propios de la pérgola
-  const esVertical = calculo.metodo === "PT_VERTICAL_TP1" || calculo.metodo === "PT_VERTICAL_TP2" || esSoloTela
+  const esProyeccion = calculo.metodo === "PT_PROYECCION"
+  // Vertical, Proyección y Solo tela no llevan madera ni los precios propios de la pérgola
+  const esVertical = calculo.metodo === "PT_VERTICAL_TP1" || calculo.metodo === "PT_VERTICAL_TP2" || esSoloTela || esProyeccion
+  // Proyección: origen y medida del brazo (por defecto los de la medición)
+  const origenBrazo = (efectivas.origenBrazo ?? undefined) as OrigenBrazoProyeccion | undefined
+  const brazosProyeccion = esProyeccion ? opcionesBrazoProyeccion(toldo.tipoProyeccion, origenBrazo, ancho) : []
   const motorizado = esVertical && toldo.mecanismo === "Motorizado"
   const motorAMano = motorizado && normalizarMotorToldo(toldo.motor) !== "Oximo"
 
@@ -67,6 +79,8 @@ export function CalculoToldoPT({ calculo, ancho, opciones, onCambiarOpciones, re
         <p className="font-bold">
           {esSoloTela
             ? "Toldo Solo tela PRINTEMPS (insumos × 1,5 + confección + instalación)"
+            : esProyeccion
+            ? "Toldo de Proyección PRINTEMPS (insumos × 1,5 + domótica × 2 + confección + instalación)"
             : esVertical
             ? `Toldo Vertical ${calculo.metodo === "PT_VERTICAL_TP2" ? "TP2" : "TP1"} PRINTEMPS (insumos × 1,5 + domótica × 2 + confección + instalación)`
             : "Toldo Pérgola Barrio PRINTEMPS (insumos × 1,5 + confección + instalación)"}
@@ -77,6 +91,47 @@ export function CalculoToldoPT({ calculo, ancho, opciones, onCambiarOpciones, re
           </p>
         ))}
       </div>
+
+      {esProyeccion && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-bold text-slate-700">Sistema brazo escondido</label>
+            <select
+              value={origenBrazo ?? ""}
+              onChange={(e) => {
+                const origen = (e.target.value || null) as OrigenBrazoProyeccion | null
+                const medidas = origen ? opcionesBrazoProyeccion(toldo.tipoProyeccion, origen, ancho) : []
+                const brazo = efectivas.brazoProyeccion && medidas.includes(efectivas.brazoProyeccion) ? efectivas.brazoProyeccion : medidas[0] ?? null
+                cambiar({ origenBrazo: origen, brazoProyeccion: brazo })
+              }}
+              className={`${claseInput} ${!origenBrazo ? "border-amber-400 bg-amber-50" : ""}`}
+            >
+              <option value="">Elegir…</option>
+              {ORIGENES_BRAZO_PROYECCION.map((o) => (
+                <option key={o} value={o}>
+                  {toldo.tipoProyeccion ?? ""} {o}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-slate-700">Medida del brazo</label>
+            <select
+              value={efectivas.brazoProyeccion ?? ""}
+              onChange={(e) => cambiar({ origenBrazo: origenBrazo ?? null, brazoProyeccion: e.target.value || null })}
+              disabled={brazosProyeccion.length === 0}
+              className={`${claseInput} ${!efectivas.brazoProyeccion || !brazosProyeccion.includes(efectivas.brazoProyeccion) ? "border-amber-400 bg-amber-50" : ""}`}
+            >
+              <option value="">Elegir…</option>
+              {brazosProyeccion.map((b) => (
+                <option key={b} value={b}>
+                  {b} m
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
       {anchosTela.length > 1 && (
         <div>
@@ -165,7 +220,7 @@ export function CalculoToldoPT({ calculo, ancho, opciones, onCambiarOpciones, re
         </div>
       </div>
 
-      {(!esVertical || toldo.cubreToldo) && (
+      {(!esVertical || (toldo.cubreToldo && !esProyeccion)) && (
       <details className="rounded-lg border border-slate-200 p-3">
         <summary className="cursor-pointer text-xs font-bold text-slate-700">Precios propios (stock y otros)</summary>
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">

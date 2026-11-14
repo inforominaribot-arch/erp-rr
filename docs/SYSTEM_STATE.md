@@ -840,7 +840,7 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
   Calculadora: pestaña "Toldo PT" con el detalle, la madera a comprar, los campos a mano y los precios propios editables.
 
 ### ⏳ Pendiente
-- Presupuesto del toldo de Proyección (el Vertical TP1 y TP2 ya están).
+- ~~Presupuesto del toldo de Proyección~~ (hecho el 2026-11-14, ver abajo).
 - "Recalcular presupuestos con la lista" todavía no recalcula toldos.
 
 
@@ -934,3 +934,10 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 - **TelaEntrego** (formato `TELA_ENTREGO`, PDF): solo Gasa Pesada Premium (color 2,75 × 2,25), Tusor Pesado y Tusor Extra Pesado (color 2,80 × 1,5, ancho 2,85) y Gabardina (blanco 1,50 × 2). Aviso del día 1 como las otras tiendas. Color de la tela en texto libre en la calculadora de tradicionales (sale en el presupuesto y en las telas a pedir).
 - **Alhambra**: las telas del rubro "LINOS 100% Y CORTINERIA PREMIUN" salen como "ARGOT - Cortinería Premium Lino 100%".
 - Requiere `prisma db push` (tablas `arquitectos`, `_ClienteArquitectos` y columna `notificaciones_tablet.arquitecto_id`) y generar el APK.
+
+## Actualización — Presupuesto del Toldo de Proyección completo (2026-11-14)
+
+- **Medición** (`lib/toldos.ts`, `toldo-pasos.tsx`; hay que generar el APK): en Proyección completa, después del tipo se elige el **sistema brazo escondido** (`origenBrazo`: Italiano, Italmec o Nacional) y la **medida del brazo** (`brazoProyeccion`, ej. "2,10"). Las medidas salen de `BRAZOS_PROYECCION` (copia de la planilla, por tipo, origen y ancho de 2 a 5 m) con el ancho **redondeado para abajo** (3,50 → las del de 3 m). Ancho de 2,00 a 5,50 m y proyección ≤ ancho − 0,40 (`errorMedidasProyeccion`): si no, la app avisa y no deja seguir. Si PRINTEMPS agrega medidas, hay que actualizar `BRAZOS_PROYECCION`.
+- **Presupuesto** (`lib/toldo-proyeccion.ts`, `calcularToldoProyeccion`, método `PT_PROYECCION`): sistema brazo escondido del tipo, origen y brazo, sin compensador, del ancho **redondeado para arriba** (de 5,01 a 5,50 m va el de 5 m; `anchoSistemaPrecio`; ya incluye brazos, soportes y pernos) · manual: máquina importada 11:1 sin escuadra + manijas nacionales · motorizado: motor y control a mano · tubo 70/80 ⌈ancho⌉ m y calotas como el Vertical · frente TP2 ⌈ancho⌉ m · juego de tapas frente TP2 (color perfilería) · enganche terminal italiano (brazo italiano) o reforzado (Italmec y nacional) · tela (proyección + 0,6 con pollerita / + 0,4 sin) × paños · spaghetti fino y grueso 3 × ancho c/u · cubre toldo: cubre techo ⌈ancho + 0,10⌉ ml + 1 soporte por percha (el de Barra Cuadra o el común) + 1 juego de tapas. Precio = insumos × 1,5 + domótica × 2 + confección + instalación.
+- **Calculadora**: en "Toldo PT" se pueden cambiar el origen y la medida del brazo (`opciones.origenBrazo` / `opciones.brazoProyeccion`; si no, los de la medición). Sirve para las mediciones viejas sin brazo (avisan "Falta elegir el brazo").
+- **Solo tela de Proyección**: suma también el spaghetti grueso del frente (3 × ancho).

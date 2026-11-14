@@ -17,16 +17,19 @@ import {
   MAX_DIVISIONES_PERGOLA,
   MECANISMOS_TOLDO,
   MEDIDAS_MANIJA_TOLDO,
+  ORIGENES_BRAZO_PROYECCION,
   SUBTIPOS_TOLDO,
   TIPOS_PROYECCION,
   accesoriosAutomaticosToldo,
   buscarColoresTela,
   coloresDeTela,
+  errorMedidasProyeccion,
   etiquetaMedidaManija,
   limpiarToldo,
   modelosDeMotorToldo,
   motoresDisponibles,
   nombreTelaToldo,
+  opcionesBrazoProyeccion,
   normalizarMotorToldo,
   repartirAncho,
   sumaDivisiones,
@@ -145,6 +148,10 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
   const pergola = t.subtipo === "PERGOLA_BARRIO"
   const divisiones = t.divisiones ?? []
   const anchoNum = typeof ancho === "number" ? ancho : 0
+  const altoNum = typeof alto === "number" ? alto : 0
+  // Proyección completa: ancho de 2 a 5,50 m, proyección 40 cm menor que el ancho y brazos según el ancho
+  const errorProyeccion = !vertical && !pergola && !t.soloTela && anchoNum > 0 ? errorMedidasProyeccion(anchoNum, altoNum) : null
+  const brazosProyeccion = opcionesBrazoProyeccion(t.tipoProyeccion, t.origenBrazo, anchoNum)
   const cambiar = (cambios: Partial<IToldoConfig>) => onChange(limpiarToldo({ ...t, ...cambios }))
 
   const colores = coloresDeTela(t.tela, t.tipoTela)
@@ -438,6 +445,7 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
                 <Medida valor={alto} onCambiar={onAlto} />
               </div>
             </div>
+            {errorProyeccion && <p className="text-[11px] font-semibold text-rose-600">{errorProyeccion}</p>}
           </Paso>
 
           {vertical ? (
@@ -476,6 +484,32 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
           ) : (
             <Paso titulo="4 • Tipo">
               <Opciones opciones={TIPOS_PROYECCION} valor={t.tipoProyeccion} onElegir={(tipoProyeccion) => cambiar({ tipoProyeccion })} />
+              {t.tipoProyeccion && (
+                <div className="space-y-3 rounded-xl border border-slate-200 bg-white/70 p-3">
+                  <div className="space-y-1">
+                    <span className="block text-[11px] font-bold text-slate-600">Sistema brazo escondido</span>
+                    <Opciones
+                      opciones={ORIGENES_BRAZO_PROYECCION}
+                      valor={t.origenBrazo}
+                      onElegir={(origenBrazo) => cambiar({ origenBrazo, brazoProyeccion: undefined })}
+                    />
+                  </div>
+                  {t.origenBrazo && (
+                    <div className="space-y-1">
+                      <span className="block text-[11px] font-bold text-slate-600">Medida del brazo (m)</span>
+                      {brazosProyeccion.length > 0 ? (
+                        <Opciones
+                          opciones={brazosProyeccion}
+                          valor={t.brazoProyeccion}
+                          onElegir={(brazoProyeccion) => cambiar({ brazoProyeccion })}
+                        />
+                      ) : (
+                        <p className="text-[11px] font-semibold text-slate-500">Cargá un ancho de 2,00 a 5,50 m para ver las medidas.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </Paso>
           )}
 

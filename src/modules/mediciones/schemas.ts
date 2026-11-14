@@ -16,6 +16,7 @@ import {
   MOTORES_TOLDO,
   TELAS_TOLDO,
   TIPOS_PROYECCION,
+  ORIGENES_BRAZO_PROYECCION,
   TODOS_MODELOS_MOTOR_TOLDO,
 } from "./lib/toldos"
 
@@ -209,6 +210,8 @@ export const caracteristicasItemSchema = z.object({
       sujecionPiso: z.number().int().min(0).max(99).optional(),
       brazos: z.enum(BRAZOS_TP2).optional(),
       tipoProyeccion: z.enum(TIPOS_PROYECCION).optional(),
+      origenBrazo: z.enum(ORIGENES_BRAZO_PROYECCION).optional(),
+      brazoProyeccion: z.string().max(10).optional(),
       pollerita: z.boolean().optional(),
       altoPiso: z.number().min(0).max(20).optional(),
       caidaCm: z.number().min(0).max(500).optional(),
