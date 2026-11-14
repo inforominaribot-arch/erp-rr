@@ -18,6 +18,7 @@ import {
   BarChart3,
   ChevronDown,
   Building2,
+  DraftingCompass,
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -34,6 +35,7 @@ const navegacion = [
     items: [
       { nombre: "Visitas", href: "/visitas", icono: CalendarCheck },
       { nombre: "Clientes", href: "/clientes", icono: Users },
+      { nombre: "Arquitectos", href: "/arquitectos", icono: DraftingCompass },
       { nombre: "Mediciones", href: "/mediciones", icono: Ruler },
       { nombre: "Presupuestos", href: "/presupuestos", icono: FileText },
     ],

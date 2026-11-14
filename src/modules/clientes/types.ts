@@ -16,6 +16,8 @@ export interface ICliente {
   estado: EstadoCliente
   creadoEn: Date
   actualizadoEn: Date
+  /** Arquitectos que trajeron al cliente */
+  arquitectos?: { id: string; nombre: string }[]
 }
 
 // Cliente con conteo de trabajos (para la tabla/listado)

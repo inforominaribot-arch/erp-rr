@@ -31,7 +31,7 @@ export async function crearCliente(
       return { success: false, error: errorMsg }
     }
 
-    const { nombre, telefono, email, direccion, localidad, notas } = validacion.data
+    const { nombre, telefono, email, direccion, localidad, notas, arquitectoIds } = validacion.data
 
     const nuevoCliente = await prisma.cliente.create({
       data: {
@@ -42,8 +42,12 @@ export async function crearCliente(
         localidad: localidad ? localidad.trim() : null,
         notas: notas ? notas.trim() : null,
         estado: "MEDICION_TOMADA",
+        ...(arquitectoIds && arquitectoIds.length > 0
+          ? { arquitectos: { connect: [...new Set(arquitectoIds)].map((id) => ({ id })) } }
+          : {}),
       },
     })
+    revalidatePath("/arquitectos")
 
     revalidatePath("/clientes")
     revalidatePath("/clientes/pipeline")
@@ -88,7 +92,7 @@ export async function actualizarCliente(
       return { success: false, error: "El cliente seleccionado no existe." }
     }
 
-    const { nombre, telefono, email, direccion, localidad, notas } = validacion.data
+    const { nombre, telefono, email, direccion, localidad, notas, arquitectoIds } = validacion.data
 
     const clienteActualizado = await prisma.cliente.update({
       where: { id },
@@ -99,8 +103,11 @@ export async function actualizarCliente(
         direccion: direccion ? direccion.trim() : null,
         localidad: localidad ? localidad.trim() : null,
         notas: notas ? notas.trim() : null,
+        // Si viene la lista, reemplaza los arquitectos del cliente
+        ...(arquitectoIds ? { arquitectos: { set: [...new Set(arquitectoIds)].map((aid) => ({ id: aid })) } } : {}),
       },
     })
+    revalidatePath("/arquitectos")
 
     revalidatePath("/clientes")
     revalidatePath(`/clientes/${id}`)

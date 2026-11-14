@@ -7,11 +7,13 @@
 //  - ALHAMBRA (Excel): Rubro | Artículo | Descripción | Ancho | Precio (IVA INCLUIDO)        → recargo × 1,5
 //  - BIA_BREM (Excel): ... | CODIGO | NOMBRE | DESCRIPCION | ANCHO | FINAL (secciones en filas sueltas) → × 1,21 × 1,5
 //  - SIROTA  (PDF):    "130- 2470 - 01 al 23  Jaquard Tupungato IMP  1.40  poliester  $ 5.219,56" (más IVA) → × 1,21 × 1,5
+//  - TELA_ENTREGO (PDF): "Género  Color  Mts  $IVA 21%  $Desc  ..." con el género solo en el primer renglón de cada uno.
+//    Se usan solo 4 telas, cada una con su multiplicador sobre la primera columna (ya trae IVA): ver TELAS_TELA_ENTREGO.
 // El Excel se lee por los títulos de las columnas, así que cualquier proveedor con una lista parecida funciona.
 
 import type { Celda } from "./leer-archivos"
 
-export type FormatoListaTelas = "ALHAMBRA" | "BIA_BREM" | "SIROTA"
+export type FormatoListaTelas = "ALHAMBRA" | "BIA_BREM" | "SIROTA" | "TELA_ENTREGO"
 
 export const FORMATOS_LISTA_TELAS: Record<
   FormatoListaTelas,
@@ -20,10 +22,43 @@ export const FORMATOS_LISTA_TELAS: Record<
   ALHAMBRA: { nombre: "Alhambra", recargo: 1.5, textoRecargo: "× 1,5 (la lista ya trae IVA)", archivo: "Excel o PDF" },
   BIA_BREM: { nombre: "Bia Brem", recargo: 1.21 * 1.5, textoRecargo: "× 1,21 × 1,5", archivo: "Excel o PDF" },
   SIROTA: { nombre: "Sirota", recargo: 1.21 * 1.5, textoRecargo: "× 1,21 × 1,5", archivo: "PDF o Excel" },
+  TELA_ENTREGO: {
+    nombre: "TelaEntrego",
+    recargo: 1,
+    textoRecargo: "Gasa Pesada Premium × 2,25 · Tusor Pesado y Extra Pesado × 1,5 · Gabardina × 2 (la lista ya trae IVA)",
+    archivo: "PDF",
+  },
 }
 
 export function esFormatoListaTelas(v: unknown): v is FormatoListaTelas {
-  return v === "ALHAMBRA" || v === "BIA_BREM" || v === "SIROTA"
+  return v === "ALHAMBRA" || v === "BIA_BREM" || v === "SIROTA" || v === "TELA_ENTREGO"
+}
+
+/**
+ * Telas que se usan de TelaEntrego: renglón de la lista (género, color y ancho de la lista), multiplicador
+ * sobre la primera columna (IVA 21%, 100 a 599 m) y el ancho del rollo con el que se calcula.
+ */
+export const TELAS_TELA_ENTREGO = [
+  { nombre: "Gasa Pesada Premium", genero: "gasa pesada premium", color: "color", mts: "2,75", recargo: 2.25, ancho: 2.75 },
+  { nombre: "Tusor Pesado", genero: "tusor pesado", color: "color", mts: "2,80", recargo: 1.5, ancho: 2.85 },
+  { nombre: "Tusor Extra Pesado", genero: "tusor extra pesado", color: "color", mts: "2,80", recargo: 1.5, ancho: 2.85 },
+  { nombre: "Gabardina", genero: "gabardina", color: "blanco / crudo", mts: "1,50", recargo: 2, ancho: 1.5 },
+] as const
+
+/** Multiplicador de una tela: el del proveedor, salvo TelaEntrego que tiene uno por tela. */
+export function recargoDeTela(formato: FormatoListaTelas, nombre: string): number {
+  if (formato === "TELA_ENTREGO") {
+    return TELAS_TELA_ENTREGO.find((t) => normal(t.nombre) === normal(nombre))?.recargo ?? FORMATOS_LISTA_TELAS[formato].recargo
+  }
+  return FORMATOS_LISTA_TELAS[formato].recargo
+}
+
+/** Texto para el cliente cuando no alcanza con el nombre: los linos 100% de Alhambra llevan su línea. */
+export function textoClienteTela(formato: FormatoListaTelas, nombre: string, rubro: string | null): string | null {
+  if (formato === "ALHAMBRA" && /linos 100% y cortineria premiu/.test(normal(rubro))) {
+    return `${nombre} - Cortinería Premium Lino 100%`
+  }
+  return null
 }
 
 export interface FilaTela {
@@ -175,6 +210,72 @@ export function parsearPdfTelas(renglones: string[]): FilaTela[] {
   }
   if (res.length === 0) throw new Error("No encontré telas con precio en el PDF (¿es la lista de precios del proveedor?).")
   return nombresUnicos(res)
+}
+
+// ─── PDF de TelaEntrego ──────────────────────────────────────────────────────
+
+/** Etiquetas de la columna "Color" (si un renglón trae una sola, es el color del género anterior). */
+const COLORES_TELA_ENTREGO = [
+  "blanco / crudo",
+  "color",
+  "estampados",
+  "rayado",
+  "sin proceso",
+  "todos los colores",
+  "liso",
+  "lisos",
+  "jaspeado",
+  "crudo",
+  "lisa / rayado",
+]
+
+/**
+ * Lee la lista de TelaEntrego y devuelve solo las telas que se usan (TELAS_TELA_ENTREGO), con el precio
+ * de la primera columna. Si falta alguna, avisa: así no queda una lista a medias.
+ */
+export function parsearPdfTelaEntrego(renglones: string[]): FilaTela[] {
+  let genero = ""
+  const encontradas = new Map<string, FilaTela>()
+  for (const r of renglones) {
+    const partes = r.split(/\s{2,}/).map((p) => p.trim()).filter(Boolean)
+    const iPrecio = partes.findIndex((p) => p.startsWith("$"))
+    if (iPrecio < 1) continue
+    const iMts = iPrecio - 1
+    const antes = partes.slice(0, iMts)
+    let color = ""
+    if (antes.length >= 2) {
+      genero = normal(antes[0])
+      color = normal(antes[1])
+    } else if (antes.length === 1) {
+      if (COLORES_TELA_ENTREGO.includes(normal(antes[0]))) color = normal(antes[0])
+      else {
+        genero = normal(antes[0])
+        color = ""
+      }
+    }
+    const mts = partes[iMts].replace(/\s/g, "")
+    const precio = leerPrecio(partes[iPrecio].split(/\s/)[0])
+    if (!precio) continue
+    for (const t of TELAS_TELA_ENTREGO) {
+      if (genero === t.genero && color === t.color && mts.startsWith(t.mts) && !encontradas.has(t.nombre)) {
+        encontradas.set(t.nombre, {
+          nombre: t.nombre,
+          descripcion: `${partes[iMts - 1] ?? ""} ${partes[iMts]} · lista × ${t.recargo.toLocaleString("es-AR")}`.trim(),
+          rubro: null,
+          codigo: null,
+          ancho: t.ancho,
+          precio: Math.round(precio * 100) / 100,
+        })
+      }
+    }
+  }
+  const faltan = TELAS_TELA_ENTREGO.filter((t) => !encontradas.has(t.nombre)).map((t) => t.nombre)
+  if (faltan.length > 0) {
+    throw new Error(
+      `No encontré en el PDF: ${faltan.join(", ")}. Revisá que sea la lista de TelaEntrego (no se cambió nada).`
+    )
+  }
+  return TELAS_TELA_ENTREGO.map((t) => encontradas.get(t.nombre)!)
 }
 
 // ─── Accesorios Rollershade (PDF) ────────────────────────────────────────────

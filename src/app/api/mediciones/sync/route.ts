@@ -172,6 +172,11 @@ export async function POST(req: Request) {
               clienteFinalId = clientePorNombre.id
             } else {
               // Alta express del cliente si fue creado 100% offline
+              // Arquitectos elegidos en la tablet (solo los que existen en el ERP)
+              const arquitectos =
+                med.clienteArquitectoIds && med.clienteArquitectoIds.length > 0
+                  ? await tx.arquitecto.findMany({ where: { id: { in: med.clienteArquitectoIds } }, select: { id: true } })
+                  : []
               const nuevoCliente = await tx.cliente.create({
                 data: {
                   nombre: med.clienteNombre || "Cliente Relevamiento",
@@ -179,6 +184,7 @@ export async function POST(req: Request) {
                   direccion: med.clienteDireccion || null,
                   localidad: med.clienteLocalidad || null,
                   estado: "MEDICION_TOMADA",
+                  ...(arquitectos.length > 0 ? { arquitectos: { connect: arquitectos } } : {}),
                 },
               })
               clienteFinalId = nuevoCliente.id

@@ -920,3 +920,17 @@ Perfeccionar el formulario de medición técnica en obra (`CortinaItemForm`) par
 ### ⏳ Pendiente
 - Notificaciones con la app cerrada (Firebase), si hacen falta.
 - Los borrados en el ERP no generan aviso ni llegan a la tablet.
+
+---
+
+## Actualización — Arquitectos, Cristal, TelaEntrego, sin sistema y otros (2026-11-14)
+
+### ✅ Implementado
+- **Arquitectos** (`modules/arquitectos`, páginas `/arquitectos` y `/arquitectos/[id]`): alta, edición y baja; un cliente puede tener varios (relación `ClienteArquitectos`). Al borrar uno, sus clientes quedan sin él. Clientes: buscar también por arquitecto, filtro por arquitecto y elegirlos en la ficha (con alta rápida).
+  Tablet: se crean, editan y borran sin internet (Preferences, id temporal `arq_offline_`), se eligen al dar de alta o editar un cliente y hay una pestaña "Arquitectos" con sus clientes y mediciones. Ruta `/api/mediciones/arquitectos-sync` (GET / POST, en rutasPublicas). Los avisos (violeta y campana) incluyen arquitectos.
+- **Toldos**: manijas pueden ser 0 (no pide medida ni se cobran); la máquina queda por defecto en la polifuncional; tela **Cristal** solo en el Toldo Vertical (colores de todas las vinílicas, sin tipo): en el presupuesto no lleva tela ni spaghetti y el cristal va a mano y directo (`precioCristal`).
+- **Confirmación** antes de borrar, copiar o editar una cortina y de borrar un ambiente (web y tablet).
+- **Riel / barral sin sistema por capa** (`sinSistemaGaza`, `sinSistemaBO`): la calculadora no cobra el riel / barral y los accesorios del barral se marcan a mano; la comanda dice "RIEL sin sistema" / "BARRAL sin sistema" y muestra argollas o soportes solo si se cobraron (`accesoriosSinSistema`).
+- **TelaEntrego** (formato `TELA_ENTREGO`, PDF): solo Gasa Pesada Premium (color 2,75 × 2,25), Tusor Pesado y Tusor Extra Pesado (color 2,80 × 1,5, ancho 2,85) y Gabardina (blanco 1,50 × 2). Aviso del día 1 como las otras tiendas. Color de la tela en texto libre en la calculadora de tradicionales (sale en el presupuesto y en las telas a pedir).
+- **Alhambra**: las telas del rubro "LINOS 100% Y CORTINERIA PREMIUN" salen como "ARGOT - Cortinería Premium Lino 100%".
+- Requiere `prisma db push` (tablas `arquitectos`, `_ClienteArquitectos` y columna `notificaciones_tablet.arquitecto_id`) y generar el APK.

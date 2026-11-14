@@ -153,7 +153,9 @@ export function PresupuestoCalculadoraModal({
       {
         capa: capaFila,
         nombreTela: capaFila === "BO" ? c?.bo?.nombreTela : c?.gaza?.nombreTela,
+        colorTela: capaFila === "BO" ? c?.bo?.colorTela ?? null : c?.gaza?.colorTela ?? null,
         sistema: c?.sistema ?? null,
+        sinSistema: capaFila === "BO" ? Boolean(c?.sinSistemaBO) : Boolean(c?.sinSistemaGaza),
         tipoSoporte: c?.tipoSoporte ?? null,
         varianteSoporte: c?.varianteSoporte ?? null,
         cantidadSoportes: c?.cantidadSoportes ?? null,

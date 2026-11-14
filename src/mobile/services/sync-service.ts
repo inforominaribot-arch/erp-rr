@@ -12,8 +12,13 @@ import {
   guardarCeldasMosquiteroLocales,
   guardarTelasTradicionalLocales,
   obtenerClientesLocales,
+  obtenerArquitectosPendientes,
+  confirmarArquitectosSubidos,
+  guardarArquitectosDelServidor,
+  obtenerArquitectosLocales,
+  esIdArquitectoDelErp,
 } from "./storage-service"
-import { firmaCliente } from "@/modules/mediciones/lib/firma-cliente"
+import { firmaArquitecto, firmaCliente } from "@/modules/mediciones/lib/firma-cliente"
 import type { IMedicionOffline } from "@/modules/mediciones/types"
 import type { IClienteCache } from "@/modules/mediciones/lib/offline-storage"
 
@@ -34,6 +39,7 @@ export interface ResultadoSync {
 export interface NovedadesERP {
   mediciones: number
   clientes: number
+  arquitectos: number
 }
 
 const SEGUNDOS_ESPERA_NOVEDADES = 15
@@ -66,7 +72,23 @@ export async function consultarNovedadesERP(): Promise<NovedadesERP | null> {
       return !local.pendienteSync && firmaCliente(local) !== remoto.firma
     }).length
 
-    return { mediciones: Number(data.mediciones) || 0, clientes }
+    // Arquitectos nuevos, cambiados o borrados en el ERP (los que tienen cambios de la tablet sin subir no cuentan)
+    let arquitectos = 0
+    if (Array.isArray(data.arquitectos)) {
+      const pendientes = new Set((await obtenerArquitectosPendientes()).map((a) => a.id))
+      const arqLocales = new Map((await obtenerArquitectosLocales()).map((a) => [a.id, a]))
+      const remotos = data.arquitectos as Array<{ id: string; firma: string }>
+      const idsRemotos = new Set(remotos.map((a) => a.id))
+      arquitectos =
+        remotos.filter((r) => {
+          if (pendientes.has(r.id)) return false
+          const local = arqLocales.get(r.id)
+          return !local || firmaArquitecto(local) !== r.firma
+        }).length +
+        [...arqLocales.values()].filter((a) => esIdArquitectoDelErp(a.id) && !a.pendiente && !idsRemotos.has(a.id)).length
+    }
+
+    return { mediciones: Number(data.mediciones) || 0, clientes, arquitectos }
   } catch {
     return null
   }
@@ -91,15 +113,53 @@ export async function sincronizarTodo(): Promise<ResultadoSync> {
   }
 
   try {
+    // ── 0. Subir los arquitectos creados / editados / borrados en la tablet (antes que los clientes) ──
+    const arquitectosPendientes = await obtenerArquitectosPendientes()
+    if (arquitectosPendientes.length > 0) {
+      const respArq = await fetch(`${erpBaseUrl}/api/mediciones/arquitectos-sync`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          cambios: arquitectosPendientes.map((a) => ({
+            accion: a.pendiente,
+            id: a.id,
+            nombre: a.nombre,
+            telefono: a.telefono || "",
+            email: a.email || "",
+            notas: a.notas || "",
+          })),
+        }),
+      })
+      if (respArq.ok) {
+        const dataArq = await respArq.json()
+        if (dataArq.success) {
+          await confirmarArquitectosSubidos(dataArq.creados || [], dataArq.listos || [])
+          for (const r of dataArq.rechazados || []) {
+            const a = arquitectosPendientes.find((p) => p.id === r.id)
+            clientesConError.push(`Arquitecto ${a?.nombre || ""}: ${r.error}`.trim())
+          }
+        }
+      } else {
+        clientesConError.push(`No se pudieron subir los arquitectos (${respArq.status})`)
+      }
+    }
+
     // ── 1. Enviar Mediciones Pendientes de Sincronización ──
     const todasLasMediciones = await obtenerMedicionesLocales()
     const pendientes = todasLasMediciones.filter((m) => !m.sincronizado)
 
     if (pendientes.length > 0) {
+      // Los clientes dados de alta sin internet viajan con su medición: también sus arquitectos
+      const clientesPorId = new Map((await obtenerClientesLocales()).map((c) => [c.id, c]))
       const respMediciones = await fetch(`${erpBaseUrl}/api/mediciones/sync`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ mediciones: pendientes }),
+        body: JSON.stringify({
+          mediciones: pendientes.map((m) => ({
+            ...m,
+            clienteArquitectoIds: (clientesPorId.get(m.clienteId)?.arquitectoIds ?? []).filter(esIdArquitectoDelErp),
+          })),
+        }),
       })
 
       if (!respMediciones.ok) {
@@ -139,6 +199,7 @@ export async function sincronizarTodo(): Promise<ResultadoSync> {
             direccion: c.direccion || "",
             localidad: c.localidad || "",
             notas: c.notas || "",
+            ...(c.arquitectoIds ? { arquitectoIds: c.arquitectoIds.filter(esIdArquitectoDelErp) } : {}),
           })),
         }),
       })
@@ -198,11 +259,23 @@ export async function sincronizarTodo(): Promise<ResultadoSync> {
             localidad: c.localidad,
             notas: c.notas,
             estado: c.estado,
+            arquitectoIds: Array.isArray(c.arquitectoIds) ? c.arquitectoIds : [],
           })
         )
         await guardarClientesLocales(formateados)
         clientesDescargados = formateados.length
       }
+    }
+
+    // ── 2a. Arquitectos del ERP ──
+    try {
+      const respArq = await fetch(`${erpBaseUrl}/api/mediciones/arquitectos-sync`, { method: "GET", headers })
+      if (respArq.ok) {
+        const dataArq = await respArq.json()
+        if (dataArq.success && Array.isArray(dataArq.arquitectos)) await guardarArquitectosDelServidor(dataArq.arquitectos)
+      }
+    } catch (err) {
+      console.warn("No se pudieron bajar los arquitectos:", err)
     }
 
     // ── 2b. Telas de la lista de precios (selector de tela en capas RS) y medidas de mosquiteros MG ──

@@ -205,6 +205,11 @@ export interface ICaracteristicasItem {
 
   // Para Tradicional, Roller, Bandas, Roller Noche total, Mosquera, Motorizada
   sistema?: SistemaTradicional
+  /** El cliente ya tiene el riel / barral de esa capa: no se cobra y la comanda dice "sin sistema" */
+  sinSistemaGaza?: boolean
+  sinSistemaBO?: boolean
+  /** Comanda: accesorios del barral que se cobraron en las capas sin sistema (los demás no se muestran) */
+  accesoriosSinSistema?: { argollas: boolean; terminales: boolean; soportes: boolean }
   colorBarral?: ColorBarral
   perfileria?: string // PerfileriaNocheTotal | PerfileriaRoller | PerfileriaBandas
   tipoRiel?: TipoRiel // Normal | Curvo (para tradicional común y mot)

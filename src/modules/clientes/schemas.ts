@@ -42,6 +42,8 @@ export const clienteSchema = z.object({
     .trim()
     .optional()
     .or(z.literal("")),
+  /** Arquitectos que trajeron al cliente (puede tener varios) */
+  arquitectoIds: z.array(z.string().uuid("Arquitecto inválido")).max(50).optional(),
 })
 
 export type ClienteInput = z.infer<typeof clienteSchema>

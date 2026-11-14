@@ -65,6 +65,7 @@ export async function GET(req: Request) {
         estado: true,
         actualizadoEn: true,
         creadoEn: true,
+        arquitectos: { select: { id: true } },
       },
       orderBy: { nombre: "asc" },
     })
@@ -73,7 +74,7 @@ export async function GET(req: Request) {
       success: true,
       total: clientes.length,
       timestamp: new Date().toISOString(),
-      clientes,
+      clientes: clientes.map(({ arquitectos, ...c }) => ({ ...c, arquitectoIds: arquitectos.map((a) => a.id) })),
     })
   } catch (error) {
     console.error("Error en endpoint GET /api/mediciones/clientes-sync:", error)
@@ -138,13 +139,26 @@ export async function POST(req: Request) {
       const c = validacion.data
       const existe = await prisma.cliente.findUnique({
         where: { id: c.id },
-        select: { id: true, nombre: true, telefono: true, email: true, direccion: true, localidad: true, notas: true },
+        select: {
+          id: true,
+          nombre: true,
+          telefono: true,
+          email: true,
+          direccion: true,
+          localidad: true,
+          notas: true,
+          arquitectos: { select: { id: true } },
+        },
       })
       if (!existe) {
         noEncontrados.push(c.id)
         continue
       }
 
+      // Arquitectos: si la tablet los manda, quedan los que existen (los borrados en el ERP se ignoran)
+      const arquitectoIds = c.arquitectoIds
+        ? (await prisma.arquitecto.findMany({ where: { id: { in: c.arquitectoIds } }, select: { id: true } })).map((a) => a.id)
+        : undefined
       await prisma.cliente.update({
         where: { id: c.id },
         data: {
@@ -154,11 +168,14 @@ export async function POST(req: Request) {
           direccion: c.direccion || null,
           localidad: c.localidad || null,
           notas: c.notas || null,
+          ...(arquitectoIds ? { arquitectos: { set: arquitectoIds.map((id) => ({ id })) } } : {}),
         },
       })
       actualizados.push(c.id)
       // Solo se avisa si de verdad cambió algo
-      if (firmaCliente(existe) !== firmaCliente(c)) {
+      const antes = { ...existe, arquitectoIds: existe.arquitectos.map((a) => a.id) }
+      const despues = { ...c, arquitectoIds: arquitectoIds ?? antes.arquitectoIds }
+      if (firmaCliente(antes) !== firmaCliente(despues)) {
         await avisarDesdeTablet({ tipo: "CLIENTE_EDITADO", mensaje: `Se editó el cliente ${c.nombre}`, clienteId: c.id })
       }
     }

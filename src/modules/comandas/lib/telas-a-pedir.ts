@@ -48,11 +48,12 @@ export async function obtenerTelasAPedirComanda(comandaId: string): Promise<ITel
     const cantidad = Math.max(1, it.cantidad || 1)
     for (const { capa, tela } of capasConTela(cfg)) {
       if (!tela.nombre) continue
-      const clave = `${tela.clave ?? tela.nombre}|${tela.proveedor ?? ""}`
+      // El color va en la clave: la misma tela en dos colores se pide por separado
+      const clave = `${tela.clave ?? tela.nombre}|${tela.proveedor ?? ""}|${tela.color?.trim().toLowerCase() ?? ""}`
       const actual =
         porTela.get(clave) ??
         ({
-          tela: tela.nombre,
+          tela: tela.color?.trim() ? `${tela.nombre} · ${tela.color.trim()}` : tela.nombre,
           capas: [],
           metros: 0,
           cortinas: [],

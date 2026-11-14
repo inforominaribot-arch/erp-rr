@@ -34,6 +34,8 @@ export interface IOpcionTelaTradicional {
   precioLista: number
   /** Precio por metro con el recargo del proveedor */
   precio: number
+  /** Cómo la ve el cliente si no es solo el nombre (ej: "ARGOT - Cortinería Premium Lino 100%") */
+  textoCliente?: string | null
 }
 
 export interface ITelaTradicional {
@@ -165,6 +167,10 @@ export const capaTelaSchema = z.object({
   telaId: z.string().max(60).nullable().optional(),
   nombre: z.string().max(200).nullable().optional(),
   proveedor: z.string().max(60).nullable().optional(),
+  /** Cómo la ve el cliente (si es distinto del nombre) */
+  textoCliente: z.string().max(200).nullable().optional(),
+  /** Color escrito a mano (texto libre) */
+  color: z.string().max(80).nullable().optional(),
   /** Ancho del rollo en metros */
   ancho: z.number().nullable().optional(),
   /** Precio por metro con recargo (el que se usa en la cuenta) */
@@ -208,6 +214,8 @@ export const configTradicionalSchema = z.object({
   tela: capaTelaSchema.default({ lleva: true, frunce: 2, precio: 0, manual: false, masBaratas: [] }),
   anchoRollo: z.number().min(0.5).max(6).default(VALORES_DEFECTO_PRECIOS.anchoRolloTelaDefault),
   sistema: z.enum(["Riel", "Barral"]).default("Riel"),
+  /** El cliente ya tiene el riel / barral: no se cobra (los accesorios del barral se eligen a mano) */
+  sinSistema: z.boolean().default(false),
   precioRielMetro: z.number().min(0).default(VALORES_DEFECTO_PRECIOS.precioRielMetroTradicional),
   precioConfeccionMetro: z.number().min(0).default(VALORES_DEFECTO_PRECIOS.precioConfeccionMetroTradicional),
   precioInstalacion: z.number().min(0).default(VALORES_DEFECTO_PRECIOS.precioInstalacionTradicional),
@@ -280,11 +288,15 @@ export function calcularTradicional(ancho: number, alto: number, cfg: ConfigTrad
   }
 
   // Riel / barral, confección e instalación
-  desglose.push({
-    concepto: nombreRiel,
-    detalle: `${fmtM(a)} m × ${fmt$(cfg.precioRielMetro)}${cantCapas > 1 ? ` × ${cantCapas}` : ""}`,
-    importe: Math.round(a * cfg.precioRielMetro * cantCapas),
-  })
+  desglose.push(
+    cfg.sinSistema
+      ? { concepto: nombreRiel, detalle: "sin sistema (lo tiene el cliente)", importe: 0 }
+      : {
+          concepto: nombreRiel,
+          detalle: `${fmtM(a)} m × ${fmt$(cfg.precioRielMetro)}${cantCapas > 1 ? ` × ${cantCapas}` : ""}`,
+          importe: Math.round(a * cfg.precioRielMetro * cantCapas),
+        }
+  )
   desglose.push({
     concepto: "Confección",
     detalle: `${fmtM(a)} m × ${fmt$(cfg.precioConfeccionMetro)}${cantCapas > 1 ? ` × ${cantCapas}` : ""}`,
@@ -308,7 +320,11 @@ export function calcularTradicional(ancho: number, alto: number, cfg: ConfigTrad
         detalle: `${acc.soportes} × ${fmt$(acc.precioSoporte)}${acc.nombreSoporte ? ` (${acc.nombreSoporte})` : ""}`.slice(0, 200),
         importe: Math.round(acc.soportes * acc.precioSoporte),
       })
-    if (!acc.precioArgolla || !acc.precioTerminal || (acc.soportes > 0 && !acc.precioSoporte))
+    if (
+      (acc.argollas > 0 && !acc.precioArgolla) ||
+      (acc.terminales > 0 && !acc.precioTerminal) ||
+      (acc.soportes > 0 && !acc.precioSoporte)
+    )
       avisos.push("Falta algún precio de accesorios del barral (lista de accesorios de Rollershade).")
   }
 
@@ -333,6 +349,7 @@ export function capaConTelaCatalogo(capa: CapaTela, tela: ITelaTradicional): Cap
     clave: tela.clave,
     telaId: cara.id,
     nombre: cara.nombre,
+    textoCliente: cara.textoCliente ?? null,
     proveedor: cara.proveedor,
     ancho: cara.ancho,
     precio: cara.precio,
@@ -356,7 +373,11 @@ export function refrescarCapa(capa: CapaTela, catalogo: ITelaTradicional[]): Cap
 export interface DatosMedicionTradicional {
   capa: "GAZA" | "BO" | null
   nombreTela?: string | null
+  /** Color de la tela escrito en la medición */
+  colorTela?: string | null
   sistema?: "Riel" | "Barral" | null
+  /** El cliente ya tiene el riel / barral de esta capa */
+  sinSistema?: boolean
   tipoSoporte?: "Kent" | "Grampa" | null
   varianteSoporte?: "Simple" | "Doble" | null
   cantidadSoportes?: number | null
@@ -398,7 +419,7 @@ export function configDesdeMedicion(
   const modo = alto > ALTO_MAX_ESTANDAR ? "INVERTIDO" : "ESTANDAR"
   const tela = buscarTelaCatalogo(catalogo, datos.nombreTela)
   const conTela = (c: CapaTela): CapaTela => {
-    const lleva = { ...c, lleva: true }
+    const lleva = { ...c, lleva: true, color: datos.colorTela?.trim() || null }
     if (tela) return capaConTelaCatalogo(lleva, tela)
     return datos.nombreTela ? { ...lleva, nombre: datos.nombreTela } : lleva
   }
@@ -406,6 +427,16 @@ export function configDesdeMedicion(
   const bo = datos.capa === "BO" ? conTela(capaVacia(2)) : capaVacia(1.5)
   const telaInv = conTela(capaVacia(2))
   const sistema = datos.sistema === "Barral" ? "Barral" : "Riel"
+  const accesoriosBarral =
+    sistema === "Barral"
+      ? accesoriosPorDefecto(ancho, 1, acc, {
+          tipo: datos.tipoSoporte,
+          variante: datos.varianteSoporte,
+          cantidad: datos.cantidadSoportes,
+          // Soportes dobles: se cobran una sola vez (en la fila de la Gasa)
+          cobrar: !(datos.capa === "BO" && datos.dosCapasTradicionales && datos.varianteSoporte === "Doble"),
+        })
+      : null
   return {
     modo,
     gasa,
@@ -413,29 +444,33 @@ export function configDesdeMedicion(
     tela: telaInv,
     anchoRollo: (modo === "INVERTIDO" ? telaInv.ancho : null) || VALORES_DEFECTO_PRECIOS.anchoRolloTelaDefault,
     sistema,
+    sinSistema: Boolean(datos.sinSistema),
     precioRielMetro: VALORES_DEFECTO_PRECIOS.precioRielMetroTradicional,
     precioConfeccionMetro:
       modo === "INVERTIDO"
         ? VALORES_DEFECTO_PRECIOS.precioConfeccionMetroInvertido
         : VALORES_DEFECTO_PRECIOS.precioConfeccionMetroTradicional,
     precioInstalacion: VALORES_DEFECTO_PRECIOS.precioInstalacionTradicional,
+    // Sin sistema: los accesorios arrancan sin cobrar (se eligen a mano en la calculadora)
     accesorios:
-      sistema === "Barral"
-        ? accesoriosPorDefecto(ancho, 1, acc, {
-            tipo: datos.tipoSoporte,
-            variante: datos.varianteSoporte,
-            cantidad: datos.cantidadSoportes,
-            // Soportes dobles: se cobran una sola vez (en la fila de la Gasa)
-            cobrar: !(datos.capa === "BO" && datos.dosCapasTradicionales && datos.varianteSoporte === "Doble"),
-          })
-        : null,
+      accesoriosBarral && datos.sinSistema
+        ? { ...accesoriosBarral, argollas: 0, terminales: 0, soportes: 0 }
+        : accesoriosBarral,
   }
+}
+
+/** Nombre de la tela para el cliente, con el color si se escribió: "ARGOT - Cortinería Premium Lino 100% · Arena". */
+export function textoTelaCapa(tela: CapaTela): string | null {
+  const base = tela.textoCliente || tela.nombre
+  if (!base) return null
+  const color = tela.color?.trim()
+  return color ? `${base} · ${color}` : base
 }
 
 /** Texto de la tela para el cliente: "Gasa Bamboo" / "Gasa: Bamboo · Blackout: Wash". */
 export function textoTelasTradicional(cfg: ConfigTradicional): string | null {
   const capas = capasConTela(cfg).filter((c) => c.tela.nombre)
   if (capas.length === 0) return null
-  if (capas.length === 1) return capas[0].tela.nombre ?? null
-  return capas.map((c) => `${c.capa}: ${c.tela.nombre}`).join(" · ")
+  if (capas.length === 1) return textoTelaCapa(capas[0].tela)
+  return capas.map((c) => `${c.capa}: ${textoTelaCapa(c.tela)}`).join(" · ")
 }

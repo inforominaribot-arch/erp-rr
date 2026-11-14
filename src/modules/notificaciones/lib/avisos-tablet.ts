@@ -4,13 +4,21 @@
 
 import { prisma } from "@/lib/prisma"
 
-export type TipoAvisoTablet = "MEDICION_NUEVA" | "MEDICION_EDITADA" | "CLIENTE_NUEVO" | "CLIENTE_EDITADO"
+export type TipoAvisoTablet =
+  | "MEDICION_NUEVA"
+  | "MEDICION_EDITADA"
+  | "CLIENTE_NUEVO"
+  | "CLIENTE_EDITADO"
+  | "ARQUITECTO_NUEVO"
+  | "ARQUITECTO_EDITADO"
+  | "ARQUITECTO_BORRADO"
 
 export interface IAvisoTablet {
   tipo: TipoAvisoTablet
   mensaje: string
   medicionId?: string | null
   clienteId?: string | null
+  arquitectoId?: string | null
 }
 
 /** Registra el aviso. Si ya hay uno sin leer de lo mismo, lo actualiza en vez de repetirlo. */
@@ -22,6 +30,7 @@ export async function avisarDesdeTablet(aviso: IAvisoTablet): Promise<void> {
         leida: false,
         medicionId: aviso.medicionId ?? null,
         clienteId: aviso.clienteId ?? null,
+        arquitectoId: aviso.arquitectoId ?? null,
       },
       select: { id: true },
     })
@@ -38,6 +47,7 @@ export async function avisarDesdeTablet(aviso: IAvisoTablet): Promise<void> {
         mensaje: aviso.mensaje,
         medicionId: aviso.medicionId ?? null,
         clienteId: aviso.clienteId ?? null,
+        arquitectoId: aviso.arquitectoId ?? null,
       },
     })
   } catch (error) {

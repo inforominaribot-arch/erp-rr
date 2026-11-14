@@ -126,6 +126,8 @@ export interface IClienteCache {
   localidad?: string | null
   notas?: string | null
   estado?: string
+  /** Arquitectos del cliente (ids del ERP o temporales "arq_offline_" hasta sincronizar) */
+  arquitectoIds?: string[]
   /** Datos editados en la tablet que falta subir al ERP */
   pendienteSync?: boolean
 }

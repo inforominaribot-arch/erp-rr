@@ -131,6 +131,8 @@ model Cliente {
   mediciones   Medicion[]
   presupuestos Presupuesto[]
   visitas      Visita[]
+  // Arquitectos que trajeron al cliente (puede tener varios)
+  arquitectos  Arquitecto[]  @relation("ClienteArquitectos")
 
   @@map("clientes")
 }
@@ -432,19 +434,19 @@ model Proveedor {
 // Tela de la lista de precios de una tienda de telas (Alhambra, Bia Brem, Sirota) para las cortinas tradicionales.
 // "precio" es el de la lista tal cual (sin recargo): el recargo depende del formato del proveedor.
 model ListaTelaItem {
-  id             String    @id @default(uuid())
-  proveedorId    String    @map("proveedor_id")
+  id             String   @id @default(uuid())
+  proveedorId    String   @map("proveedor_id")
   nombre         String // Nombre que se busca al presupuestar (único por proveedor)
   descripcion    String? // Composición / aclaración de la lista
   rubro          String? // Rubro o sección de la lista (ej: "BLACK OUT")
   codigo         String?
-  ancho          Decimal?  @db.Decimal(6, 2) // Ancho del rollo en metros
-  precio         Decimal   @db.Decimal(12, 2)
-  precioAnterior Decimal?  @map("precio_anterior") @db.Decimal(12, 2)
-  orden          Int       @default(0)
-  activo         Boolean   @default(true)
-  creadoEn       DateTime  @default(now()) @map("creado_en")
-  actualizadoEn  DateTime  @updatedAt @map("actualizado_en")
+  ancho          Decimal? @db.Decimal(6, 2) // Ancho del rollo en metros
+  precio         Decimal  @db.Decimal(12, 2)
+  precioAnterior Decimal? @map("precio_anterior") @db.Decimal(12, 2)
+  orden          Int      @default(0)
+  activo         Boolean  @default(true)
+  creadoEn       DateTime @default(now()) @map("creado_en")
+  actualizadoEn  DateTime @updatedAt @map("actualizado_en")
 
   proveedor Proveedor @relation(fields: [proveedorId], references: [id], onDelete: Cascade)
 
@@ -669,14 +671,30 @@ model Visita {
 // Aviso para el ERP de un cambio que llegó desde la tablet (campana de la barra superior).
 // Sin relaciones: el aviso queda aunque después se borre la medición o el cliente.
 model NotificacionTablet {
-  id         String   @id @default(uuid())
-  tipo       String // MEDICION_NUEVA | MEDICION_EDITADA | CLIENTE_NUEVO | CLIENTE_EDITADO
-  mensaje    String
-  medicionId String?  @map("medicion_id")
-  clienteId  String?  @map("cliente_id")
-  leida      Boolean  @default(false)
-  creadoEn   DateTime @default(now()) @map("creado_en")
+  id           String   @id @default(uuid())
+  tipo         String // MEDICION_NUEVA | MEDICION_EDITADA | CLIENTE_NUEVO | CLIENTE_EDITADO
+  mensaje      String
+  medicionId   String?  @map("medicion_id")
+  clienteId    String?  @map("cliente_id")
+  arquitectoId String?  @map("arquitecto_id")
+  leida        Boolean  @default(false)
+  creadoEn     DateTime @default(now()) @map("creado_en")
 
   @@index([leida, creadoEn])
   @@map("notificaciones_tablet")
+}
+
+// Arquitecto que consigue clientes. Un cliente puede tener varios; al borrar un arquitecto sus clientes quedan.
+model Arquitecto {
+  id            String   @id @default(uuid())
+  nombre        String
+  telefono      String?
+  email         String?
+  notas         String?
+  creadoEn      DateTime @default(now()) @map("creado_en")
+  actualizadoEn DateTime @updatedAt @map("actualizado_en")
+
+  clientes Cliente[] @relation("ClienteArquitectos")
+
+  @@map("arquitectos")
 }

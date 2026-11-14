@@ -25,6 +25,8 @@ import { ESTADO_CLIENTE_LABELS } from "@/types"
 
 interface ClienteTablaProps {
   clientesIniciales: IClienteConConteo[]
+  /** Arquitectos para el filtro */
+  arquitectos?: { id: string; nombre: string }[]
 }
 
 const OPCIONES_FILTRO_ESTADO: Array<{ valor: string; label: string }> = [
@@ -36,11 +38,12 @@ const OPCIONES_FILTRO_ESTADO: Array<{ valor: string; label: string }> = [
   { valor: "INSTALADO", label: "Instalado" },
 ]
 
-export function ClienteTabla({ clientesIniciales }: ClienteTablaProps) {
+export function ClienteTabla({ clientesIniciales, arquitectos = [] }: ClienteTablaProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [busqueda, setBusqueda] = useState("")
   const [filtroEstado, setFiltroEstado] = useState<string>("TODOS")
+  const [filtroArquitecto, setFiltroArquitecto] = useState<string>("TODOS")
 
   // Estado para modal de confirmación de eliminación
   const [clienteAEliminar, setClienteAEliminar] = useState<IClienteConConteo | null>(null)
@@ -53,6 +56,9 @@ export function ClienteTabla({ clientesIniciales }: ClienteTablaProps) {
       filtroEstado === "TODOS" || cliente.estado === filtroEstado
 
     if (!cumpleEstado) return false
+    if (filtroArquitecto === "SIN" && (cliente.arquitectos?.length ?? 0) > 0) return false
+    if (filtroArquitecto !== "TODOS" && filtroArquitecto !== "SIN" && !cliente.arquitectos?.some((a) => a.id === filtroArquitecto))
+      return false
 
     if (!busqueda.trim()) return true
 
@@ -62,8 +68,10 @@ export function ClienteTabla({ clientesIniciales }: ClienteTablaProps) {
     const direccion = cliente.direccion?.toLowerCase() || ""
     const localidad = cliente.localidad?.toLowerCase() || ""
     const email = cliente.email?.toLowerCase() || ""
+    const arquitectosTexto = (cliente.arquitectos ?? []).map((a) => a.nombre.toLowerCase()).join(" ")
 
     return (
+      arquitectosTexto.includes(q) ||
       nombre.includes(q) ||
       telefono.includes(q) ||
       direccion.includes(q) ||
@@ -114,7 +122,7 @@ export function ClienteTabla({ clientesIniciales }: ClienteTablaProps) {
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por nombre, teléfono, localidad, dirección..."
+            placeholder="Buscar por cliente, arquitecto, teléfono, localidad, dirección..."
             className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100"
           />
         </div>
@@ -130,6 +138,20 @@ export function ClienteTabla({ clientesIniciales }: ClienteTablaProps) {
             {OPCIONES_FILTRO_ESTADO.map((opcion) => (
               <option key={opcion.valor} value={opcion.valor}>
                 {opcion.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filtroArquitecto}
+            onChange={(e) => setFiltroArquitecto(e.target.value)}
+            className="w-full sm:w-auto rounded-lg border border-slate-200 bg-slate-50 py-2 pl-3 pr-8 text-sm font-medium text-slate-700 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            title="Filtrar por arquitecto"
+          >
+            <option value="TODOS">Todos los arquitectos</option>
+            <option value="SIN">Sin arquitecto</option>
+            {arquitectos.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.nombre}
               </option>
             ))}
           </select>
@@ -176,7 +198,7 @@ export function ClienteTabla({ clientesIniciales }: ClienteTablaProps) {
                       No se encontraron clientes
                     </h3>
                     <p className="mt-1 text-xs text-slate-500">
-                      {busqueda || filtroEstado !== "TODOS"
+                      {busqueda || filtroEstado !== "TODOS" || filtroArquitecto !== "TODOS"
                         ? "Probá ajustando los términos de búsqueda o el filtro de estado."
                         : "Aún no hay clientes registrados en el sistema."}
                     </p>
@@ -211,6 +233,20 @@ export function ClienteTabla({ clientesIniciales }: ClienteTablaProps) {
                           </span>
                         )}
                       </Link>
+                      {(cliente.arquitectos?.length ?? 0) > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {cliente.arquitectos!.map((a) => (
+                            <Link
+                              key={a.id}
+                              href={`/arquitectos/${a.id}`}
+                              className="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700 hover:bg-indigo-100"
+                              title="Arquitecto"
+                            >
+                              Arq. {a.nombre}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
                     </td>
 
                     {/* Teléfono */}

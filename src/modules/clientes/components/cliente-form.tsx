@@ -17,12 +17,16 @@ import {
 import { crearCliente, actualizarCliente } from "../actions"
 import { clienteSchema, type ClienteInput } from "../schemas"
 import type { ICliente } from "../types"
+import { SelectorArquitectos } from "@/modules/arquitectos/components/selector-arquitectos"
+import type { IArquitectoOpcion } from "@/modules/arquitectos/queries"
 
 interface ClienteFormProps {
   cliente?: ICliente | null
   modo?: "crear" | "editar"
   onExito?: (cliente: ICliente) => void
   onCancelar?: () => void
+  /** Arquitectos para elegir */
+  arquitectos?: IArquitectoOpcion[]
 }
 
 export function ClienteForm({
@@ -30,6 +34,7 @@ export function ClienteForm({
   modo = "crear",
   onExito,
   onCancelar,
+  arquitectos = [],
 }: ClienteFormProps) {
   const router = useRouter()
   const [cargando, setCargando] = useState(false)
@@ -43,6 +48,7 @@ export function ClienteForm({
     direccion: cliente?.direccion || "",
     localidad: cliente?.localidad || "",
     notas: cliente?.notas || "",
+    arquitectoIds: cliente?.arquitectos?.map((a) => a.id) ?? [],
   })
 
   function handleChange(
@@ -292,6 +298,24 @@ export function ClienteForm({
                 </p>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Separador */}
+        <hr className="border-slate-200" />
+
+        {/* Sección: Arquitectos */}
+        <div>
+          <h2 className="text-base font-semibold text-slate-900">Arquitectos</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Si el cliente vino por uno o más arquitectos. Si no está en la lista, se crea desde acá.
+          </p>
+          <div className="mt-4">
+            <SelectorArquitectos
+              arquitectos={arquitectos}
+              seleccionados={formData.arquitectoIds ?? []}
+              onCambiar={(arquitectoIds) => setFormData((prev) => ({ ...prev, arquitectoIds }))}
+            />
           </div>
         </div>
 

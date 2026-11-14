@@ -82,6 +82,14 @@ export function AmbienteManager({
       alert("Debe haber al menos un ambiente en la medición.")
       return
     }
+    const amb = ambientes[idx]
+    const cortinas = amb?.items?.length ?? 0
+    if (
+      !window.confirm(
+        `¿Eliminar el ambiente "${amb?.nombre ?? ""}"${cortinas > 0 ? ` con ${cortinas} cortina${cortinas === 1 ? "" : "s"}` : ""}?`
+      )
+    )
+      return
     const nuevos = ambientes.filter((_, i) => i !== idx)
     onAmbientesChange(nuevos)
     setAmbienteActivoIdx(Math.max(0, idx - 1))
@@ -119,6 +127,7 @@ export function AmbienteManager({
     const copiaAmbientes = [...ambientes]
     const itemOriginal = copiaAmbientes[ambienteIdx].items[cortinaIdx]
     if (!itemOriginal) return
+    if (!window.confirm(`¿Copiar la cortina "${itemOriginal.descripcion || "Cortina"}"?`)) return
 
     const itemDuplicado = {
       ...itemOriginal,
@@ -133,6 +142,8 @@ export function AmbienteManager({
 
   // Eliminar cortina
   function eliminarCortina(ambienteIdx: number, cortinaIdx: number) {
+    const item = ambientes[ambienteIdx]?.items[cortinaIdx]
+    if (!window.confirm(`¿Eliminar la cortina "${item?.descripcion || "Cortina"}"?`)) return
     const copiaAmbientes = [...ambientes]
     copiaAmbientes[ambienteIdx].items = copiaAmbientes[ambienteIdx].items.filter(
       (_, i) => i !== cortinaIdx
@@ -396,13 +407,14 @@ export function AmbienteManager({
                       <button
                         type="button"
                         title="Editar cortina"
-                        onClick={() =>
+                        onClick={() => {
+                          if (!window.confirm(`¿Editar la cortina "${item.descripcion || "Cortina"}"?`)) return
                           setEditandoCortina({
                             ambienteIdx: ambienteActivoIdx,
                             cortinaIdx: cIdx,
                             item,
                           })
-                        }
+                        }}
                         className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                       >
                         <Edit2 className="h-3.5 w-3.5" />

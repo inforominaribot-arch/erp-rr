@@ -504,14 +504,18 @@ export function ToldoPasos({ toldo, onChange, ancho, alto, onAncho, onAlto }: To
                 {t.mecanismo === "Manual" && (
                   <div className="space-y-1">
                     <span className="block text-[11px] font-bold text-slate-600">Manijas (cantidad)</span>
-                    <Cantidad valor={t.manijas} minimo={1} onCambiar={(manijas) => cambiar({ manijas: manijas ?? 1 })} />
-                    <span className="block pt-2 text-[11px] font-bold text-slate-600">Medida de la manija (m)</span>
-                    <Opciones
-                      opciones={MEDIDAS_MANIJA_TOLDO}
-                      valor={t.medidaManija}
-                      etiqueta={etiquetaMedidaManija}
-                      onElegir={(medidaManija) => cambiar({ medidaManija })}
-                    />
+                    <Cantidad valor={t.manijas} onCambiar={(manijas) => cambiar({ manijas: manijas ?? 0 })} />
+                    {(t.manijas ?? 1) > 0 && (
+                      <>
+                        <span className="block pt-2 text-[11px] font-bold text-slate-600">Medida de la manija (m)</span>
+                        <Opciones
+                          opciones={MEDIDAS_MANIJA_TOLDO}
+                          valor={t.medidaManija}
+                          etiqueta={etiquetaMedidaManija}
+                          onElegir={(medidaManija) => cambiar({ medidaManija })}
+                        />
+                      </>
+                    )}
                   </div>
                 )}
                 {t.mecanismo === "Motorizado" && (

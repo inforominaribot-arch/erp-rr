@@ -134,11 +134,14 @@ export function App() {
   }, [notificacion])
 
   const pendientesCount = mediciones.filter((m) => !m.sincronizado).length
-  const hayNovedades = Boolean(novedades && (novedades.mediciones > 0 || novedades.clientes > 0))
+  const hayNovedades = Boolean(
+    novedades && (novedades.mediciones > 0 || novedades.clientes > 0 || novedades.arquitectos > 0)
+  )
   const textoNovedades = novedades
     ? [
         novedades.mediciones > 0 ? plural(novedades.mediciones, "medición", "mediciones") : null,
         novedades.clientes > 0 ? plural(novedades.clientes, "cliente", "clientes") : null,
+        novedades.arquitectos > 0 ? plural(novedades.arquitectos, "arquitecto", "arquitectos") : null,
       ]
         .filter(Boolean)
         .join(", ")

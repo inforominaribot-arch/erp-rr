@@ -11,6 +11,7 @@
 //  - TP1: tapa simple (sin tensor) o con pasacable (con tensor)
 //  - TP1 con tensor: soporte de fijación del cable, cable 2,5 mm (alto + 0,2) × 2 y 2 prensa linga 5 mm
 //  - Tela: (alto + 0,6 con pollerita o + 0,4 sin) × ⌈ancho ÷ ancho de tela⌉ · Spaghetti fino: 3 × ancho
+//  - Tela Cristal: se terceriza. No lleva tela ni spaghetti de la planilla; el cristal va a mano y directo (sin × 1,5)
 //  - Soporte plano y escuadra: pares de la medición · TP1: brazo Caduta a mano (con los insumos)
 //  - Cubre toldo: cubre techo ⌈ancho del cubre toldo + 0,10⌉ ml + perchas al precio de la ménsula
 //
@@ -128,6 +129,7 @@ export function calcularToldoVertical(
 ): ResultadoCalculoRS {
   const t = entrada.toldo ?? {}
   const completo = !t.soloTela
+  const cristal = t.tela === "Cristal"
   const tp2 = t.barraFrente === "TP2"
   const { ancho, alto } = entrada
   const avisos: string[] = []
@@ -153,6 +155,7 @@ export function calcularToldoVertical(
     precioMotor: opcionesElegidas.precioMotor ?? 0,
     precioDomotica: opcionesElegidas.precioDomotica ?? 0,
     precioBrazoCaduta: opcionesElegidas.precioBrazoCaduta ?? 0,
+    ...(cristal ? { precioCristal: opcionesElegidas.precioCristal ?? 0 } : {}),
     instalacion: opcionesElegidas.instalacion ?? 0,
     confeccion: opcionesElegidas.confeccion ?? 0,
   }
@@ -182,8 +185,11 @@ export function calcularToldoVertical(
   } else if (t.mecanismo === "Manual") {
     if (t.maquina) dePlanilla(t.maquina, MAQUINAS[t.maquina], 1, "u")
     else avisos.push("Falta elegir la máquina en la medición.")
-    if (t.medidaManija) dePlanilla(`Manija nacional x${t.medidaManija}`, MANIJAS[t.medidaManija], t.manijas ?? 1, "u")
-    else avisos.push("Falta elegir la medida de la manija en la medición (va en $0).")
+    // Sin manijas (0): no se cobran
+    if ((t.manijas ?? 1) > 0) {
+      if (t.medidaManija) dePlanilla(`Manija nacional x${t.medidaManija}`, MANIJAS[t.medidaManija], t.manijas ?? 1, "u")
+      else avisos.push("Falta elegir la medida de la manija en la medición (va en $0).")
+    }
   } else if (t.mecanismo === "Motorizado") {
     const motor = normalizarMotorToldo(t.motor)
     if (motor === "Oximo") {
@@ -244,8 +250,10 @@ export function calcularToldoVertical(
     dePlanilla("Tapa TP1 simple", INSUMOS.tapaSimple, 1, "par")
   }
 
-  // Tela y spaghetti
-  if (!tela) {
+  // Tela y spaghetti (el cristal no: se suma aparte, directo)
+  if (cristal) {
+    // nada de la planilla
+  } else if (!tela) {
     avisos.push("La tela de la medición no tiene precio en la planilla (falta elegir la tela).")
   } else {
     if (!tela.item) avisos.push(`No está en la planilla: "${tela.insumo}" (va en $0).`)
@@ -257,7 +265,7 @@ export function calcularToldoVertical(
       `${tela.panos} paño(s) de ${fmtM(tela.ancho)} m × (${completo ? "alto" : "largo"} ${fmtM(alto)} + ${fmtM(extraTela)}${t.pollerita ? " con pollerita" : ""})`
     )
   }
-  dePlanilla("Spaghetti fino", INSUMOS.spaghetti, r2(3 * ancho), "m", "3 × ancho")
+  if (!cristal) dePlanilla("Spaghetti fino", INSUMOS.spaghetti, r2(3 * ancho), "m", "3 × ancho")
 
   // Adicionales de la medición
   if ((t.soportePlano ?? 0) > 0) dePlanilla("Soporte plano", INSUMOS.soportePlano, t.soportePlano ?? 0, "par")
@@ -279,6 +287,11 @@ export function calcularToldoVertical(
   const instalacion = opciones.instalacion ?? 0
   const confeccion = opciones.confeccion ?? 0
   desglose.push({ concepto: "Insumos × 1,5", detalle: `${fmt$(insumos)} × 1,5`, importe: r2(conGanancia - insumos) })
+  const precioCristal = cristal ? opciones.precioCristal ?? 0 : 0
+  if (cristal) {
+    desglose.push({ concepto: "Cristal", detalle: `${t.colorTela ? `${t.colorTela} · ` : ""}tercerizado, a mano`, importe: precioCristal })
+    if (!precioCristal) avisos.push("Falta cargar el precio del cristal.")
+  }
   if (domotica > 0) desglose.push({ concepto: "Domótica × 2", detalle: `${fmt$(opciones.precioDomotica ?? 0)} × 2`, importe: domotica })
   if (confeccion > 0) desglose.push({ concepto: "Confección", detalle: "a mano", importe: confeccion })
   if (instalacion > 0) {
@@ -290,9 +303,9 @@ export function calcularToldoVertical(
   if (!instalacion) avisos.push("Falta cargar la instalación.")
 
   return {
-    precio: Math.round(conGanancia + domotica + instalacion + confeccion),
+    precio: Math.round(conGanancia + domotica + precioCristal + instalacion + confeccion),
     desglose,
-    formula: completo ? "insumos × 1,5 + domótica × 2 + confección + instalación" : "insumos × 1,5 + confección + instalación",
+    formula: `${completo ? "insumos × 1,5 + domótica × 2" : "insumos × 1,5"}${cristal ? " + cristal" : ""} + confección + instalación`,
     avisos: avisos.slice(0, 10),
     opciones,
   }

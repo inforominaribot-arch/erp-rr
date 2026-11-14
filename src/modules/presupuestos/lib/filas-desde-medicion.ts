@@ -132,7 +132,9 @@ export function calcularFilaTradicional(
     {
       capa: k.capa === "GAZA" || k.capa === "BO" ? k.capa : null,
       nombreTela: k.nombreTela,
+      colorTela: k.capa === "BO" ? carac?.bo?.colorTela ?? null : carac?.gaza?.colorTela ?? null,
       sistema: carac?.sistema ?? null,
+      sinSistema: k.capa === "BO" ? Boolean(carac?.sinSistemaBO) : Boolean(carac?.sinSistemaGaza),
       tipoSoporte: carac?.tipoSoporte ?? null,
       varianteSoporte: carac?.varianteSoporte ?? null,
       cantidadSoportes: carac?.cantidadSoportes ?? null,

@@ -444,3 +444,113 @@ export async function obtenerTelasTradicionalLocales(): Promise<string[]> {
 export async function guardarTelasTradicionalLocales(nombres: string[]): Promise<void> {
   await Preferences.set({ key: KEY_TELAS_TRADICIONAL, value: JSON.stringify(nombres) })
 }
+
+// ─── Arquitectos (se crean, editan y borran también sin internet) ────────────
+
+const KEY_ARQUITECTOS = "arquitectos"
+/** Id temporal de un arquitecto creado en la tablet, hasta que el ERP le da el suyo */
+export const PREFIJO_ARQUITECTO_OFFLINE = "arq_offline_"
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+export const esIdArquitectoDelErp = (id: string) => UUID.test(id)
+
+export interface IArquitectoCache {
+  id: string
+  nombre: string
+  telefono?: string | null
+  email?: string | null
+  notas?: string | null
+  /** Cambio hecho en la tablet que falta subir */
+  pendiente?: "crear" | "editar" | "borrar"
+}
+
+async function leerArquitectos(): Promise<IArquitectoCache[]> {
+  try {
+    const { value } = await Preferences.get({ key: KEY_ARQUITECTOS })
+    const datos = value ? JSON.parse(value) : []
+    return Array.isArray(datos) ? (datos as IArquitectoCache[]) : []
+  } catch (err) {
+    console.error("Error al leer los arquitectos locales:", err)
+    return []
+  }
+}
+
+async function escribirArquitectos(lista: IArquitectoCache[]): Promise<void> {
+  await Preferences.set({ key: KEY_ARQUITECTOS, value: JSON.stringify(lista) })
+}
+
+/** Arquitectos para mostrar (sin los borrados en la tablet), en orden alfabético. */
+export async function obtenerArquitectosLocales(): Promise<IArquitectoCache[]> {
+  return (await leerArquitectos())
+    .filter((a) => a.pendiente !== "borrar")
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))
+}
+
+/** Cambios de arquitectos hechos en la tablet que falta subir. */
+export async function obtenerArquitectosPendientes(): Promise<IArquitectoCache[]> {
+  return (await leerArquitectos()).filter((a) => a.pendiente)
+}
+
+/** Alta o edición en la tablet. Devuelve el arquitecto guardado (con su id temporal si es nuevo). */
+export async function guardarArquitectoLocal(arquitecto: Omit<IArquitectoCache, "pendiente" | "id"> & { id?: string }): Promise<IArquitectoCache> {
+  const lista = await leerArquitectos()
+  const id = arquitecto.id || `${PREFIJO_ARQUITECTO_OFFLINE}${Date.now()}`
+  const previo = lista.find((a) => a.id === id)
+  const guardado: IArquitectoCache = {
+    ...arquitecto,
+    id,
+    pendiente: previo?.pendiente === "crear" || !esIdArquitectoDelErp(id) ? "crear" : "editar",
+  }
+  await escribirArquitectos([...lista.filter((a) => a.id !== id), guardado])
+  return guardado
+}
+
+/** Borra el arquitecto en la tablet y lo saca de sus clientes (el ERP hace lo mismo al sincronizar). */
+export async function borrarArquitectoLocal(id: string): Promise<void> {
+  const lista = await leerArquitectos()
+  const previo = lista.find((a) => a.id === id)
+  const resto = lista.filter((a) => a.id !== id)
+  // Si ya existe en el ERP queda marcado para borrarlo allá; si era solo de la tablet, desaparece
+  if (previo && esIdArquitectoDelErp(id)) resto.push({ ...previo, pendiente: "borrar" })
+  await escribirArquitectos(resto)
+  const clientes = (await obtenerClientesLocales()).filter((c) => c.arquitectoIds?.includes(id))
+  for (const c of clientes) {
+    await agregarClienteExpressLocal({ ...c, arquitectoIds: (c.arquitectoIds ?? []).filter((x) => x !== id) })
+  }
+}
+
+/** Lista bajada del ERP: reemplaza la local, salvo los cambios de la tablet que todavía no se subieron. */
+export async function guardarArquitectosDelServidor(servidor: IArquitectoCache[]): Promise<void> {
+  const pendientes = (await leerArquitectos()).filter((a) => a.pendiente)
+  const conPendiente = new Set(pendientes.map((a) => a.id))
+  await escribirArquitectos([
+    ...servidor.filter((a) => !conPendiente.has(a.id)).map((a) => ({ ...a, pendiente: undefined })),
+    ...pendientes,
+  ])
+}
+
+/**
+ * Después de subir los cambios: los creados en la tablet pasan a tener el id del ERP
+ * (también en los clientes que los tenían) y los subidos dejan de estar pendientes.
+ */
+export async function confirmarArquitectosSubidos(
+  creados: Array<{ idLocal: string; id: string }>,
+  listos: string[]
+): Promise<void> {
+  const mapa = new Map(creados.map((c) => [c.idLocal, c.id]))
+  const terminados = new Set(listos)
+  const lista = (await leerArquitectos())
+    .filter((a) => !(a.pendiente === "borrar" && terminados.has(a.id)))
+    .map((a) =>
+      mapa.has(a.id)
+        ? { ...a, id: mapa.get(a.id)!, pendiente: undefined }
+        : terminados.has(a.id)
+          ? { ...a, pendiente: undefined }
+          : a
+    )
+  await escribirArquitectos(lista)
+  if (mapa.size === 0) return
+  const clientes = (await obtenerClientesLocales()).filter((c) => c.arquitectoIds?.some((x) => mapa.has(x)))
+  for (const c of clientes) {
+    await agregarClienteExpressLocal({ ...c, arquitectoIds: (c.arquitectoIds ?? []).map((x) => mapa.get(x) ?? x) })
+  }
+}

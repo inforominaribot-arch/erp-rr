@@ -230,6 +230,22 @@ export function ClienteDetalleHeader({ cliente }: ClienteDetalleHeaderProps) {
         </div>
       </div>
 
+      {/* Arquitectos */}
+      {(cliente.arquitectos?.length ?? 0) > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="font-semibold text-slate-500">Arquitecto{cliente.arquitectos!.length > 1 ? "s" : ""}:</span>
+          {cliente.arquitectos!.map((a) => (
+            <Link
+              key={a.id}
+              href={`/arquitectos/${a.id}`}
+              className="rounded-full bg-indigo-50 px-2.5 py-1 font-semibold text-indigo-700 hover:bg-indigo-100"
+            >
+              {a.nombre}
+            </Link>
+          ))}
+        </div>
+      )}
+
       {/* Notas del cliente */}
       {cliente.notas && (
         <div className="mt-4 rounded-lg border border-amber-200/70 bg-amber-50/50 p-3.5 text-xs">

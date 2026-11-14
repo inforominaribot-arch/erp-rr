@@ -74,11 +74,18 @@ export function calcularCorteRiel(anchoMetros: number): {
 const NOMBRE_CAPA_SOPORTE: Record<CapaCortina, string> = { GAZA: "Gasa", BO: "Black Out" }
 const fmtM = (n: number) => `${n.toFixed(2)}m`
 
-/** Capas que van colgadas de riel o barral: cada una lleva el suyo, separado de la otra. */
-function capasConSoporte(c: ICaracteristicasItem): CapaCortina[] {
+const sinSistemaCapa = (c: ICaracteristicasItem, capa: CapaCortina) =>
+  Boolean(capa === "GAZA" ? c.sinSistemaGaza : c.sinSistemaBO)
+
+/**
+ * Capas que van colgadas de riel o barral: cada una lleva el suyo, separado de la otra.
+ * Las "sin sistema" (el cliente ya lo tiene) no cuentan, salvo que se pidan.
+ */
+function capasConSoporte(c: ICaracteristicasItem, incluirSinSistema = false): CapaCortina[] {
   return (["GAZA", "BO"] as CapaCortina[]).filter((capa) => {
     const t = tipoDeCapa(c, capa)
-    return t === "Tradicional" || (t === "Tradicional Mot" && c.sistema === "Riel")
+    const cuelga = t === "Tradicional" || (t === "Tradicional Mot" && c.sistema === "Riel")
+    return cuelga && (incluirSinSistema || !sinSistemaCapa(c, capa))
   })
 }
 
@@ -113,8 +120,29 @@ export function textoRielesBarrales(
     const config = capa === "GAZA" ? c.gaza : c.bo
     return { capa, ...deCapa(Number(config?.ancho) || anchoFila) }
   })
-  if (capas.length === 0) return null
+  // Capas cuyo riel / barral ya tiene el cliente: lo avisa la comanda en mayúscula
+  const sinSistema = capasConSoporte(c, true).filter((capa) => sinSistemaCapa(c, capa))
+  const textoSin =
+    sinSistema.length > 0
+      ? `${nombre.toUpperCase()} sin sistema${
+          sinSistema.length + capas.length > 1 ? ` (${sinSistema.map((k) => NOMBRE_CAPA_SOPORTE[k]).join(" y ")})` : ""
+        }`
+      : null
+  if (capas.length === 0) return textoSin
+  const conTexto = textoConSistema(capas, nombre, barral, unidad)
+  if (!textoSin) return conTexto
+  // Mezcla (una capa con sistema y otra sin): se aclara de qué capa es cada uno
+  const capaCon = capas.length === 1 ? ` (${NOMBRE_CAPA_SOPORTE[capas[0].capa]})` : ""
+  return `${conTexto.replace(/ \(sin corte\)$/, "")}${capaCon} · ${textoSin}`
+}
 
+/** "Riel: 2 de 2.60m (Gasa y Black Out)" para las capas que llevan riel / barral nuevo. */
+function textoConSistema(
+  capas: { capa: CapaCortina; cantidad: number; medida: number }[],
+  nombre: string,
+  barral: boolean,
+  unidad: (cantidad: number, enTramos: boolean) => string
+): string {
   const nombres = capas.map((k) => NOMBRE_CAPA_SOPORTE[k.capa]).join(" y ")
   const iguales = capas.every((k) => k.medida === capas[0].medida && k.cantidad === capas[0].cantidad)
   if (iguales) {

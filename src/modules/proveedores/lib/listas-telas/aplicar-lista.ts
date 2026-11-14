@@ -1,6 +1,6 @@
 // Módulo: Proveedores
 // Guarda en la base una lista de precios subida (Excel o PDF):
-//  - Telas (Alhambra, Bia Brem, Sirota): se actualiza cada tela por nombre, se guarda el precio anterior
+//  - Telas (Alhambra, Bia Brem, Sirota, TelaEntrego): se actualiza cada tela por nombre, se guarda el precio anterior
 //    y las que ya no figuran quedan inactivas.
 //  - Accesorios Rollershade ("Rieles y cosas"): cada sección del PDF se aparea con la sección de la base
 //    en el mismo orden y cada renglón con el ítem en la misma posición; solo cambia el precio.
@@ -15,6 +15,7 @@ import {
   palabraClave,
   parsearExcelTelas,
   parsearPdfAccesorios,
+  parsearPdfTelaEntrego,
   parsearPdfTelas,
   type FilaTela,
 } from "./parsear-listas"
@@ -40,6 +41,11 @@ export async function subirListaProveedor(
 ): Promise<IResultadoListaSubida> {
   const proveedor = await prisma.proveedor.findUnique({ where: { id: proveedorId } })
   if (!proveedor) throw new Error("El proveedor no existe.")
+
+  if (proveedor.formatoListaTelas === "TELA_ENTREGO") {
+    if (!esPdf(nombreArchivo, datos)) throw new Error("La lista de TelaEntrego se sube en PDF.")
+    return aplicarListaTelas(proveedorId, parsearPdfTelaEntrego(await leerRenglonesPdf(datos)))
+  }
 
   if (esFormatoListaTelas(proveedor.formatoListaTelas)) {
     const filas = esPdf(nombreArchivo, datos)

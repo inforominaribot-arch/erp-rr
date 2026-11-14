@@ -8,7 +8,7 @@ import {
   handleCorsPreflight,
   jsonResponse,
 } from "@/lib/api-auth"
-import { firmaCliente } from "@/modules/mediciones/lib/firma-cliente"
+import { firmaArquitecto, firmaCliente } from "@/modules/mediciones/lib/firma-cliente"
 
 /** Igual que la descarga de mediciones: la tablet solo baja los últimos 6 meses */
 const MESES_A_DESCARGAR = 6
@@ -29,7 +29,7 @@ export async function GET(req: Request) {
     const desdeParam = new URL(req.url).searchParams.get("desde")
     const desde = desdeParam ? new Date(desdeParam) : null
 
-    const [mediciones, clientes] = await Promise.all([
+    const [mediciones, clientes, arquitectos] = await Promise.all([
       prisma.medicion.count({
         where: {
           creadoEn: { gte: limite },
@@ -37,14 +37,25 @@ export async function GET(req: Request) {
         },
       }),
       prisma.cliente.findMany({
-        select: { id: true, nombre: true, telefono: true, email: true, direccion: true, localidad: true, notas: true },
+        select: {
+          id: true,
+          nombre: true,
+          telefono: true,
+          email: true,
+          direccion: true,
+          localidad: true,
+          notas: true,
+          arquitectos: { select: { id: true } },
+        },
       }),
+      prisma.arquitecto.findMany({ select: { id: true, nombre: true, telefono: true, email: true, notas: true } }),
     ])
 
     return jsonResponse({
       success: true,
       mediciones,
-      clientes: clientes.map((c) => ({ id: c.id, firma: firmaCliente(c) })),
+      clientes: clientes.map((c) => ({ id: c.id, firma: firmaCliente({ ...c, arquitectoIds: c.arquitectos.map((a) => a.id) }) })),
+      arquitectos: arquitectos.map((a) => ({ id: a.id, firma: firmaArquitecto(a) })),
     })
   } catch (error) {
     console.error("Error en endpoint GET /api/mediciones/novedades:", error)

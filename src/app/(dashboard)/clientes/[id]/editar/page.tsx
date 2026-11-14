@@ -3,6 +3,7 @@ import Link from "next/link"
 import { PageHeader } from "@/components/shared/layout/PageHeader"
 import { ClienteForm } from "@/modules/clientes/components/cliente-form"
 import { obtenerClientePorId } from "@/modules/clientes/queries"
+import { obtenerArquitectosParaSelector } from "@/modules/arquitectos/queries"
 import type { ICliente } from "@/modules/clientes/types"
 import { ArrowLeft } from "lucide-react"
 
@@ -14,7 +15,7 @@ export default async function EditarClientePage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const cliente = await obtenerClientePorId(id)
+  const [cliente, arquitectos] = await Promise.all([obtenerClientePorId(id), obtenerArquitectosParaSelector()])
 
   if (!cliente) {
     notFound()
@@ -40,6 +41,7 @@ export default async function EditarClientePage({
       <ClienteForm
         modo="editar"
         cliente={cliente as unknown as ICliente}
+        arquitectos={arquitectos}
       />
     </div>
   )

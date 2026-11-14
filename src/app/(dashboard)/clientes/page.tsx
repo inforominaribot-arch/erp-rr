@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/shared/layout/PageHeader"
 import { ClienteTabla } from "@/modules/clientes/components/cliente-tabla"
 import { ClienteImportarCSV } from "@/modules/clientes/components/cliente-importar-csv"
 import { obtenerClientes, obtenerConteosPorEstado } from "@/modules/clientes/queries"
+import { obtenerArquitectosParaSelector } from "@/modules/arquitectos/queries"
 import type { IClienteConConteo } from "@/modules/clientes/types"
 import {
   Plus,
@@ -25,9 +26,10 @@ export default async function ClientesPage({
   const params = await searchParams
   const mostrarImportador = params?.importar === "true"
 
-  const [{ clientes }, conteos] = await Promise.all([
+  const [{ clientes }, conteos, arquitectos] = await Promise.all([
     obtenerClientes({ porPagina: 100 }),
     obtenerConteosPorEstado(),
+    obtenerArquitectosParaSelector(),
   ])
 
   const totalClientes = Object.values(conteos).reduce(
@@ -145,7 +147,7 @@ export default async function ClientesPage({
       </div>
 
       {/* Tabla de Clientes */}
-      <ClienteTabla clientesIniciales={clientes as unknown as IClienteConConteo[]} />
+      <ClienteTabla clientesIniciales={clientes as unknown as IClienteConConteo[]} arquitectos={arquitectos} />
     </div>
   )
 }

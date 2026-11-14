@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { agregarClienteExpressLocal, actualizarClienteLocal } from "../services/storage-service"
 import type { IClienteCache } from "@/modules/mediciones/lib/offline-storage"
 import { User, Phone, MapPin, Building, FileText, X, Check, Mail } from "lucide-react"
+import { SelectorArquitectosMobile } from "./SelectorArquitectosMobile"
 
 interface ClienteExpressModalMobileProps {
   abierto: boolean
@@ -26,6 +27,7 @@ export function ClienteExpressModalMobile({
   const [direccion, setDireccion] = useState(clienteEditar?.direccion || "")
   const [localidad, setLocalidad] = useState(clienteEditar?.localidad || "")
   const [notas, setNotas] = useState(clienteEditar?.notas || "")
+  const [arquitectoIds, setArquitectoIds] = useState<string[]>(clienteEditar?.arquitectoIds ?? [])
   const [error, setError] = useState<string | null>(null)
 
   const editando = Boolean(clienteEditar)
@@ -55,6 +57,7 @@ export function ClienteExpressModalMobile({
       localidad: localidad.trim() || null,
       notas: notas.trim() || null,
       estado: clienteEditar?.estado || "MEDICION_TOMADA",
+      arquitectoIds,
     }
 
     try {
@@ -189,6 +192,13 @@ export function ClienteExpressModalMobile({
                 className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              Arquitectos
+            </label>
+            <SelectorArquitectosMobile seleccionados={arquitectoIds} onCambiar={setArquitectoIds} />
           </div>
 
           <div>

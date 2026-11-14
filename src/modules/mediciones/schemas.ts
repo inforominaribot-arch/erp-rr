@@ -100,6 +100,11 @@ export const caracteristicasItemSchema = z.object({
 
   // Tradicional: Sistema Riel o Barral con su color
   sistema: z.enum(["Riel", "Barral"]).optional(),
+  sinSistemaGaza: z.boolean().optional(),
+  sinSistemaBO: z.boolean().optional(),
+  accesoriosSinSistema: z
+    .object({ argollas: z.boolean(), terminales: z.boolean(), soportes: z.boolean() })
+    .optional(),
   tipoRiel: z.enum(["Normal", "Curvo"]).optional(),
   colorBarral: z
     .enum([
@@ -212,7 +217,7 @@ export const caracteristicasItemSchema = z.object({
       maquina: z.enum(MAQUINAS_TOLDO).optional(),
       soportePlano: z.number().int().min(0).max(99).optional(),
       escuadra: z.number().int().min(0).max(99).optional(),
-      manijas: z.number().int().min(1).max(99).optional(),
+      manijas: z.number().int().min(0).max(99).optional(),
       medidaManija: z.enum(MEDIDAS_MANIJA_TOLDO).optional(),
       // "Tube": mediciones de toldos anteriores al cambio de nombre a HUNA
       motor: z.enum([...MOTORES_TOLDO, "Tube"]).optional(),
@@ -398,6 +403,8 @@ export const medicionOfflineSyncSchema = z.object({
   clienteTelefono: z.string().optional().nullable(),
   clienteDireccion: z.string().optional().nullable(),
   clienteLocalidad: z.string().optional().nullable(),
+  /** Arquitectos del cliente dado de alta en la tablet (ids del ERP) */
+  clienteArquitectoIds: z.array(z.string().uuid()).max(50).optional(),
   observaciones: z.string().max(2000).optional().nullable(),
   sincronizado: z.boolean().default(false),
   guardadoEn: z.string().optional(),
@@ -420,7 +427,11 @@ export type SyncMedicionesBatchInput = z.infer<typeof syncMedicionesBatchSchema>
 
 export const clienteTabletSyncSchema = clienteSchema
   .pick({ nombre: true, telefono: true, email: true, direccion: true, localidad: true, notas: true })
-  .extend({ id: z.string().uuid("Identificador de cliente inválido") })
+  .extend({
+    id: z.string().uuid("Identificador de cliente inválido"),
+    /** Arquitectos del cliente (si no viene, no se tocan) */
+    arquitectoIds: z.array(z.string().uuid()).max(50).optional(),
+  })
 
 export const clientesTabletSyncBatchSchema = z.object({
   clientes: z.array(z.unknown()).max(500, "Demasiados clientes en un solo envío"),

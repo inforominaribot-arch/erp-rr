@@ -2,7 +2,11 @@
 // Consultas de solo lectura con Prisma y serialización Decimal -> number
 
 import { armarCatalogoTelas, type ITelaTradicional } from "./lib/tradicional"
-import { esFormatoListaTelas, FORMATOS_LISTA_TELAS } from "@/modules/proveedores/lib/listas-telas/parsear-listas"
+import {
+  esFormatoListaTelas,
+  recargoDeTela,
+  textoClienteTela,
+} from "@/modules/proveedores/lib/listas-telas/parsear-listas"
 import { prisma } from "@/lib/prisma"
 import type { Prisma, ItemPresupuesto, Presupuesto, Cliente, Comanda } from "@prisma/client"
 import { asegurarPlanillaReciente } from "@/modules/proveedores/lib/sincronizar-planilla"
@@ -484,7 +488,8 @@ export async function obtenerTelasTradicional(): Promise<ITelaTradicional[]> {
             descripcion: it.descripcion,
             ancho: it.ancho !== null ? Number(it.ancho) : null,
             precioLista,
-            precio: Math.round(precioLista * FORMATOS_LISTA_TELAS[formato].recargo),
+            precio: Math.round(precioLista * recargoDeTela(formato, it.nombre)),
+            textoCliente: textoClienteTela(formato, it.nombre, it.rubro),
           },
         ]
       })

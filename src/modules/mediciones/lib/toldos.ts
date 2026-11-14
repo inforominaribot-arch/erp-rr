@@ -31,13 +31,16 @@ export const TODOS_MODELOS_MOTOR_TOLDO = ["Altus 40/12", "Altus 50/12", "LTN 50/
 /** Medida de la manija nacional en metros */
 export const MEDIDAS_MANIJA_TOLDO = ["1", "1,25", "1,5", "1,75", "2", "2,5"] as const
 export const CANALES_TOLDO = [1, 3, 5, 15, 16] as const
-export const TELAS_TOLDO = ["Acrílica", "Vinílica", "Media sombra"] as const
+/** Cristal: transparente, solo Toldo Vertical (se terceriza: el precio va a mano en el presupuesto) */
+export const TELAS_TOLDO = ["Acrílica", "Vinílica", "Media sombra", "Cristal"] as const
 /** Pérgola Barrio: en cuántas partes se divide el ancho */
 export const MAX_DIVISIONES_PERGOLA = 10
 
 export const TIPOS_TELA_ACRILICA = ["x1,20", "x1,53", "x2"] as const
 export const TIPOS_TELA_VINILICA = ["Sembra 7000", "Sembra 11000", "Screen Exterior", "Microperforado", "Blackout"] as const
 export const TIPOS_TELA_MEDIA_SOMBRA = ["95%"] as const
+/** El Cristal no tiene tipo: un único valor que se completa solo */
+export const TIPOS_TELA_CRISTAL = ["Cristal"] as const
 
 export type ColorPerfileriaToldo = (typeof COLORES_PERFILERIA_TOLDO)[number]
 export type CanoToldo = (typeof CANOS_TOLDO)[number]
@@ -191,14 +194,15 @@ export function tiposDeTela(tela: TelaToldo | null | undefined): readonly string
   if (tela === "Acrílica") return TIPOS_TELA_ACRILICA
   if (tela === "Vinílica") return TIPOS_TELA_VINILICA
   if (tela === "Media sombra") return TIPOS_TELA_MEDIA_SOMBRA
+  if (tela === "Cristal") return TIPOS_TELA_CRISTAL
   return []
 }
 
-/** Proyección: solo acrílicas · Vertical: acrílicas y vinílicas · Pérgola Barrio: también media sombra 95% */
+/** Proyección: solo acrílicas · Vertical: acrílicas, vinílicas y cristal · Pérgola Barrio: también media sombra 95% */
 export function telasPermitidas(subtipo: SubtipoToldo | null | undefined): readonly TelaToldo[] {
   if (subtipo === "PROYECCION") return ["Acrílica"]
-  if (subtipo === "PERGOLA_BARRIO") return TELAS_TOLDO
-  return ["Acrílica", "Vinílica"]
+  if (subtipo === "PERGOLA_BARRIO") return ["Acrílica", "Vinílica", "Media sombra"]
+  return ["Acrílica", "Vinílica", "Cristal"]
 }
 
 export const nombreTelaToldo = (tela: TelaToldo) => (tela === "Media sombra" ? "Media sombra 95%" : tela)
@@ -224,6 +228,11 @@ export function coloresDeTela(tela: TelaToldo | null | undefined, tipoTela: stri
   }
   if (tela === "Media sombra") {
     return COLORES_MEDIA_SOMBRA.map((nombre) => ({ nombre, linea: "Media sombra 95%" }))
+  }
+  if (tela === "Cristal") {
+    // Todos los colores de las lonas vinílicas, sin repetir
+    const todos = [...new Set(Object.values(COLORES_VINILICAS).flat())].sort((a, b) => a.localeCompare(b, "es"))
+    return todos.map((nombre) => ({ nombre, linea: "Cristal" }))
   }
   return COLORES_ACRILICAS.filter((c) => !c.anchos || c.anchos.includes(tipoTela))
 }
@@ -311,9 +320,13 @@ export function limpiarToldo(t: Partial<IToldoConfig>): Partial<IToldoConfig> {
     ...(tp1 ? { tensor: t.tensor, brazoCaputa: t.brazoCaputa, sujecionPiso: t.sujecionPiso ?? 0 } : {}),
     ...(tp2 ? { brazos: t.brazos } : {}),
     mecanismo: t.mecanismo,
-    ...(vertical && manual ? { maquina: t.maquina } : {}),
+    // Por defecto la primera máquina (polifuncional)
+    ...(vertical && manual ? { maquina: t.maquina ?? MAQUINAS_TOLDO[0] } : {}),
     ...(vertical && (manual || motorizado) ? { soportePlano: t.soportePlano ?? 0, escuadra: t.escuadra ?? 0 } : {}),
-    ...(manual ? { manijas: t.manijas ?? 1, medidaManija: t.medidaManija } : {}),
+    // Manijas: pueden ser 0 (sin manija); la medida solo si lleva
+    ...(manual
+      ? { manijas: t.manijas ?? 1, medidaManija: (t.manijas ?? 1) > 0 ? t.medidaManija : undefined }
+      : {}),
     ...(motorizado
       ? {
           motor: motor && motores.includes(motor) ? motor : undefined,
@@ -405,8 +418,8 @@ export function validarToldo(t: Partial<IToldoConfig> | null | undefined, ancho:
   if (!t.mecanismo) return "Elegí el mecanismo (Manual o Motorizado)."
   if (t.mecanismo === "Manual") {
     if (vertical && !t.maquina) return "Elegí la máquina."
-    if (!t.manijas || t.manijas < 1) return "Ingresá la cantidad de manijas."
-    if (!t.medidaManija) return "Elegí la medida de la manija."
+    if (t.manijas === undefined || t.manijas < 0) return "Ingresá la cantidad de manijas (puede ser 0)."
+    if (t.manijas > 0 && !t.medidaManija) return "Elegí la medida de la manija."
   } else {
     if (!t.motor) return "Elegí el tipo de motor."
     if (modelosDeMotorToldo(t.motor).length > 0 && !modeloMotorValido(t)) return "Elegí el modelo del motor."
@@ -464,8 +477,10 @@ export const nombreSubtipoToldo = (subtipo: string | null | undefined) =>
 /** Tela en una línea: "Acrílica x1,20 · Sauleda Beige 2038" */
 export function textoTelaToldo(t: Partial<IToldoConfig> | null | undefined): string {
   if (!t?.tela) return ""
-  const linea = t.lineaTela && t.lineaTela !== t.tipoTela && t.tela !== "Media sombra" ? `${t.lineaTela} ` : ""
-  return [`${t.tela} ${t.tipoTela ?? ""}`.trim(), t.colorTela ? `${linea}${t.colorTela}` : null]
+  const linea =
+    t.lineaTela && t.lineaTela !== t.tipoTela && t.tela !== "Media sombra" && t.tela !== "Cristal" ? `${t.lineaTela} ` : ""
+  const tipo = t.tela === "Cristal" ? "" : t.tipoTela ?? ""
+  return [`${t.tela} ${tipo}`.trim(), t.colorTela ? `${linea}${t.colorTela}` : null]
     .filter(Boolean)
     .join(" · ")
 }
@@ -536,7 +551,9 @@ export function lineasToldo(t: Partial<IToldoConfig> | null | undefined): string
       [
         "Manual",
         vertical ? t.maquina : null,
-        `Manijas${t.medidaManija ? ` ${etiquetaMedidaManija(t.medidaManija)}` : ""} × ${t.manijas ?? 1}`,
+        (t.manijas ?? 1) === 0
+          ? "Sin manijas"
+          : `Manijas${t.medidaManija ? ` ${etiquetaMedidaManija(t.medidaManija)}` : ""} × ${t.manijas ?? 1}`,
       ]
         .filter(Boolean)
         .join(" · ")

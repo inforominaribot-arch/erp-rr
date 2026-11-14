@@ -12,6 +12,7 @@ interface IAviso {
   mensaje: string
   medicionId: string | null
   clienteId: string | null
+  arquitectoId: string | null
   leida: boolean
   creadoEn: string
 }
@@ -79,6 +80,7 @@ export function NotificacionesCampana() {
     if (!aviso.leida) void marcar({ id: aviso.id })
     if (aviso.medicionId) router.push(`/mediciones/${aviso.medicionId}`)
     else if (aviso.clienteId) router.push(`/clientes/${aviso.clienteId}`)
+    else if (aviso.arquitectoId && aviso.tipo !== "ARQUITECTO_BORRADO") router.push(`/arquitectos/${aviso.arquitectoId}`)
   }
 
   return (

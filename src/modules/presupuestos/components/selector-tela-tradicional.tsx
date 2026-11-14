@@ -87,6 +87,18 @@ export function SelectorTelaTradicional({ capa, telas, onCambiar, placeholder }:
         </div>
       </div>
 
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs text-slate-500">Color:</span>
+        <input
+          type="text"
+          value={capa.color ?? ""}
+          maxLength={80}
+          onChange={(e) => onCambiar({ ...capa, color: e.target.value || null })}
+          placeholder="Texto libre (ej: Crudo, Gris perla)"
+          className="w-full max-w-xs rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-900 focus:border-indigo-500 focus:outline-hidden"
+        />
+      </div>
+
       {capa.proveedor && !capa.manual && (
         <p className="flex flex-wrap items-center gap-1 text-[11px] text-slate-600">
           <Store className="h-3 w-3 shrink-0" />

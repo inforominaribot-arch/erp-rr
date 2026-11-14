@@ -48,9 +48,22 @@ export function CalculoTradicional({ cfg, onCambiar, ancho, telas, accesorios, r
       sistema,
       accesorios:
         sistema === "Barral"
-          ? cfg.accesorios ?? accesoriosPorDefecto(ancho, capas, accesorios, { cobrar: true })
+          ? cfg.accesorios ?? accesoriosPorDefecto(ancho, capas, accesorios, { cobrar: !cfg.sinSistema })
           : cfg.accesorios,
     })
+
+  // Sin sistema: el riel / barral no se cobra y los accesorios se eligen a mano (arrancan sin cobrar)
+  const cambiarSinSistema = (sinSistema: boolean) => {
+    const porDefecto = accesoriosPorDefecto(ancho, capas, accesorios, { cobrar: true })
+    const actual = cfg.accesorios ?? porDefecto
+    set({
+      sinSistema,
+      accesorios: sinSistema
+        ? { ...actual, argollas: 0, terminales: 0, soportes: 0 }
+        : { ...actual, argollas: porDefecto.argollas, terminales: porDefecto.terminales, soportes: porDefecto.soportes },
+    })
+  }
+  const accesorioDefecto = accesoriosPorDefecto(ancho, capas, accesorios, { cobrar: true })
 
   const soporteElegido = acc?.nombreSoporte ?? ""
   const opcionesSoporte = accesorios.soportes.map((s) => ({
@@ -82,7 +95,25 @@ export function CalculoTradicional({ cfg, onCambiar, ancho, telas, accesorios, r
             {s}
           </button>
         ))}
+        <span className="mx-1 h-5 w-px bg-slate-200" />
+        {[false, true].map((sin) => (
+          <button
+            key={String(sin)}
+            type="button"
+            onClick={() => cambiarSinSistema(sin)}
+            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+              cfg.sinSistema === sin ? "bg-indigo-600 text-white" : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            {sin ? "Sin sistema" : "Con sistema"}
+          </button>
+        ))}
       </div>
+      {cfg.sinSistema && (
+        <p className="text-[11px] font-semibold text-slate-600">
+          El cliente ya tiene el {nombreRiel.toLowerCase()}: no se cobra. {esBarral ? "Marcá abajo los accesorios que sí se cobran." : ""}
+        </p>
+      )}
 
       {/* Telas */}
       {cfg.modo === "ESTANDAR" ? (
@@ -188,6 +219,29 @@ export function CalculoTradicional({ cfg, onCambiar, ancho, telas, accesorios, r
             </button>
           </div>
           <p className="text-[11px] text-slate-500">Lista de accesorios Rollershade, línea Black Point 1&quot;, × 1,5.</p>
+          {cfg.sinSistema && (
+            <div className="flex flex-wrap gap-3">
+              {(
+                [
+                  ["argollas", "Argollas"],
+                  ["terminales", "Terminales"],
+                  ["soportes", "Soportes"],
+                ] as const
+              ).map(([campo, etiqueta]) => (
+                <label key={campo} className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={acc[campo] > 0}
+                    onChange={(e) =>
+                      set({ accesorios: { ...acc, [campo]: e.target.checked ? accesorioDefecto[campo] || 1 : 0 } })
+                    }
+                    className="h-4 w-4 rounded text-indigo-600"
+                  />
+                  Cobrar {etiqueta.toLowerCase()}
+                </label>
+              ))}
+            </div>
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 items-end">
             <Numero label="Argollas (cant.)" valor={acc.argollas} onCambiar={(n) => set({ accesorios: { ...acc, argollas: Math.round(n) } })} />
             <Numero label="$ argolla" valor={acc.precioArgolla} onCambiar={(n) => set({ accesorios: { ...acc, precioArgolla: n } })} />

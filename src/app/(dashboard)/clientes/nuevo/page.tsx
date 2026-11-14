@@ -2,8 +2,12 @@ import Link from "next/link"
 import { PageHeader } from "@/components/shared/layout/PageHeader"
 import { ClienteForm } from "@/modules/clientes/components/cliente-form"
 import { ArrowLeft } from "lucide-react"
+import { obtenerArquitectosParaSelector } from "@/modules/arquitectos/queries"
 
-export default function NuevoClientePage() {
+export const dynamic = "force-dynamic"
+
+export default async function NuevoClientePage() {
+  const arquitectos = await obtenerArquitectosParaSelector()
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       {/* Encabezado */}
@@ -21,7 +25,7 @@ export default function NuevoClientePage() {
       </PageHeader>
 
       {/* Formulario */}
-      <ClienteForm modo="crear" />
+      <ClienteForm modo="crear" arquitectos={arquitectos} />
     </div>
   )
 }

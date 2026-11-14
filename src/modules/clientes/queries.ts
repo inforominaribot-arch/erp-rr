@@ -24,6 +24,7 @@ export async function obtenerClientes(filtros: Partial<FiltrosClienteInput> = {}
         { email: { contains: busqueda, mode: "insensitive" as const } },
         { direccion: { contains: busqueda, mode: "insensitive" as const } },
         { localidad: { contains: busqueda, mode: "insensitive" as const } },
+        { arquitectos: { some: { nombre: { contains: busqueda, mode: "insensitive" as const } } } },
       ],
     }),
     ...(estado !== "TODOS" && {
@@ -44,6 +45,7 @@ export async function obtenerClientes(filtros: Partial<FiltrosClienteInput> = {}
             presupuestos: true,
           },
         },
+        arquitectos: { select: { id: true, nombre: true }, orderBy: { nombre: "asc" } },
       },
     }),
     prisma.cliente.count({ where }),
@@ -63,6 +65,7 @@ export async function obtenerClientePorId(id: string) {
   const cliente = await prisma.cliente.findUnique({
     where: { id },
     include: {
+      arquitectos: { select: { id: true, nombre: true }, orderBy: { nombre: "asc" } },
       mediciones: {
         orderBy: { creadoEn: "desc" },
         include: {

@@ -250,10 +250,21 @@ export function ComandaImprimible({
 
                       const anchoEfectivo = tieneGaza ? anchoGaza : tieneBO ? anchoBO : it.ancho
                       // Las argollas van solo en barral (en riel van ganchos)
+                      // Sin sistema (el cliente ya tiene el barral): solo lo que se cobró en el presupuesto
+                      const cobradosSinSistema = c?.accesoriosSinSistema
                       const argollas =
-                        !esProveedor && tieneGaza && tipo === "Tradicional" && c?.sistema === "Barral"
+                        !esProveedor &&
+                        tieneGaza &&
+                        tipo === "Tradicional" &&
+                        c?.sistema === "Barral" &&
+                        (!c?.sinSistemaGaza || Boolean(cobradosSinSistema?.argollas))
                           ? calcularArgollasGaza(anchoGaza)
                           : 0
+                      const todoSinSistema =
+                        Boolean(c?.sinSistemaGaza || c?.sinSistemaBO) &&
+                        (!tieneGaza || Boolean(c?.sinSistemaGaza)) &&
+                        (!tieneBO || c?.formatoBO === "Roller" || Boolean(c?.sinSistemaBO))
+                      const mostrarSoportes = !todoSinSistema || Boolean(cobradosSinSistema?.soportes)
                       const cantidadSoportes = calcularCantidadSoportes(anchoEfectivo)
                       const varianteSoporte = determinarVarianteSoporte(tieneGaza, tieneBO, c?.formatoBO)
                       const detallesCapas = detalleCapasComanda(c)
@@ -345,7 +356,7 @@ export function ComandaImprimible({
                                   <strong>{c?.sujecion || "Pared"}</strong>
                                 </div>
 
-                                {c?.tipoSoporte && (
+                                {c?.tipoSoporte && mostrarSoportes && (
                                   <div>
                                     <span className="text-slate-900 font-medium">Soportes: </span>
                                     <strong>

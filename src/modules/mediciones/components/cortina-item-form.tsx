@@ -147,6 +147,9 @@ export function CortinaItemForm({
   const [colorBarral, setColorBarral] = useState<ColorBarral | null>(
     caracInicial?.colorBarral || null
   )
+  // El cliente ya tiene el riel / barral de esa capa
+  const [sinSistemaGaza, setSinSistemaGaza] = useState<boolean>(caracInicial?.sinSistemaGaza ?? false)
+  const [sinSistemaBO, setSinSistemaBO] = useState<boolean>(caracInicial?.sinSistemaBO ?? false)
 
   // ─── Perfilería (Roller, Bandas, Noche total, Mosquera, y Tradicional con Roller BO) ───
   const [perfileria, setPerfileria] = useState<string | null>(
@@ -506,6 +509,17 @@ export function CortinaItemForm({
     (tipo === "Aluminio" && aluminioTieneGaza && tipoCapaGaza === "Tradicional") ||
     (esNocheTotalConGaza && tipoCapaGaza === "Tradicional")
 
+  // Capas tradicionales comunes (cuelgan de riel o barral propio): pueden ir "sin sistema"
+  const gazaTradicionalComun =
+    (tipo === "Tradicional" && gazaActiva) ||
+    (tipo === "Aluminio" && aluminioTieneGaza && tipoCapaGaza === "Tradicional") ||
+    (esNocheTotalConGaza && tipoCapaGaza === "Tradicional")
+  const boTradicionalComun =
+    boActiva &&
+    ((tipo === "Tradicional" && formatoBO === "Tradicional") ||
+      (esMotorizada &&
+        (subtipoMotorizada === "Tradicional Mot y Tradicional" || subtipoMotorizada === "Roller Mot y Tradicional")))
+
   // ¿Hay Tradicional con Riel? (Si es Riel común o motorizada)
   const hayTradicionalRiel =
     (tipo === "Tradicional" && sistemaTradicional === "Riel") ||
@@ -728,6 +742,8 @@ export function CortinaItemForm({
             ? tipoCapaGaza
             : undefined,
         tipoCapaBO: (tipo === "Roller" || tipo === "Bandas verticales") ? tipoCapaBO : undefined,
+        sinSistemaGaza: gazaTradicionalComun && sinSistemaGaza ? true : undefined,
+        sinSistemaBO: boTradicionalComun && sinSistemaBO ? true : undefined,
         // Tradicional: si hay tradicional común, puede ser Riel o Barral
         sistema:
           tipo === "Tradicional"
@@ -2954,6 +2970,37 @@ export function CortinaItemForm({
                   <span className="text-xs text-slate-500 font-medium">
                     (Las cortinas tradicionales motorizadas utilizan riel)
                   </span>
+                </div>
+              )}
+
+              {/* Con o sin sistema por capa: el cliente puede tener ya el riel / barral */}
+              {(tipo === "Tradicional" || hayTradicionalComun) && sistemaTradicional && (gazaTradicionalComun || boTradicionalComun) && (
+                <div className="pt-2 border-t border-slate-200/80 space-y-2">
+                  {(
+                    [
+                      gazaTradicionalComun ? { capa: "Gasa", valor: sinSistemaGaza, set: setSinSistemaGaza } : null,
+                      boTradicionalComun ? { capa: "Black Out", valor: sinSistemaBO, set: setSinSistemaBO } : null,
+                    ].filter(Boolean) as { capa: string; valor: boolean; set: (v: boolean) => void }[]
+                  ).map((c) => (
+                    <div key={c.capa} className="flex flex-wrap items-center gap-2">
+                      <span className="w-20 text-xs font-bold text-slate-700">{c.capa}:</span>
+                      {[false, true].map((sin) => (
+                        <button
+                          key={String(sin)}
+                          type="button"
+                          onClick={() => c.set(sin)}
+                          className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+                            c.valor === sin
+                              ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          {sin ? `Sin ${sistemaTradicional.toLowerCase()}` : `Con ${sistemaTradicional.toLowerCase()}`}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                  <p className="text-[11px] text-slate-500">&quot;Sin&quot;: el cliente ya lo tiene. No se cobra y la comanda lo avisa.</p>
                 </div>
               )}
 

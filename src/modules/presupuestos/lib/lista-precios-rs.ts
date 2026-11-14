@@ -110,6 +110,8 @@ export const opcionesCalculoSchema = z.object({
   precioMotor: z.number().min(0).max(100_000_000).optional(),
   precioDomotica: z.number().min(0).max(100_000_000).optional(),
   precioBrazoCaduta: z.number().min(0).max(100_000_000).optional(),
+  // Toldo Vertical con tela Cristal: se terceriza, va directo (sin × 1,5)
+  precioCristal: z.number().min(0).max(100_000_000).optional(),
 })
 export type OpcionesCalculo = z.infer<typeof opcionesCalculoSchema>
 

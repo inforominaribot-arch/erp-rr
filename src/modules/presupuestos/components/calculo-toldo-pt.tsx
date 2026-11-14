@@ -132,6 +132,15 @@ export function CalculoToldoPT({ calculo, ancho, opciones, onCambiarOpciones, re
               resaltar={!efectivas.precioDomotica}
             />
           )}
+          {esVertical && toldo.tela === "Cristal" && (
+            <CampoPrecio
+              label="Cristal ($)"
+              valor={efectivas.precioCristal}
+              onCambiar={(precioCristal) => cambiar({ precioCristal })}
+              ayuda="Se terceriza: va directo, sin × 1,5"
+              resaltar={!efectivas.precioCristal}
+            />
+          )}
           {esVertical && toldo.brazoCaputa && (
             <CampoPrecio
               label="Brazo Caduta ($)"

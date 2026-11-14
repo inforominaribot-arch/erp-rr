@@ -120,7 +120,7 @@ export async function generarComandaDesdePresupuesto(
       const tipoFinal: TipoItemComanda = customClasif?.tipo || "FABRICAR"
 
       // Especificaciones técnicas: las de la opción elegida (alternativa) o las de la medición
-      const caracteristicasJson = (ab.caracteristicas as any) || null
+      const caracteristicasJson = conAccesoriosSinSistema((ab.caracteristicas as any) || null, ab.filas) as any
       const obsMedicion = [ab.nota, it.itemMedicion?.observaciones].filter(Boolean).join(" · ")
       const obsCustom = customClasif?.observaciones
 
@@ -668,4 +668,26 @@ export async function registrarOrdenPedido(
     console.error("Error al registrar la orden de pedido:", error)
     return { success: false, error: "No se pudo registrar la orden de pedido." }
   }
+}
+
+/**
+ * Capas sin sistema (el cliente ya tiene el riel / barral): la comanda muestra solo los accesorios del barral
+ * que se cobraron en el presupuesto. Las demás especificaciones quedan igual.
+ */
+function conAccesoriosSinSistema(
+  carac: Record<string, unknown> | null,
+  filas: Array<{ calculoPrecio: unknown }>
+): Record<string, unknown> | null {
+  if (!carac || !(carac.sinSistemaGaza || carac.sinSistemaBO)) return carac
+  const cobrados = { argollas: false, terminales: false, soportes: false }
+  for (const f of filas) {
+    const calc = f.calculoPrecio as { metodo?: string; tradicional?: { sinSistema?: boolean; accesorios?: Record<string, number> | null } } | null
+    if (calc?.metodo !== "TRADICIONAL" || !calc.tradicional?.sinSistema) continue
+    const acc = calc.tradicional.accesorios
+    if (!acc) continue
+    if ((acc.argollas ?? 0) > 0) cobrados.argollas = true
+    if ((acc.terminales ?? 0) > 0) cobrados.terminales = true
+    if ((acc.soportes ?? 0) > 0) cobrados.soportes = true
+  }
+  return { ...carac, accesoriosSinSistema: cobrados }
 }
