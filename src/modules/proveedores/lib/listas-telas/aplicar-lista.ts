@@ -4,6 +4,7 @@
 //    y las que ya no figuran quedan inactivas.
 //  - Accesorios Rollershade ("Rieles y cosas"): cada sección del PDF se aparea con la sección de la base
 //    en el mismo orden y cada renglón con el ítem en la misma posición; solo cambia el precio.
+//    El PDF viene sin IVA y en la base se guarda con IVA (× 1,21), como se cargó la lista desde el principio.
 // En los dos casos queda registrado que la lista se actualizó este mes (para el aviso del día 1).
 
 import { prisma } from "@/lib/prisma"
@@ -19,6 +20,9 @@ import {
   parsearPdfTelas,
   type FilaTela,
 } from "./parsear-listas"
+
+/** La lista de accesorios de Rollershade viene sin IVA: se guarda con IVA */
+export const IVA_ACCESORIOS_RS = 1.21
 
 export interface IResultadoListaSubida {
   tipo: "TELAS" | "ACCESORIOS"
@@ -161,16 +165,17 @@ export async function aplicarAccesoriosRS(proveedorId: string, renglones: string
     }
     pdf.items.forEach((r, i) => {
       const it = base.items[i]
+      const precio = Math.round(r.precio * IVA_ACCESORIOS_RS * 100) / 100
       const a = palabraClave(r.descripcion)
       const b = palabraClave(it.descripcion)
       if (a !== b && distancia(a, b) > 2) {
         res.avisos.push(`"${base.seccion}": "${r.descripcion}" no parece ser "${it.descripcion}". No se actualizó.`)
         return
       }
-      if (Number(it.precio) === r.precio) res.sinCambios++
+      if (Number(it.precio) === precio) res.sinCambios++
       else {
         res.cambiaronPrecio++
-        cambios.push({ id: it.id, precio: r.precio })
+        cambios.push({ id: it.id, precio })
       }
     })
   }
@@ -222,7 +227,7 @@ export async function obtenerListasPendientes(): Promise<IListaPendiente[]> {
     return {
       proveedorId: p.id,
       nombre: p.nombre,
-      lista: formato ? "Lista de telas (tradicionales)" : "Lista de accesorios (barrales, argollas, soportes)",
+      lista: formato ? "Lista de telas (tradicionales)" : "Lista de accesorios (barrales, argollas, soportes) · viene sin IVA: se le suma el 21%",
       archivo: formato ? formato.archivo : "PDF",
       confirmadaEn: p.listaConfirmadaEn ? p.listaConfirmadaEn.toISOString() : null,
     }
